@@ -6,7 +6,7 @@ print('sys.path={}'.format(sys.path))
 
 import unittest
 
-from opus.models.Task import *
+from opus.operarius import *
 
 running_path = os.getcwd()
 print('Current Working Path: {}'.format(running_path))
