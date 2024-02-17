@@ -30,7 +30,7 @@ class HelloWorldTaskProcessor(TaskProcessor):
             output_file = '{}'.format(task.spec['file'])
         with open(output_file, 'w') as f:
             f.write('Hello World!')
-        updated_key_Value_store.save(key='hello_world_file', value=output_file))
+        updated_key_Value_store.save(key='hello_world_file', value=output_file)
         return updated_key_Value_store
     
 
