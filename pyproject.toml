@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "pytaskflow"
+name = "opus"
 version = "1"
 dependencies = []
 requires-python = ">= 3.8"
@@ -39,11 +39,11 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/nicc777/poc_pytaskflow"
-Documentation = "https://github.com/nicc777/poc_pytaskflow"
-Repository = "https://github.com/nicc777/poc_pytaskflow"
-Issues = "https://github.com/nicc777/poc_pytaskflow/issues"
-Changelog = "https://raw.githubusercontent.com/nicc777/poc_pytaskflow/main/CHANGELOG.md"
+Homepage = "https://github.com/nicc777/opus"
+Documentation = "https://github.com/nicc777/opus"
+Repository = "https://github.com/nicc777/opus"
+Issues = "https://github.com/nicc777/opus/issues"
+Changelog = "https://raw.githubusercontent.com/nicc777/opus/main/CHANGELOG.md"
 
 
 
