@@ -373,10 +373,14 @@ class Hook:
         self.function_impl = function_impl
 
     def process_hook(self, command: str, context: str, task_life_cycle_stage: int, key_value_store: KeyValueStore, task: object=None, task_id: str=None, extra_parameters:dict=dict(), logger: LoggerWrapper=LoggerWrapper())->KeyValueStore:
+        final_logger = self.logger
+        if logger is not None:
+            if isinstance(logger, LoggerWrapper):
+                final_logger = logger
         if command not in self.commands or context not in self.contexts or self.task_life_cycle_stages.stage_registered(stage=task_life_cycle_stage) is False:
             return key_value_store
         try:
-            self.logger.debug(
+            final_logger.debug(
                 'Hook "{}" executed on stage "{}" for task "{}" for command "{}" in context "{}"'.format(
                     self.name,
                     task_life_cycle_stage,
@@ -405,8 +409,8 @@ class Hook:
                 context,
                 task_life_cycle_stage
             )
-            self.logger.error(exception_message)
-            raise Exception(exception_message)
+            final_logger.error(exception_message)
+            # raise Exception(exception_message)
         return key_value_store
 
 

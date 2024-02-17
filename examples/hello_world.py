@@ -31,6 +31,7 @@ class HelloWorldTaskProcessor(TaskProcessor):
         with open(output_file, 'w') as f:
             f.write('Hello World!')
         updated_key_Value_store.save(key='hello_world_file', value=output_file)
+        self.logger.info(message='Written file "{}"'.format(output_file))
         return updated_key_Value_store
     
 
@@ -47,9 +48,12 @@ def main():
             }
         )
     )
-    tasks.process_context(command='apply', context='*')
+    tasks.process_context(command='apply', context='ALL')
     values = tasks.key_value_store
-    logger.info(message='File written to "{}".'.format(values.store['hello_world_file']))
+    if 'hello_world_file' in values.store:
+        logger.info(message='File written to "{}".'.format(values.store['hello_world_file']))
+    else:
+        raise Exception('OOPSIE !!')
 
 
 if __name__ == '__main__':
