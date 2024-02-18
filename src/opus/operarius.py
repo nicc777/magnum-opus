@@ -1,3 +1,37 @@
+"""All classes and a couple of helper functions making up opus.
+
+Opus is a way to organize and execute tasks. The client creates an instance of `Tasks` and adds all `TaskProcessor` 
+implementations before adding `Task` objects. Finally, the processing is performed by calling the `process_context()` 
+method of the `Tasks` instance.
+
+Typical usage example:
+
+```python
+class MyTaskProcessor(TaskProcessor):
+
+    def __init__(self, kind: str='MyKind', kind_versions: list=['v1',], supported_commands: list = ['apply',], logger: LoggerWrapper = LoggerWrapper()):
+        super().__init__(kind, kind_versions, supported_commands, logger)
+
+    def process_task(self, task: Task, command: str, context: str = 'default', key_value_store: KeyValueStore = KeyValueStore(), state_persistence: StatePersistence = StatePersistence()) -> KeyValueStore:
+        # Your implementation here....
+        pass
+
+
+values = KeyValueStore()
+logger = MyLogger() # Some logger you implement....
+tasks = Tasks(key_value_store=values, logger=logger)
+tasks.register_task_processor(processor=...)    # You processor. Add all those you implement the same way.
+tasks.add_task(
+    task=Task(
+        kind='MyKind',
+        version='v1',
+        spec={...}
+    )
+)
+tasks.process_context(command='apply', context='ANY')
+```
+"""
+
 import json
 import hashlib
 import copy
@@ -5,6 +39,14 @@ from collections.abc import Sequence
 
 
 def keys_to_lower(data: dict):
+    """Converts all keys in a dict to lower case
+
+    Args:
+        data: A python dictionary
+
+    Returns:
+        The same dictionary provided as input, but with all keys converted to lower case.
+    """
     final_data = dict()
     for key in data.keys():
         if isinstance(data[key], dict):
