@@ -77,27 +77,62 @@ class KeyValueStore:
 
 
 class LoggerWrapper:    # pragma: no cover
+    """A helper class for logging. By default all log messages regardless of level is printed to STDOUT. Can be easily extended to implement a variety of logging functions.
+
+    Attributes:
+        *any*: Determined by client. By default there are no attributes
+    """
 
     def __init__(self):
         pass
 
     def info(self, message: str):
+        """Emits a provided message when called at `info` level
+
+        Args:
+            message: A string with the message to be emitted to the target log (by default, STDOUT)
+        """
         if isinstance(message, str):
             print(message)
 
     def warn(self, message: str):
+        """Emits a provided message when called at `warning` level
+
+        Args:
+            message: A string with the message to be emitted to the target log (by default, STDOUT)
+        """
         self.info(message=message)
 
     def warning(self, message: str):
+        """Emits a provided message when called at `warning` level
+
+        Args:
+            message: A string with the message to be emitted to the target log (by default, STDOUT)
+        """
         self.info(message=message)
 
     def debug(self, message: str):
+        """Emits a provided message when called at `debug` level
+
+        Args:
+            message: A string with the message to be emitted to the target log (by default, STDOUT)
+        """
         self.info(message=message)
 
     def critical(self, message: str):
+        """Emits a provided message when called at `critical` level
+
+        Args:
+            message: A string with the message to be emitted to the target log (by default, STDOUT)
+        """
         self.info(message=message)
 
     def error(self, message: str):
+        """Emits a provided message when called at `error` level
+
+        Args:
+            message: A string with the message to be emitted to the target log (by default, STDOUT)
+        """
         self.info(message=message)
 
 
