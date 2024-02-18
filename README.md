@@ -35,6 +35,8 @@ The client application has to provide the following implementations:
 | `StatePersistance` | ( optional ) Used to persist state during the various stages of task execution. Can also be used by `TaskProcessor` implementation to retrieve previous execution state of any individual task. If not implemented by the client, no persistance functionality will be provided/available. |
 | `TaskProcessor`    | ( required ) This is the class that implements the logic of processing a given task. No out-of-the-bos task processors exist, so the client must supply it's own.                                                                                                                          |
 
+The client then creates an instance of `Tasks` and adds all `TaskProcessor` implementations before adding `Task` objects. Finally, the processing is performed by calling the `process_context()` method of the `Tasks` instance.
+
 ## Hello World Example
 
 Here is a really quick ["hello world" example](./examples/hello_world.py) that will implement a `TaskProcessor` that creates a file with the text "Hello World!" in it:
