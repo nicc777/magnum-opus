@@ -239,6 +239,12 @@ class IdentifierContext:
 
 
 class IdentifierContexts(Sequence):
+    """A collection of `IdentifierContext` instances. 
+
+    Attributes:
+        identifier_contexts: List of `IdentifierContext` instances
+        unique_identifier_value: Calculated unique identifier for this collection
+    """
 
     def __init__(self):
         self.identifier_contexts = list()
