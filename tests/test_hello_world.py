@@ -17,6 +17,61 @@ running_path = os.getcwd()
 print('Current Working Path: {}'.format(running_path))
 
 
+class TestLogger(LoggerWrapper):    # pragma: no cover
+
+    def __init__(self):
+        super().__init__()
+        self.info_lines = list()
+        self.warn_lines = list()
+        self.debug_lines = list()
+        self.critical_lines = list()
+        self.error_lines = list()
+        self.all_lines_in_sequence = list()
+
+    def info(self, message: str):
+        self.info_lines.append('[LOG] INFO: {}'.format(message))
+        self.all_lines_in_sequence.append(
+            copy.deepcopy(self.info_lines[-1])
+        )
+
+    def warn(self, message: str):
+        self.warn_lines.append('[LOG] WARNING: {}'.format(message))
+        self.all_lines_in_sequence.append(
+            copy.deepcopy(self.warn_lines[-1])
+        )
+
+    def warning(self, message: str):
+        self.warn_lines.append('[LOG] WARNING: {}'.format(message))
+        self.all_lines_in_sequence.append(
+            copy.deepcopy(self.warn_lines[-1])
+        )
+
+    def debug(self, message: str):
+        self.debug_lines.append('[LOG] DEBUG: {}'.format(message))
+        self.all_lines_in_sequence.append(
+            copy.deepcopy(self.debug_lines[-1])
+        )
+
+    def critical(self, message: str):
+        self.critical_lines.append('[LOG] CRITICAL: {}'.format(message))
+        self.all_lines_in_sequence.append(
+            copy.deepcopy(self.critical_lines[-1])
+        )
+
+    def error(self, message: str):
+        self.error_lines.append('[LOG] ERROR: {}'.format(message))
+        self.all_lines_in_sequence.append(
+            copy.deepcopy(self.error_lines[-1])
+        )
+
+    def reset(self):
+        self.info_lines = list()
+        self.warn_lines = list()
+        self.debug_lines = list()
+        self.critical_lines = list()
+        self.error_lines = list()
+
+
 def random_string(string_length: int=16)->str:
     chars = string.ascii_uppercase + string.ascii_lowercase + string.digits
     random_str = ''
@@ -52,7 +107,7 @@ class TestHelloWorldScenario(unittest.TestCase):    # pragma: no cover
 
     def test_run_scenario_1(self):
         values = KeyValueStore()
-        logger = LoggerWrapper()
+        logger = TestLogger()
         tasks = Tasks(key_value_store=values, logger=logger)
         tasks.register_task_processor(processor=HelloWorldTaskProcessor())
         tasks.add_task(
@@ -69,10 +124,18 @@ class TestHelloWorldScenario(unittest.TestCase):    # pragma: no cover
 
         self.assertTrue('hello_world_file' in values.store)
 
-        if 'hello_world_file' in values.store:
-            logger.info(message='File written to "{}".'.format(values.store['hello_world_file']))
-        else:
-            raise Exception('OOPSIE !!')
+        logger.info(message='File written to "{}".'.format(values.store['hello_world_file']))
+        lines = list()
+        with open(values.store['hello_world_file'], 'r') as f:
+            lines = f.readlines()
+        self.assertTrue(len(lines) > 0)
+        self.assertTrue('Hello World!' in lines[0])
+
+        last_log_line = logger.info_lines[-1]
+        self.assertTrue(values.store['hello_world_file'] in last_log_line)
+
+        for line in logger.all_lines_in_sequence:
+            print('[LOG] >> {}'.format(line))
 
 
 
