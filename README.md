@@ -45,6 +45,8 @@ Here is a really quick ["hello world" example](./examples/hello_world.py) that w
 python3 examples/hello_world.py
 ```
 
+The example can also be observed as a unit test by running the test file [tests/test_hello_world.py](tests/test_hello_world.py)
+
 # Development Quick Start
 
 Preparing your local system for development:
