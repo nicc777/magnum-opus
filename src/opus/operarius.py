@@ -137,6 +137,81 @@ class LoggerWrapper:    # pragma: no cover
 
 
 class IdentifierContext:
+    """Context are slightly more complex definitions to define the constraints that will identify whether a `Task` must 
+    be processed or not. The use of contexts are completely optional, but when they are used, the best practice is to 
+    define contexts for every task.
+
+    Internally, OPUS depends on the following context types:
+
+    * `Environment`
+    * `Command`
+
+    Contexts are defined in `Task` metadata as contextual identifiers and more specifically contexts are bound to 
+    specific identifiers:
+
+    ```python
+    metadata = {
+        "contextualIdentifiers": [
+            {
+                "type": ...,
+                "key": ...,
+                "contexts": [
+                    {
+                        "type": "Environment",
+                        "names": [
+                            "one-environment",
+                            "another-environment"
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+    task = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata=metadata, logger=self.logger)
+    ```
+    
+    A typical use case example could be where contexts are bound to `ExecutionScope` type identifiers to discriminate 
+    which tasks must be processed for which command and context combination. A realistic Infrastructure-as-Code example
+    may therefore look something like the following example:
+
+    ```python
+    metadata = {
+        "contextualIdentifiers": [
+            {
+                "type": 'ExecutionScope',
+                "key": 'INCLUDE',               # Only consider processing this task if the supplied processing context
+                "contexts": [                   # is one of the listed environments
+                    {
+                        "type": "Environment",
+                        "names": [
+                            "sandbox",
+                            "test",
+                            "prod"
+                        ]
+                    }
+                ]
+            },
+            {
+                "type": 'ExecutionScope',
+                "key": 'EXCLUDE',               # Specifically exclude this task from being processed during "delete"
+                "contexts": [                   # commands
+                    {
+                        "type": "Command",
+                        "names": [
+                            "delete"
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+    task = Task(kind='TestKind', version='v1', spec={'field1': 'value1'}, metadata=metadata, logger=self.logger)
+    ```
+
+    Attributes:
+        context_type: The type (or descriptor) of constraint as a string value
+        context_name: A name of the context, as a string.
+    """
 
     def __init__(self, context_type: str, context_name: str):
         self.context_type = context_type
