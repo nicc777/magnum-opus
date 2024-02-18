@@ -57,11 +57,22 @@ def keys_to_lower(data: dict):
 
 
 class KeyValueStore:
+    """Value store available to each task during processing for the purpose of storing values as required. Each task will therefore also have access to all other values previously stored by processed tasks.
 
+    Attributes:
+        store: A dict holding values stored by a `Task`
+    """
+    
     def __init__(self):
         self.store = dict()
 
     def save(self, key: str, value: object):
+        """Saves a value with the provided key
+
+        Args:
+            key: A name of the value to store
+            value: The actual value (can potentially be any type)
+        """
         self.store[key] = value
 
 
