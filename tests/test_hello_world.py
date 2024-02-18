@@ -2,10 +2,19 @@ import copy
 import tempfile
 import string
 import random
-import os
 from pathlib import Path
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/../src")
+print('sys.path={}'.format(sys.path))
+
+import unittest
 
 from opus.operarius import KeyValueStore, LoggerWrapper, StatePersistence, Task, TaskProcessor, Tasks
+
+running_path = os.getcwd()
+print('Current Working Path: {}'.format(running_path))
 
 
 def random_string(string_length: int=16)->str:
@@ -35,29 +44,37 @@ class HelloWorldTaskProcessor(TaskProcessor):
         return updated_key_Value_store
     
 
-def main():
-    values = KeyValueStore()
-    logger = LoggerWrapper()
-    tasks = Tasks(key_value_store=values, logger=logger)
-    tasks.register_task_processor(processor=HelloWorldTaskProcessor())
-    tasks.add_task(
-        task=Task(
-            kind='HelloWorld',
-            version='v1',
-            spec={
-                'file': '{}{}{}.txt'.format(str(Path.home()), os.sep, random_string(string_length=16))
-            }
+class TestHelloWorldScenario(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+
+    def test_run_scenario_1(self):
+        values = KeyValueStore()
+        logger = LoggerWrapper()
+        tasks = Tasks(key_value_store=values, logger=logger)
+        tasks.register_task_processor(processor=HelloWorldTaskProcessor())
+        tasks.add_task(
+            task=Task(
+                kind='HelloWorld',
+                version='v1',
+                spec={
+                    'file': '{}{}{}.txt'.format(str(Path.home()), os.sep, random_string(string_length=16))
+                }
+            )
         )
-    )
-    tasks.process_context(command='apply', context='ANY')
-    values = tasks.key_value_store
-    if 'hello_world_file' in values.store:
-        logger.info(message='File written to "{}".'.format(values.store['hello_world_file']))
-    else:
-        raise Exception('OOPSIE !!')
+        tasks.process_context(command='apply', context='ANY')
+        values = tasks.key_value_store
+
+        self.assertTrue('hello_world_file' in values.store)
+
+        if 'hello_world_file' in values.store:
+            logger.info(message='File written to "{}".'.format(values.store['hello_world_file']))
+        else:
+            raise Exception('OOPSIE !!')
+
 
 
 if __name__ == '__main__':
-    main()
-    
-
+    unittest.main()
