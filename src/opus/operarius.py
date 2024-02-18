@@ -218,18 +218,36 @@ class IdentifierContext:
         self.context_name = context_name
 
     def context(self)->str:
+        """Retrieves a single string context
+
+        Returns:
+            A string with the type and name combination of this context
+        """
         return '{}:{}'.format(
             self.context_type,
             self.context_name
         )
     
     def to_dict(self)->dict:
+        """Retrieves a dictionary representation of this context
+
+        Returns:
+            A dict with the context type and name. Keys for the dict are:
+
+            * `ContextType`
+            * `ContextName`
+        """
         data = dict()
         data['ContextType'] = self.context_type
         data['ContextName'] = self.context_name
         return data
     
     def __eq__(self, __value: object) -> bool:
+        """Compares if another `IdentifierContext` is equal to this one
+
+        Returns:
+            Returns True if both the provided context type and name matches this context.
+        """
         try:
             if __value.context_type == self.context_type and __value.context_name == self.context_name:
                 return True
