@@ -259,6 +259,12 @@ class IdentifierContext:
 class IdentifierContexts(Sequence):
     """A collection of `IdentifierContext` instances. 
 
+    Create the collection with:
+
+    ```python
+    context_collections = IdentifierContexts()
+    ```
+
     Attributes:
         identifier_contexts: List of `IdentifierContext` instances
         unique_identifier_value: Calculated unique identifier for this collection
@@ -269,6 +275,23 @@ class IdentifierContexts(Sequence):
         self.unique_identifier_value = hashlib.sha256(json.dumps(self.identifier_contexts).encode('utf-8')).hexdigest()
 
     def add_identifier_context(self, identifier_context: IdentifierContext):
+        """Adds an `IdentifierContext` to the collection
+
+        Example:
+
+        ```python
+        context_collections = IdentifierContexts()
+        context_collections.add_identifier_context(
+            identifier_context=IdentifierContext(
+                context_type='...',
+                context_name='...'
+            )
+        )
+        ```
+
+        Args:
+            identifier_context: An `IdentifierContext` instance
+        """
         duplicates = False
         if identifier_context is None:
             return
@@ -282,11 +305,69 @@ class IdentifierContexts(Sequence):
             self.unique_identifier_value = hashlib.sha256(json.dumps(self.to_dict()).encode('utf-8')).hexdigest()
 
     def is_empty(self)->bool:
+        """Test if the collection is empty
+
+         Example:
+
+        ```python
+        context_collections = IdentifierContexts()
+
+        if context_collections.is_empty() is True:
+            print('The collection is empty')        # <-- This should be printed
+        else:
+            print('The collection is NOT empty')
+
+        context_collections.add_identifier_context(
+            identifier_context=IdentifierContext(
+                context_type='...',
+                context_name='...'
+            )
+        )
+
+        if context_collections.is_empty() is True:
+            print('The collection is empty')
+        else:
+            print('The collection is NOT empty')    # <-- This should be printed
+        ```
+
+        Returns:
+            Boolean value `True` of the collection has no `IdentifierContext` registered.
+        """
         if len(self.identifier_contexts) > 0:
             return False
         return True
     
     def contains_identifier_context(self, target_identifier_context: IdentifierContext)->bool:
+        """Check is a `IdentifierContext` exists in this collection.
+
+        Both the type and name must match in order for the context to match.
+
+        Example:
+
+        ```python
+        context_collections = IdentifierContexts()
+        context_collections.add_identifier_context(
+            identifier_context=IdentifierContext(
+                context_type='...',
+                context_name='...'
+            )
+        )
+
+        if context_collections.contains_identifier_context(
+            target_identifier_context=IdentifierContext(
+                context_type='...',
+                context_name='...'
+            )
+        ) is True:
+            print('Context is part of the collection...')
+        ```
+
+        Args:
+            target_identifier_context: The input `IdentifierContext` instance to test against the local collection.
+
+        Returns:
+            A boolean `True` if the local collection contains the provided `IdentifierContext` to check against
+        """
         try:
             local_identifier_context: IdentifierContext
             for local_identifier_context in self.identifier_contexts:
@@ -297,6 +378,37 @@ class IdentifierContexts(Sequence):
         return False
     
     def to_dict(self)->dict:
+        """Returns the collection as a Python `dict` object
+
+        Example:
+
+        ```python
+        import json
+
+
+        context_collections = IdentifierContexts()
+        context_collections.add_identifier_context(
+            identifier_context=IdentifierContext(
+                context_type='...',
+                context_name='...'
+            )
+        )
+
+        print('JSON Object: {}'.format(json.dumps(context_collections.to_dict())))
+        # Expected Output:
+        # {
+        #   "IdentifierContexts": [ 
+        #       {
+        #           "ContextType": "..."
+        #           "ContextName": "..."
+        #       }
+        #   ]
+        # }
+        ```
+
+        Returns:
+            A dict with the key `IdentifierContexts` that has a list of contexts.
+        """
         data = dict()
         data['IdentifierContexts'] = list()
         for identifier_context in self.identifier_contexts:
@@ -307,7 +419,12 @@ class IdentifierContexts(Sequence):
     def __getitem__(self, index):
         return self.identifier_contexts[index]
 
-    def __len__(self):
+    def __len__(self)->int:
+        """Returns the number of contexts currently registered with this collection.
+
+        Returns:
+            An integer with the number of `IdentifierContexts` objects registered
+        """
         return len(self.identifier_contexts)
 
 
@@ -597,7 +714,7 @@ class Hook:
                 task_life_cycle_stage
             )
             final_logger.error(exception_message)
-            # raise Exception(exception_message)
+            raise Exception(exception_message)
         return key_value_store
 
 
