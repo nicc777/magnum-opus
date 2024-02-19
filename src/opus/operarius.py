@@ -429,6 +429,20 @@ class IdentifierContexts(Sequence):
 
 
 class Identifier:
+    """Identifiers are typically `Task` names and labels. It is useful for defining task dependencies and to calculate 
+    the processing order of tasks. It is also used to determine which tasks are eligible for processing given a certain
+    processing context.
+
+    `Identifier` object are typically created from metadata of a task.
+
+    Attributes:
+        identifier_type: A string containing the type name of this identifier
+        key: A string with a key.
+        val: A [optional] string with a value (defaults to `None` if no value is supplied)
+        identifier_contexts: An [optional] `IdentifierContexts` collection.
+        unique_identifier_value: A calculated unique ID for this identifier.
+        is_contextual_identifier: Calculated boolean value. True is a supplied `identifier_contexts` collections contains at least 1 `IdentifierContext` definition
+    """
 
     def __init__(self, identifier_type: str, key: str, val: str=None, identifier_contexts: IdentifierContexts=IdentifierContexts()):
         self.identifier_type = identifier_type
@@ -448,6 +462,74 @@ class Identifier:
         return hashlib.sha256(json.dumps(data).encode('utf-8')).hexdigest()
 
     def identifier_matches_any_context(self, identifier_type: str, key: str, val: str=None, target_identifier_contexts: IdentifierContexts=IdentifierContexts())->bool:
+        """If the supplied `identifier_type`, `key` and `val` values matches the values of this object, proceed to check
+        if any of the the supplied `IdentifierContext` objects match the locally stored `IdentifierContexts`
+
+        Example:
+
+        ```python
+        # Setup our identifier context collection...
+        ics = IdentifierContexts()
+        ics.add_identifier_context(
+            identifier_context=IdentifierContext(
+                context_type='...',
+                context_name='...'
+            )
+        )
+
+        # Create an identifier
+        identifier_1 = Identifier(
+            identifier_type='...',
+            key='...',
+            val='...',
+            identifier_contexts=ics
+        )
+
+        # Create other identifiers similar to the one above:
+        identifier_2 = ...
+        identifier_3 = ...
+        identifier_N = ...
+
+        # Create a simple list of identifiers (this is almost the same as `Identifiers`, but simpler...):
+        id_list = [
+            identifier_1,
+            identifier_2,
+            ...
+        ]
+
+        # Create an identifier to match:
+        identifier_to_test = Identifier(
+            identifier_type='...',
+            key='...',
+            val='...',
+            identifier_contexts=...
+        )
+
+        id: Identifier
+        for id in id_list:
+            if id.identifier_matches_any_context(
+                identifier_type=identifier_to_test.identifier_type,
+                key=identifier_to_test.key,
+                val=identifier_to_test.val,
+                target_identifier_contexts=identifier_to_test.identifier_contexts
+            ) is True:
+                print('Match found....')
+        ```
+
+        Args:
+            identifier_type: A string containing the type name of this identifier
+            key: A string with a key.
+            val: A [optional] string with a value (defaults to `None` if no value is supplied)
+            target_identifier_contexts: An `IdentifierContexts` collection.
+
+        Returns:
+            Boolean `True` when the following conditions are ALL met:
+
+            * The `identifier_type` matches the object type value
+            * The `key` matches the object key value
+            * The `val` matches the object `val` value
+            * Any of the `IdentifierContext` contained in the supplied `target_identifier_contexts` matches any one of the locally stored `IdentifierContext` objects in the locally stored `IdentifierContexts`
+        """
         if self.identifier_type == identifier_type and self.key == key and self.val == val:
             if self.identifier_contexts.is_empty() is True: # This identifier (self) is not context bound, therefore the the given contexts does not matter. 
                 return True
