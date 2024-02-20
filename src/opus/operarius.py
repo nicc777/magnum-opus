@@ -435,6 +435,81 @@ class Identifier:
 
     `Identifier` object are typically created from metadata of a task.
 
+    Identifiers can be `contextual` of `non-contextual`. A non-contextual identifier is just an `Identifier` with no 
+    `IdentifierContext` objects (empty `IdentifierContexts`).
+
+    In OPUS, `non-contextual` identifiers usually have one of the following `identifier_type` values:
+
+    * `ManifestName` - Used to define a name of a `Task`. This type only have a `key` defined
+    * `Label` - Used to add labels to a `Task`. This type have both a `key` (label name) and `val` (label value) defined
+
+    On the other hand, `contextual` identifiers can have the following types:
+
+    * `ExecutionScope` - Usually only has a `key` with either the value `INCLUDE` or `EXCLUDE`. In addition, the contexts are usually Of the `Environment` and/or `Command` type. This Identifier is used to define the processing scope of a `Task` during task processing.
+
+    Example of defining a `non-contextual` identifier for a `Task` name:
+
+    ```python
+    task_name = Identifier(
+        identifier_type='ManifestName',
+        key='task-name'
+    )
+    ```
+
+    Example of defining a `non-contextual` identifier for a `Task` label:
+
+    ```python
+    task_label = Identifier(
+        identifier_type='Label',
+        key='label-name',
+        val=';abel-value'
+    )
+    ```
+
+    Example of a `contextual` identifier to specifically exclude task processing given a all scopes (given certain 
+    environments and commands). In this hypothetical example, a task with this identifier will not be processed for 
+    "production" environments:
+
+    ```python
+    context_collections = IdentifierContexts()
+    context_collections.add_identifier_context(
+        identifier_context=IdentifierContext(
+            context_type='Environment',
+            context_name='production'
+        )
+    )
+    context_collections.add_identifier_context(
+        identifier_context=IdentifierContext(
+            context_type='Command',
+            context_name='apply'
+        )
+    )
+    context_collections.add_identifier_context(
+        identifier_context=IdentifierContext(
+            context_type='Command',
+            context_name='delete'
+        )
+    )
+    context_collections.add_identifier_context(
+        identifier_context=IdentifierContext(
+            context_type='Command',
+            context_name='describe'
+        )
+    )
+    context_collections.add_identifier_context(
+        identifier_context=IdentifierContext(
+            context_type='Command',
+            context_name='analyse'
+        )
+    )
+
+    task_processing_exclusion_contextual_identifier = Identifier(
+        identifier_type='ExecutionScope',
+        key='EXCLUDE',
+        identifier_contexts=context_collections
+    )
+    ```
+    
     Attributes:
         identifier_type: A string containing the type name of this identifier
         key: A string with a key.
@@ -505,6 +580,7 @@ class Identifier:
             identifier_contexts=...
         )
 
+        # See if it matches
         id: Identifier
         for id in id_list:
             if id.identifier_matches_any_context(
@@ -575,6 +651,64 @@ class Identifier:
     
 
 class Identifiers(Sequence):
+    """A collection of `Identifier` instances.
+
+    Helper functions exist to create the collection given a `dict` of the metadata.
+
+    Example for `non-contextual` identifiers:
+
+    ```python
+    metadata = {
+        "identifiers": [
+            {
+                "type": "ManifestName",
+                "key": "my-name"
+            },
+            {
+                "type": "Label",
+                "key": "my-key",
+                "value": "my-value"
+            }
+        ]
+    }
+    identifiers = build_non_contextual_identifiers(metadata=metadata)
+    ```
+
+    Example for `contextual` identifiers:
+
+    ```python
+    metadata = {
+        "contextualIdentifiers": [
+            {
+                "type": "ExecutionScope",
+                "key": "include",
+                "contexts": [
+                    {
+                        "type": "environment",
+                        "names": [
+                            "env1",
+                            "env2",
+                            "env3"
+                        ]
+                    },
+                    {
+                        "type": "command",
+                        "names": [
+                            "cmd1",
+                            "cmd2"
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+    identifiers = build_contextual_identifiers(metadata=metadata)
+    ```
+
+    Attributes:
+        identifiers: A list of `Identifier` instances
+        unique_identifier_value: A hash of the combined `Identifier` instances
+    """
 
     def __init__(self):
         self.identifiers = list()
@@ -587,6 +721,7 @@ class Identifiers(Sequence):
                 can_add = False
         if can_add is True:
             self.identifiers.append(identifier)
+            self.unique_identifier_value = hashlib.sha256(json.dumps(self.to_metadata_dict()).encode('utf-8')).hexdigest()
 
     def identifier_found(self, identifier: Identifier)->bool:
         local_identifier: Identifier
