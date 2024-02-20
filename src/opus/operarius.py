@@ -399,7 +399,7 @@ class IdentifierContexts(Sequence):
         # {
         #   "IdentifierContexts": [ 
         #       {
-        #           "ContextType": "..."
+        #           "ContextType": "...",
         #           "ContextName": "..."
         #       }
         #   ]
@@ -450,7 +450,7 @@ class Identifier:
     Example of defining a `non-contextual` identifier for a `Task` name:
 
     ```python
-    task_name = Identifier(
+    task_name_identifier = Identifier(
         identifier_type='ManifestName',
         key='task-name'
     )
@@ -459,7 +459,7 @@ class Identifier:
     Example of defining a `non-contextual` identifier for a `Task` label:
 
     ```python
-    task_label = Identifier(
+    task_label_identifier = Identifier(
         identifier_type='Label',
         key='label-name',
         val=';abel-value'
@@ -510,6 +510,19 @@ class Identifier:
     )
     ```
     
+    Two identifier objects can also be directly compared for equality (matches):
+
+    ```python
+    if identifier1 == identifier2:
+        ...
+    ```
+
+    For `non-contextual` identifiers the type, key and val values are compared and if all matches, a boolean `True`
+    value will be returned.
+
+    For `contextual` identifiers the type, key and val values are compared and if **any** of the contexts matches, a
+    boolean `True` value will be returned.
+
     Attributes:
         identifier_type: A string containing the type name of this identifier
         key: A string with a key.
@@ -615,6 +628,38 @@ class Identifier:
         return False
     
     def to_dict(self)->dict:
+        """Returns the collection as a Python `dict` object
+
+        Example:
+
+        ```python
+        import json
+
+
+        some_identifier = Identifier(...)
+
+        print('JSON Object: {}'.format(json.dumps(some_identifier.to_dict())))
+        # Expected Output:
+        # {
+        #   "IdentifierContexts": [ 
+        #       {
+        #           "IdentifierType": "...",
+        #           "IdentifierKey": "...",
+        #           "IdentifierValue": "...",
+        #           "IdentifierContexts": {
+        #               ...
+        #           },
+        #           "UniqueId": "..."
+        #       }
+        #   ]
+        # }
+        ```
+
+        NOTE: The `IdentifierValue` field is OPTIONAL, depending if the internal value is `None` or not
+
+        Returns:
+            A dict with the key `IdentifierContexts` that has a list of contexts.
+        """
         data = dict()
         data['IdentifierType'] = self.identifier_type
         data['IdentifierKey'] = self.key
