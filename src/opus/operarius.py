@@ -882,6 +882,21 @@ class Identifiers(Sequence):
 
 
 class StatePersistence:
+    """If the client requires any form of persistance, this class must be implemented with the required logic by the 
+    client. 
+
+    Without any client implementation, this class is mostly just a memory cache at runtime with no long term
+    persistence.
+
+    An instance of the `StatePersistence` class will be passed as a parameter to each `TaskProcessor` during processing.
+    This can be useful for the task processing steps to determine the exact actions to take. Updated state could then be
+    persisted long term for future task processing runs.
+
+    Attributes:
+        logger: An implementation of the `LoggerWrapper` class
+        state_cache: A dict with the current state
+        configuration: A dict holding configuration data, intended for use for client implementations of this class, for example DB credentials.
+    """
 
     def __init__(self, logger: LoggerWrapper=LoggerWrapper(), configuration: dict=dict()):
         self.logger = logger
