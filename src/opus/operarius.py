@@ -620,7 +620,9 @@ class Identifier:
             * Any of the `IdentifierContext` contained in the supplied `target_identifier_contexts` matches any one of the locally stored `IdentifierContext` objects in the locally stored `IdentifierContexts`
         """
         if self.identifier_type == identifier_type and self.key == key and self.val == val:
-            if self.identifier_contexts.is_empty() is True: # This identifier (self) is not context bound, therefore the the given contexts does not matter. 
+            if self.identifier_contexts.is_empty() is True or target_identifier_contexts.is_empty() is True:
+                """This identifier (self) is not context bound or the provided target_identifier_contexts is empty, 
+                therefore the contexts does not matter."""
                 return True
             for target_identifier_context in target_identifier_contexts:
                 if self.identifier_contexts.contains_identifier_context(target_identifier_context=target_identifier_context):
@@ -760,6 +762,11 @@ class Identifiers(Sequence):
         self.unique_identifier_value = hashlib.sha256(json.dumps(self.identifiers).encode('utf-8')).hexdigest()
 
     def add_identifier(self, identifier: Identifier):
+        """Adds an identifier to the collections
+
+        Args:
+            identifier: An `Identifier`
+        """
         can_add = True
         for existing_identifier in self.identifiers:
             if existing_identifier.to_dict()['UniqueId'] == identifier.to_dict()['UniqueId']:
@@ -769,6 +776,17 @@ class Identifiers(Sequence):
             self.unique_identifier_value = hashlib.sha256(json.dumps(self.to_metadata_dict()).encode('utf-8')).hexdigest()
 
     def identifier_found(self, identifier: Identifier)->bool:
+        """Determines if a specific identifier exists in the current collection.
+
+        Also see `Identifier` class documentation, especially on how `contextual` and `non-contextual` identifiers are 
+        compared to determine a match.
+
+        Args:
+            identifier: An `Identifier` to match against the collection
+
+        Returns:
+            Boolean `True` if any of the local `Identifier` objects satisfied the equality test.
+        """
         local_identifier: Identifier
         for local_identifier in self.identifiers:
             if local_identifier == identifier:
@@ -782,38 +800,39 @@ class Identifiers(Sequence):
         return False
 
     def to_metadata_dict(self):
-        """
-            metadata:
-              identifiers:                    # Non-contextual identifier
-              - type: STRING                  # Example: ManifestName
-                key: STRING                   # Example: my-manifest
-                value: STRING|NULL            # [Optional]                  <-- Not required for type "ManifestName"
-              - type: STRING                  # Example: Label
-                key: STRING                   # Example: my-key
-                value: STRING|NULL            # Example: my-value           <-- Required for type "Label"
+        """Converts the collection to a `dict` suitable for metadata usage
 
-              contextualIdentifiers:
-              - type: STRING              # Example: ExecutionScope       <-- THEREFORE, this Manifest is scoped to 3x Environment contexts and 2x Command contexts
-                key: STRING               # Example: INCLUDE              <-- or "EXCLUDE", to specifically exclude execution in a given context
-                value val: STRING         # Example: Null|None
-                contexts:
-                - type: STRING              # Example: Environment
-                  names:
-                  - STRING                  # Example: sandbox
-                  - STRING                  # Example: test
-                  - STRING                  # Example: production
-                - type: STRING              # Example: Command
-                  names:
-                  - STRING                  # Example: apply
-                  - STRING                  # Example: delete
+        Example of `non-contextual` identifiers as a dict:
 
-            Therefore, there are essentially 3x types of Identifiers in a standard Task processing context:
+        ```yaml
+        identifiers:
+        - type: ManifestName
+          key: my-manifest
+        - type: Label
+          key: my-key
+          value: my-value  
+        ```
 
-                * "ManifestName", which does not have contexts
-                * "Label", which does not have contexts
-                * "ExecutionScope", which DOES have contexts
+        Example of `contextual` identifiers as a dict:
 
-            Any other "identifiers" (with or without contexts) must be handled/processed by the TaskProcessor Implementation as required
+        ```yaml
+        contextualIdentifiers:
+        - type: ExecutionScope
+          key: INCLUDE
+          contexts:
+          - type: Environment
+            names:
+            - sandbox
+            - test
+            - production
+          - type: Command
+            names:
+            - apply
+            - delete
+        ```
+
+        Returns:
+            A Python `dict`
         """
         metadata = dict()
         identifier: Identifier
