@@ -903,9 +903,32 @@ class StatePersistence:
         self.state_cache = self.retrieve_all_state_from_persistence()
         self.configuration = configuration
 
-    def retrieve_all_state_from_persistence(self)->dict:
+    def retrieve_all_state_from_persistence(self, on_failure: object=False)->bool:
+        """This method must return all long term persisted state from some backend storage service, or local disc drive.
+
+        A client must implement this method with the logic to retrieve persisted data.
+
+        Args:
+            on_failure: An object to return (or Exception to be thrown) on failure to retrieve the persisted data.
+
+        Returns:
+            A boolean to state the success (True) or the value of `on_failure`, provided the type of `on_failure` is not 
+            an Exception.
+
+            A simple example to throw an exception if the retrieval of persisted data failed:
+
+            ```python
+            p = StatePersistence(configuration={'path': '/data/persisted_data.json'})
+            p.retrieve_all_state_from_persistence(on_failure=Exception('Failed to retrieve data from "{}"'.format(p.configuration['path'])))
+            ```
+
+        Raises:
+            Exception: If retrieval of data failed and `on_failure` is of type `Exception`
+        """
         self.logger.warning(message='StatePersistence.retrieve_all_state_from_persistence() NOT IMPLEMENTED. Override this function in your own class for long term state storage.')
-        return dict()
+        if isinstance(on_failure, Exception):
+            raise on_failure
+        return on_failure
 
     def get_object_state(self, object_identifier: str)->dict:
         if object_identifier in self.state_cache:
