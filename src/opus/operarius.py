@@ -900,8 +900,9 @@ class StatePersistence:
 
     def __init__(self, logger: LoggerWrapper=LoggerWrapper(), configuration: dict=dict()):
         self.logger = logger
-        self.state_cache = self.retrieve_all_state_from_persistence()
+        self.state_cache = dict()
         self.configuration = configuration
+        self.retrieve_all_state_from_persistence()
 
     def retrieve_all_state_from_persistence(self, on_failure: object=False)->bool:
         """This method must return all long term persisted state from some backend storage service, or local disc drive.
@@ -930,15 +931,54 @@ class StatePersistence:
             raise on_failure
         return on_failure
 
-    def get_object_state(self, object_identifier: str)->dict:
+    def get_object_state(self, object_identifier: str, refresh_cache_if_identifier_not_found: bool=True)->dict:
+        """Retrieves state of a given identifier from the cache.
+
+        BY default, If the key (identifier) is not found in the cache, the cache will first be refreshed and then one 
+        more attempt to retrieve the value will be made.
+
+        It is not required by the client to override this method, unless different logic is required.
+
+        Args:
+            object_identifier: The identifier of the data to retrieve. This is the same key as is provided when calling `save_object_state()` to persist data.
+
+        Returns:
+            A dict with data is returned. If no data is found, the dict will be empty.
+        """
         if object_identifier in self.state_cache:
             return copy.deepcopy(self.state_cache[object_identifier])
+        elif refresh_cache_if_identifier_not_found is True:
+            self.retrieve_all_state_from_persistence()
+            if object_identifier in self.state_cache:
+                return copy.deepcopy(self.state_cache[object_identifier])
         return dict()
 
     def save_object_state(self, object_identifier: str, data: dict):
+        """Save a dict object with a given key
+
+        This method must ideally be overridden by the client as it needs to implement the logic of saving data long 
+        term.
+
+        When implementing the method, the current line of logic should be kept in order to refresh the local cache with
+        the new data value,
+
+        Args:
+            object_identifier: The identifier of the data to retrieve.
+            data: A dict with the data. The client would typically convert this to a JSON string for saving.
+        """
         self.state_cache[object_identifier] = copy.deepcopy(data)
 
     def persist_all_state(self):
+        """Save all state in one go.
+
+        This method must ideally be overridden by the client as it needs to implement the logic of saving data long 
+        term.
+
+        The default action should the client not override this method is to loop through all items in the local cache
+        and call `save_object_state()` on each one individually.
+        """
+        for key, data in self.state_cache.items():
+            self.save_object_state(object_identifier=key, data=data)
         self.logger.warning(message='StatePersistence.persist_all_state() NOT IMPLEMENTED. Override this function in your own class for long term state storage.')
 
 
