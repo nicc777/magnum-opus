@@ -1427,7 +1427,7 @@ class TestClassHook(unittest.TestCase):    # pragma: no cover
                 t1.task_id,
                 lifecycle_stage
             )
-            self.assertTrue(expected_log_entry in logger.info_lines, 'info_lines={}'.format(logger.info_lines))
+            self.assertTrue(expected_log_entry in logger.info_lines, 'FAILED on lifecycle_stage "{}":  info_lines={}'.format(lifecycle_stage, logger.info_lines))
 
             self.assertIsNotNone(result)
             self.assertIsInstance(result, KeyValueStore)
@@ -1772,7 +1772,7 @@ class TestClassHooks(unittest.TestCase):    # pragma: no cover
         hooks.register_hook(hook=hook)
         for lifecycle_stage in lifecycle_stages_to_test:
             result = hooks.any_hook_exists(command='command1', context='c1', task_life_cycle_stage=lifecycle_stage)
-            self.assertTrue(result)
+            self.assertTrue(result, 'No hook found for lifecycle_stage "{}"'.format(lifecycle_stage))
 
             key_value_store = hooks.process_hook(
                 command='command1',

@@ -36,6 +36,7 @@ import json
 import hashlib
 import copy
 from collections.abc import Sequence
+from enum import Enum
 
 
 def keys_to_lower(data: dict):
@@ -983,7 +984,7 @@ class StatePersistence:
 
 
 # FIXME Change to class that inherits from Enum
-class TaskLifecycleStage:
+class TaskLifecycleStage(Enum):
     TASK_PRE_REGISTER                       = 1
     TASK_PRE_REGISTER_ERROR                 = -1
     TASK_REGISTERED                         = 2
@@ -1012,7 +1013,10 @@ class TaskLifecycleStages:
             self.stages.append(task_life_cycle_stage)
 
     def stage_registered(self, stage: int)->bool:
-        if stage in self.stages:
+        stage_value = stage
+        if isinstance(stage, Enum):
+            stage_value = stage.value
+        if stage_value in self.stages:
             return True
         return False
 
