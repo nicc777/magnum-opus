@@ -1791,7 +1791,7 @@ class TestClassHooks(unittest.TestCase):    # pragma: no cover
                 t1.task_id,
                 lifecycle_stage
             )
-            self.assertTrue(expected_key in key_value_store.store)
+            self.assertTrue(expected_key in key_value_store.store, 'expected_key "{}" was not found in key_value_store.store: "{}"'.format(expected_key, key_value_store.store))
             self.assertTrue(key_value_store.store[expected_key])
 
         print_logger_lines(logger=logger)

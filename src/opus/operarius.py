@@ -1106,7 +1106,7 @@ class Hooks:
         if context in self.hooks:
             if command in self.hooks[context]:
                 for hook_name, stages in self.hooks[context][command].items():
-                    if hook_name in self.hook_registrar and task_life_cycle_stage in stages:
+                    if hook_name in self.hook_registrar and task_life_cycle_stage.value in stages:
                         result = self.hook_registrar[hook_name].process_hook(
                             command=command,
                             context=context,
@@ -1126,7 +1126,8 @@ class Hooks:
         if context in self.hooks:
             if command in self.hooks[context]:
                 for hook_name, life_cycles in self.hooks[context][command].items():
-                    if task_life_cycle_stage in life_cycles:
+                    task_life_cycle_stage: TaskLifecycleStage
+                    if task_life_cycle_stage.value in life_cycles:
                         return True
         return False
 
