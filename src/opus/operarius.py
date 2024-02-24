@@ -984,6 +984,22 @@ class StatePersistence:
 
 
 class TaskLifecycleStage(Enum):
+    """An enumeration of all possible task processing life cycle stages.
+    
+    Attributes:
+        TASK_PRE_REGISTER: stage with value of 1
+        TASK_PRE_REGISTER_ERROR: stage with value of -1
+        TASK_REGISTERED: stage with value of 2
+        TASK_REGISTERED_ERROR: stage with value of -2
+        TASK_PRE_PROCESSING_START: stage with value of 3
+        TASK_PRE_PROCESSING_START_ERROR: stage with value of -3
+        TASK_PRE_PROCESSING_COMPLETED: stage with value of 4
+        TASK_PRE_PROCESSING_COMPLETED_ERROR: stage with value of -4
+        TASK_PROCESSING_PRE_START: stage with value of 5
+        TASK_PROCESSING_PRE_START_ERROR: stage with value of -5
+        TASK_PROCESSING_POST_DONE: stage with value of 6
+        TASK_PROCESSING_POST_DONE_ERROR: stage with value of -6
+    """
     TASK_PRE_REGISTER                       = 1
     TASK_PRE_REGISTER_ERROR                 = -1
     TASK_REGISTERED                         = 2
