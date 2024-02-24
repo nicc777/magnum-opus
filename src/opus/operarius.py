@@ -1014,10 +1014,20 @@ class TaskLifecycleStages:
 
     def stage_registered(self, stage: int)->bool:
         stage_value = stage
+
         if isinstance(stage, Enum):
             stage_value = stage.value
-        if stage_value in self.stages:
-            return True
+        elif isinstance(stage, TaskLifecycleStage):
+            stage_value = stage.value
+
+        for registered_stage in self.stages:
+            registered_stage_value = copy.deepcopy(registered_stage)
+            if isinstance(registered_stage_value, Enum):
+                registered_stage_value = registered_stage.value
+            elif isinstance(registered_stage_value, TaskLifecycleStage):
+                registered_stage_value = registered_stage.value
+            if stage_value == registered_stage_value:
+                return True
         return False
 
 
@@ -1102,11 +1112,23 @@ class Hooks:
                     if stage not in self.hooks[context][command][hook.name]:
                         self.hooks[context][command][hook.name].append(stage)
 
+    def _extract_stages_values(self, stages: list)->list:
+        stages_values = list()
+        for stage in stages:
+            stage_value = copy.deepcopy(stage)
+            if isinstance(stage, Enum):
+                stage_value = stage.value
+            elif isinstance(stage, TaskLifecycleStage):
+                stage_value = stage.value
+            stages_values.append(stage_value)
+        return stages_values
+
     def process_hook(self, command: str, context: str, task_life_cycle_stage: int, key_value_store: KeyValueStore, task: object=None, task_id: str=None, extra_parameters:dict=dict(), logger: LoggerWrapper=LoggerWrapper())->KeyValueStore:
         if context in self.hooks:
             if command in self.hooks[context]:
                 for hook_name, stages in self.hooks[context][command].items():
-                    if hook_name in self.hook_registrar and task_life_cycle_stage.value in stages:
+                    stages_values = self._extract_stages_values(stages=stages)
+                    if hook_name in self.hook_registrar and task_life_cycle_stage.value in stages_values:
                         result = self.hook_registrar[hook_name].process_hook(
                             command=command,
                             context=context,
