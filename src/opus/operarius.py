@@ -983,7 +983,6 @@ class StatePersistence:
         self.logger.warning(message='StatePersistence.persist_all_state() NOT IMPLEMENTED. Override this function in your own class for long term state storage.')
 
 
-# FIXME Change to class that inherits from Enum
 class TaskLifecycleStage(Enum):
     TASK_PRE_REGISTER                       = 1
     TASK_PRE_REGISTER_ERROR                 = -1
