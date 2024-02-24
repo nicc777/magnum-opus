@@ -1015,8 +1015,20 @@ class TaskLifecycleStage(Enum):
 
 
 class TaskLifecycleStages:
+    """A collection of `TaskLifecycleStage` values
+
+    Attributes:
+        stages: A list of `TaskLifecycleStage` instances
+    """
 
     def __init__(self, init_default_stages: bool=True):
+        """Initializes the collection.
+
+        By default, the collection will include all life cycle stage values.
+
+        Args:
+          init_default_stages: [optional, default=`True`] - If a `False` is supplied, the client must add the `TaskLifecycleStage` instances with the `register_lifecycle_stage()` method.
+        """
         self.stages = list()
         if init_default_stages is True:
             for i in range(1,7):
@@ -1024,10 +1036,29 @@ class TaskLifecycleStages:
                 self.stages.append(i*-1)
 
     def register_lifecycle_stage(self, task_life_cycle_stage: int):
-        if task_life_cycle_stage not in self.stages:
+        """Add a `TaskLifecycleStage` to the collection
+
+        Args:
+            task_life_cycle_stage: integer value of a `TaskLifecycleStage` or the instance itself.
+        """
+        task_life_cycle_stage_value = task_life_cycle_stage
+        if isinstance(task_life_cycle_stage, Enum):
+            task_life_cycle_stage_value = task_life_cycle_stage.value
+        elif isinstance(task_life_cycle_stage, TaskLifecycleStage):
+            task_life_cycle_stage_value = task_life_cycle_stage.value
+        if task_life_cycle_stage_value not in self.stages:
             self.stages.append(task_life_cycle_stage)
 
     def stage_registered(self, stage: int)->bool:
+        """Determines if the given stage is registered with this collection
+
+        Args:
+            stage: integer value of a `TaskLifecycleStage` or an instance of `TaskLifecycleStage`.
+
+        Returns:
+            Boolean `True` if the provided stage is registered with the local collection, otherwise a `False` value will 
+            be returned.
+        """
         stage_value = stage
 
         if isinstance(stage, Enum):
