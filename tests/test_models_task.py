@@ -1714,8 +1714,8 @@ class TestClassHooks(unittest.TestCase):    # pragma: no cover
 
         hook = Hook(
             name='test_hook_1',
-            commands=['NOT_APPLICABLE', 'command1'],
-            contexts=['ALL', 'c1'],
+            commands=list(),
+            contexts=list(),
             task_life_cycle_stages=TaskLifecycleStages(),
             function_impl=hook_function_test_1,
             logger=logger
