@@ -1167,9 +1167,26 @@ class Hook:
         return False
 
     def hook_exists_for_command_and_context(self, command: str, context: str)->bool:
+        """Determines if a hook exists for the given command and context
+
+        Args:
+            commands: A command name
+            contexts: A contexts name
+
+        Returns:
+            Boolean `True` if the Hook is matching the given command and context
+        """
         return self._command_matches(command=command) and self._context_matches(context=context)
     
     def hook_exists_for_task_of_the_provided_life_cycle_events(self, life_cycle_stages_to_evaluate: TaskLifecycleStages)->bool:
+        """Determines if a hook exists for the given life cycle stage event
+
+        Args:
+            life_cycle_stages_to_evaluate: An instance of `TaskLifecycleStages` containing one or more `TaskLifecycleStage` instances
+
+        Returns:
+            Boolean `True` if the any of this Hook's life cycle stages matches any one of the `TaskLifecycleStage` instances contained in `life_cycle_stages_to_evaluate`
+        """
         life_cycle_stage_to_evaluate: TaskLifecycleStage
         for life_cycle_stage_to_evaluate in life_cycle_stages_to_evaluate:
             life_cycle_stage: TaskLifecycleStage
@@ -1189,6 +1206,27 @@ class Hook:
         extra_parameters:dict=dict(),
         logger: LoggerWrapper=LoggerWrapper()
     )->KeyValueStore:
+        """Attempt to process the Hook within a certain lifecycle event
+
+        A `KeyValueStore` instance is passed as a parameter and could potentially be updated. The updated 
+        `KeyValueStore` will be returned.
+
+        Args:
+            commands: A command name
+            contexts: A contexts name
+            task_life_cycle_stage: An instance of `TaskLifecycleStage` that corresponds to the current life cycle event
+            key_value_store: An instance of `KeyValueStore` that the Hook can update or add to
+            task: The `Task` Object in the that triggered this event
+            task_id: String containing the task_id of the `Task`. 
+            extra_parameters: A Python dict that may contain additional parameters
+            logger: An instance of the logger that the Hook can use for logging.
+
+        Returns:
+            An updated version of the `KeyValueStore` that was passed in as a argument
+
+        Raises:
+            Exception: When the Hook fails with an exception. The error will be logged before the exception is passed on.
+        """
         final_logger = self.logger
         if logger is not None:
             if isinstance(logger, LoggerWrapper):
