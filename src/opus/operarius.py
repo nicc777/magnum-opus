@@ -1071,11 +1071,12 @@ class TaskLifecycleStages(Sequence):
             Boolean `True` if the provided stage is registered with the local collection, otherwise a `False` value will 
             be returned.
         """
+        match_found = False
         stored_stage: TaskLifecycleStage
         for stored_stage in self.stages:
-            if stored_stage.value != stage.value:
-                return True
-        return False
+            if stored_stage.value == stage.value:
+                match_found = True
+        return match_found
 
     def __getitem__(self, index):
         return self.stages[index]
@@ -1200,7 +1201,7 @@ class Hook:
             final_logger.debug(
                 'Hook "{}" executed on stage "{}" for task "{}" for command "{}" in context "{}"'.format(
                     self.name,
-                    task_life_cycle_stage,
+                    task_life_cycle_stage.name,
                     task_id,
                     command,
                     context
