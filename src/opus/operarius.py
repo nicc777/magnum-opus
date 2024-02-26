@@ -1446,17 +1446,43 @@ class Hooks:
 
 
 def build_non_contextual_identifiers(metadata: dict, current_identifiers: Identifiers=Identifiers())->Identifiers:
-    """
-        metadata:
-          identifiers:                    # Non-contextual identifier
-          - type: STRING                  # Example: ManifestName
-            key: STRING                   # Example: my-manifest
-            value: STRING|NULL            # [Optional]                  <-- Not required for type "ManifestName"
-          - type: STRING                  # Example: Label
-            key: STRING                   # Example: my-key
-            value: STRING|NULL            # Example: my-value           <-- Required for type "Label"
-    """
+    """A helper function to create an instance of `Identifiers` containing a collections of non-contextual `Identifier`
+    objects extracted from the provided metadata dict.
 
+    A non-contextual identifier includes all data in the dict under the key `identifiers`
+
+    An example dict of non-contextual identifiers:
+
+    ```json
+    {
+        "identifiers": [
+            {
+                "type": "ManifestName",
+                "key": "my-manifest"
+            },
+            {
+                "type": "Label",
+                "key": "my-key",
+                "value": "my-value"`
+            }
+        ]
+    }
+    ```
+    
+    Specifically for "operarius", there are two types of non-contextual identifiers:
+
+    * `ManifestName` which is used to define a name for a `Task`
+    * `Label` which is used to define labels for a `Task`
+
+    Any other non-contextual identifier types will also be added, but will have no meaning in "operarius" processing.
+
+    Args:
+        metadata: A dict
+        current_identifiers: An instance of current `Identifiers`. Any extracted non-contextual identifies will be added to the collection and a new instance will be returned.
+
+    Returns:
+        An new instance of `Identifiers` with the extracted non-contextual identifiers added to any existing identifiers passed in by the `current_identifiers` argument.
+    """
     new_identifiers = Identifiers()
     new_identifiers.identifiers = copy.deepcopy(current_identifiers.identifiers)
     new_identifiers.unique_identifier_value = copy.deepcopy(current_identifiers.unique_identifier_value)
@@ -1476,24 +1502,58 @@ def build_non_contextual_identifiers(metadata: dict, current_identifiers: Identi
 
 
 def build_contextual_identifiers(metadata: dict, current_identifiers: Identifiers=Identifiers())->Identifiers:
-    """
-        metadata:
-          contextualIdentifiers:
-          - type: STRING                # Example: ExecutionScope       <-- THEREFORE, this Manifest is scoped to 3x Environment contexts and 2x Command contexts
-            key: STRING                 # Example: INCLUDE              <-- or "EXCLUDE", to specifically exclude execution in a given context
-            value: STRING               # Example: Null|None
-            contexts:
-            - type: STRING              # Example: Environment
-              names:
-              - STRING                  # Example: sandbox
-              - STRING                  # Example: test
-              - STRING                  # Example: production
-            - type: STRING              # Example: Command
-              names:
-              - STRING                  # Example: apply
-              - STRING                  # Example: delete
-    """
+    """A helper function to create an instance of `Identifiers` containing a collections of contextual `Identifier`
+    objects extracted from the provided metadata dict.
 
+    A contextual identifier includes all data in the dict under the key `contextualIdentifiers`
+
+    An example dict of non-contextual identifiers:
+
+    ```json
+    {
+        "contextualIdentifiers": [
+            {
+                "type": "ExecutionScope",
+                "key": "INCLUDE",
+                "contexts": [
+                    {
+                        "type": "Environment",
+                        "names": [
+                            "sandbox",
+                            "test",
+                            "production"
+                        ]
+                    },
+                    {
+                        "type": "Command",
+                        "names": [
+                            "apply",
+                            "delete"
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+    ```
+    
+    Specifically for "operarius", there is only one type of contextual identifier:
+
+    * `ExecutionScope` which is used to either "INCLUDE" or "EXCLUDE" processing a `Task` based on:
+        * `Environment` - An environment's exact definition is up to the client.
+        * `Command` - A commands exact definition is up to the client.
+
+    When tasks are processed, they are usually processed in the context of an environment and a command.
+
+    Any other contextual identifier types will also be added, but will have no meaning in "operarius" processing.
+
+    Args:
+        metadata: A dict
+        current_identifiers: An instance of current `Identifiers`. Any extracted non-contextual identifies will be added to the collection and a new instance will be returned.
+
+    Returns:
+        An new instance of `Identifiers` with the extracted non-contextual identifiers added to any existing identifiers passed in by the `current_identifiers` argument.
+    """
     new_identifiers = Identifiers()
     new_identifiers.identifiers = copy.deepcopy(current_identifiers.identifiers)
     new_identifiers.unique_identifier_value = copy.deepcopy(current_identifiers.unique_identifier_value)
