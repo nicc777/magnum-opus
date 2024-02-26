@@ -1537,6 +1537,55 @@ def build_contextual_identifiers(metadata: dict, current_identifiers: Identifier
     }
     ```
     
+    Another more complex example where processing in different environments are included/excluded. The "INCLUDE" portion
+    is bounded to both environment and command, while the "EXCLUDE" portion will exclude processing for a particular
+    command, regardless of the environment. Imagine a task that can only be created and deleted, but does not support
+    the concept of an update:
+
+    ```json
+    {
+        "contextualIdentifiers": [
+            {
+                "type": "ExecutionScope",
+                "key": "INCLUDE",
+                "contexts": [
+                    {
+                        "type": "Environment",
+                        "names": [
+                            "sandbox",
+                            "test",
+                            "production"
+                        ]
+                    },
+                    {
+                        "type": "Command",
+                        "names": [
+                            "apply",
+                            "delete"
+                        ]
+                    }
+                ]
+            },
+            {
+                "type": "ExecutionScope",
+                "key": "EXCLUDE",
+                "contexts": [
+                    {
+                        "type": "Command",
+                        "names": [
+                            "update"
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+    ```
+
+    > NOTE: Of course if the `TaskProcessor` does not support a particular command, it should just ignored it and
+    > therefore it would not have to be specifically defined. However, there may be scenarios where this configuration
+    > may be required and then this is an ideal example of how that can be accomplished in metadata.
+
     Specifically for "operarius", there is only one type of contextual identifier:
 
     * `ExecutionScope` which is used to either "INCLUDE" or "EXCLUDE" processing a `Task` based on:
@@ -1546,6 +1595,10 @@ def build_contextual_identifiers(metadata: dict, current_identifiers: Identifier
     When tasks are processed, they are usually processed in the context of an environment and a command.
 
     Any other contextual identifier types will also be added, but will have no meaning in "operarius" processing.
+
+    > WARNING: If both "INCLUDE" and "EXCLUDE" `ExecutionScope` contexts are defined and there are some overlap in
+    > environments and commands that are present in both, the final outcome can be unpredictable. The last match will be
+    > used.
 
     Args:
         metadata: A dict
