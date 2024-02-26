@@ -1289,11 +1289,31 @@ class Hook:
 
 
 class Hooks:
+    """A dict collection of `Hook` instances.
 
+    To create the initial collection instance, simply initialize the class with. Then add each hook with the 
+    `register_hook()` method:
+
+    ```python
+    hooks = Hooks()
+    hooks.register_hook(hook=...)
+    ```
+
+    Attributes:
+        hook_registrar: Dict containing hooks, index by hook name.
+    """
+    
     def __init__(self):
         self.hook_registrar = dict()
 
     def register_hook(self, hook: Hook):
+        """Adds a hook to the collection, provided the hook name is not already registered.
+
+        If the hook with the same name have previously been registered, the hook registration will be silently ignored.
+
+        Args:
+            hook: A `Hook` instance
+        """
         if hook.name not in self.hook_registrar:
             self.hook_registrar[hook.name] = hook
 
@@ -1330,6 +1350,32 @@ class Hooks:
         extra_parameters:dict=dict(),
         logger: LoggerWrapper=LoggerWrapper()
     )->KeyValueStore:
+        """Processes a hook on a task given the command, context and current life cycle event of the task.
+
+        First, all `Hook` instances for this particular command, context and life cycle event will be identified (in no
+        particular order). Then each hook will be processed by call that hook's `process()` method, given the
+        appropriate arguments.
+
+        Should any hook processing throw an exception, and provided that the life cycle event was not already processing
+        an error event, the appropriate event error hooks will be called next. Eventually the exception is passed to the
+        client.
+
+        Args:
+            commands: A command name
+            contexts: A contexts name
+            task_life_cycle_stage: An instance of `TaskLifecycleStage` that corresponds to the current life cycle event
+            key_value_store: An instance of `KeyValueStore` that the Hook can update or add to
+            task: The `Task` Object in the that triggered this event
+            task_id: String containing the task_id of the `Task`. 
+            extra_parameters: A Python dict that may contain additional parameters
+            logger: An instance of the logger that the Hook can use for logging.
+
+        Returns:
+            An updated `KeyValueStore` instance.
+
+        Raises:
+            Exception: Any exception raised by a hook will be re-raised.
+        """
         hook: Hook
         hook_exception_raised = False
         for hook in self._get_hooks(command=command, context=context, task_life_cycle_stage=task_life_cycle_stage):
@@ -1379,6 +1425,16 @@ class Hooks:
         return key_value_store
     
     def any_hook_exists(self, command: str, context: str, task_life_cycle_stage: TaskLifecycleStage)->bool:
+        """Determines if any hook exists for the given command, context and life cycle event.
+
+        Args:
+            commands: A command name
+            contexts: A contexts name
+            task_life_cycle_stage: An instance of `TaskLifecycleStage` that corresponds to the current life cycle event
+
+        Returns:
+            Boolean `True` if any hooks were found.
+        """
         hook: Hook
         for hook_name, hook in self.hook_registrar.items():
             if hook.hook_exists_for_command_and_context(command=command, context=context) is True:
