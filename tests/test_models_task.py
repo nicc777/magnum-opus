@@ -149,7 +149,7 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
 
         match_found = False
         for line in self.logger.info_lines:
-            if 'registered. Task checksum:' in line:
+            if 'initialized. Task checksum:' in line:
                 match_found = True
         self.assertTrue(match_found)
 
@@ -198,7 +198,7 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
 
         match_found = False
         for line in self.logger.info_lines:
-            if 'registered. Task checksum:' in line:
+            if 'initialized. Task checksum:' in line:
                 match_found = True
         self.assertTrue(match_found)
 
@@ -1677,6 +1677,10 @@ class TestClassHook(unittest.TestCase):    # pragma: no cover
                                     "c1",
                                     "c2"
                                 ]
+                            },
+                            {
+                                "type": "Command",
+                                "names": ["command1",]
                             }
                         ]
                     }
@@ -1701,7 +1705,7 @@ class TestClassHook(unittest.TestCase):    # pragma: no cover
                 key_value_store=KeyValueStore(),
                 task=t1,
                 task_id=t1.task_id,
-                logger=TestLogger()
+                logger=logger
             )
 
         print_logger_lines(logger=logger)

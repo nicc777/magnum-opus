@@ -1015,6 +1015,23 @@ class TaskLifecycleStage(Enum):
     TASK_PROCESSING_POST_DONE_ERROR         = -6
 
 
+def get_task_lifecycle_error_stage(stage: TaskLifecycleStage)->TaskLifecycleStage:
+    """Get the error event of the corresponding stage event, assuming the stage is a normal event.
+
+    Args:
+        stage: An instance of `TaskLifecycleStage`
+
+    Returns:
+        The error version of the given stage as a `TaskLifecycleStage` instance
+
+    Raises:
+        Exception: If the input stage is already an error event, an exception will be raised.
+    """
+    if stage.value < 0:
+        raise Exception('The provided stage is already an error stage')
+    return TaskLifecycleStage(stage.value * -1)
+
+
 class TaskLifecycleStages(Sequence):
     """A collection of `TaskLifecycleStage` values
 
@@ -1258,7 +1275,8 @@ class Hook:
             if result is not None:
                 if isinstance(result, KeyValueStore):
                     key_value_store.store = copy.deepcopy(result.store)
-        except:
+        except Exception as e:
+            traceback.print_exc()
             exception_message = 'Hook "{}" failed to execute during command "{}" in context "{}" in task life cycle stage "{}"'.format(
                 self.name,
                 command,
@@ -1266,7 +1284,7 @@ class Hook:
                 task_life_cycle_stage
             )
             final_logger.error(exception_message)
-            raise Exception(exception_message)
+            raise e
         return key_value_store
 
 
@@ -1290,6 +1308,17 @@ class Hooks:
             stages_values.append(stage_value)
         return stages_values
 
+    def _get_hooks(self, command: str, context: str, task_life_cycle_stage: TaskLifecycleStage)->list:
+        hooks = list()
+        hook: Hook
+        for hook_name, hook in self.hook_registrar.items():
+            if hook.hook_exists_for_command_and_context(command=command, context=context) is True:
+                stages = TaskLifecycleStages()
+                stages.register_lifecycle_stage(task_life_cycle_stage=TaskLifecycleStage(task_life_cycle_stage.value))
+                if hook.hook_exists_for_task_of_the_provided_life_cycle_events(life_cycle_stages_to_evaluate=stages) is True:
+                    hooks.append(hook)
+        return hooks
+
     def process_hook(
         self,
         command: str,
@@ -1302,22 +1331,51 @@ class Hooks:
         logger: LoggerWrapper=LoggerWrapper()
     )->KeyValueStore:
         hook: Hook
-        for hook_name, hook in self.hook_registrar.items():
-            result: KeyValueStore
-            result = hook.process_hook(
-                command=command,
-                context=context,
-                task_life_cycle_stage=task_life_cycle_stage,
-                key_value_store=copy.deepcopy(key_value_store),
-                task=task,
-                task_id=task_id,
-                extra_parameters=extra_parameters,
-                logger=logger
-            )
-            if result is not None:
-                if isinstance(result, KeyValueStore):
-                    key_value_store.store = copy.deepcopy(result.store)
-
+        hook_exception_raised = False
+        for hook in self._get_hooks(command=command, context=context, task_life_cycle_stage=task_life_cycle_stage):
+            logger.debug('Processing hook named "{}" for task "{}" on life cycle stage "{}"'.format(hook.name, task_id, task_life_cycle_stage.name))
+            try:
+                result: KeyValueStore
+                result = hook.process_hook(
+                    command=command,
+                    context=context,
+                    task_life_cycle_stage=task_life_cycle_stage,
+                    key_value_store=copy.deepcopy(key_value_store),
+                    task=task,
+                    task_id=task_id,
+                    extra_parameters=extra_parameters,
+                    logger=logger
+                )
+                if result is not None:
+                    if isinstance(result, KeyValueStore):
+                        key_value_store.store = copy.deepcopy(result.store)
+            except Exception as e:
+                hook_exception_raised = True
+                if task_life_cycle_stage.value > 0:
+                    exception_message = 'Hook "{}" failed to execute during command "{}" in context "{}" in task life cycle stage "{}"'.format(
+                        hook.name,
+                        command,
+                        context,
+                        task_life_cycle_stage.name
+                    )
+                    logger.error(exception_message)
+                    try:
+                        self.key_value_store = self.process_hook(
+                            command='NOT_APPLICABLE',
+                            context='ALL',
+                            task_life_cycle_stage=get_task_lifecycle_error_stage(stage=task_life_cycle_stage),
+                            key_value_store=copy.deepcopy(self.key_value_store),
+                            task=task,
+                            task_id=task_id,
+                            extra_parameters={'Traceback': e, 'ExceptionMessage': exception_message},
+                            logger=logger
+                        )
+                    except:
+                        traceback.print_exc()
+                else:
+                    logger.error('While processing an ERROR event hook, another exception occurred: {}'.format(traceback.format_exc()))
+            if hook_exception_raised is True:
+                raise Exception('Hook processing failed. Aborting.')
         return key_value_store
     
     def any_hook_exists(self, command: str, context: str, task_life_cycle_stage: TaskLifecycleStage)->bool:
@@ -1502,7 +1560,7 @@ class Task:
         self._register_dependencies()
         self.task_checksum = None
         self.task_id = self._determine_task_id()
-        logger.info('Task "{}" registered. Task checksum: {}'.format(self.task_id, self.task_checksum))
+        logger.info('Task "{}" initialized. Task checksum: {}'.format(self.task_id, self.task_checksum))
 
     def task_match_name(self, name: str)->bool:
         return self.identifiers.identifier_matches_any_context(identifier_type='ManifestName', key=name)
@@ -1840,31 +1898,15 @@ class Tasks:
     def add_task(self, task: Task):
         if task.task_id in self.tasks:
             raise Exception('Task with ID "{}" was already added previously. Please use the "metadata.name" attribute to identify separate (but perhaps similar) manifests.')
-        try:
-            self.key_value_store = self.hooks.process_hook(
-                command='NOT_APPLICABLE',
-                context='ALL',
-                task_life_cycle_stage=TaskLifecycleStage.TASK_PRE_REGISTER,
-                key_value_store=copy.deepcopy(self.key_value_store),
-                task=task,
-                task_id=task.task_id,
-                logger=self.logger
-            )
-        except Exception as e:
-            try:
-                self.key_value_store = self.hooks.process_hook(
-                    command='NOT_APPLICABLE',
-                    context='ALL',
-                    task_life_cycle_stage=TaskLifecycleStage.TASK_PRE_REGISTER_ERROR,
-                    key_value_store=copy.deepcopy(self.key_value_store),
-                    task=task,
-                    task_id=task.task_id,
-                    extra_parameters={'Traceback': e},
-                    logger=self.logger
-                )
-            except:
-                traceback.print_exc()
-            raise Exception('Cannot continue - TaskLifecycleStage.TASK_PRE_REGISTER Hook Failed with Exception')
+        self.key_value_store = self.hooks.process_hook(
+            command='NOT_APPLICABLE',
+            context='ALL',
+            task_life_cycle_stage=TaskLifecycleStage.TASK_PRE_REGISTER,
+            key_value_store=copy.deepcopy(self.key_value_store),
+            task=task,
+            task_id=task.task_id,
+            logger=self.logger
+        )
         processor_id = '{}:{}'.format(task.kind, task.version)
         if processor_id not in self.task_processor_register:
             self.key_value_store = self.hooks.process_hook(
@@ -1878,30 +1920,14 @@ class Tasks:
                 logger=self.logger
             )
         self.tasks[task.task_id] = task
-        try:
-            self.key_value_store = self.hooks.process_hook(
-                command='NOT_APPLICABLE',
-                context='ALL',
-                task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED,
-                key_value_store=copy.deepcopy(self.key_value_store),
-                task=task,
-                task_id=task.task_id
-            )
-        except Exception as e:
-            try:
-                self.key_value_store = self.hooks.process_hook(
-                    command='NOT_APPLICABLE',
-                    context='ALL',
-                    task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED_ERROR,
-                    key_value_store=copy.deepcopy(self.key_value_store),
-                    task=task,
-                    task_id=task.task_id,
-                    extra_parameters={'Traceback': e},
-                    logger=self.logger
-                )
-            except:
-                traceback.print_exc()
-            raise Exception('Cannot continue - TaskLifecycleStage.TASK_REGISTERED Hook Failed with Exception')
+        self.key_value_store = self.hooks.process_hook(
+            command='NOT_APPLICABLE',
+            context='ALL',
+            task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED,
+            key_value_store=copy.deepcopy(self.key_value_store),
+            task=task,
+            task_id=task.task_id
+        )
 
     def register_task_processor(self, processor: TaskProcessor):
         if isinstance(processor.versions, list):
