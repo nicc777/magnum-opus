@@ -1245,6 +1245,7 @@ class Hook:
             Exception: When the Hook fails with an exception. The error will be logged before the exception is passed on.
         """
         final_logger = self.logger
+        result = copy.deepcopy(key_value_store)
         if logger is not None:
             if isinstance(logger, LoggerWrapper):
                 final_logger = logger
@@ -1265,16 +1266,17 @@ class Hook:
             result = self.function_impl(
                 hook_name=self.name,
                 task=task,
-                key_value_store=key_value_store,
+                key_value_store=copy.deepcopy(key_value_store),
                 command=command,
                 context=context,
                 task_life_cycle_stage=task_life_cycle_stage,
                 extra_parameters=extra_parameters,
                 logger=self.logger
             )
-            if result is not None:
-                if isinstance(result, KeyValueStore):
-                    key_value_store.store = copy.deepcopy(result.store)
+            if result is None:
+                result = copy.deepcopy(key_value_store)
+            if isinstance(result, KeyValueStore) is False:
+                result = copy.deepcopy(key_value_store)
         except Exception as e:
             traceback.print_exc()
             exception_message = 'Hook "{}" failed to execute during command "{}" in context "{}" in task life cycle stage "{}"'.format(
@@ -1285,7 +1287,7 @@ class Hook:
             )
             final_logger.error(exception_message)
             raise e
-        return key_value_store
+        return result
 
 
 class Hooks:
@@ -2039,7 +2041,8 @@ class TaskProcessor:
         context: str='default',
         key_value_store: KeyValueStore=KeyValueStore(),
         call_process_task_if_check_pass: bool=False,
-        state_persistence: StatePersistence=StatePersistence()
+        state_persistence: StatePersistence=StatePersistence(),
+        hooks: Hooks=Hooks()
     )->KeyValueStore:
         """Checks if the task can be processed and then proceeds with the processing.
 
@@ -2069,14 +2072,49 @@ class TaskProcessor:
         )
         if task_run_id not in key_value_store.store:
             key_value_store.save(key=task_run_id, value=1)
+            key_value_store = hooks.process_hook(
+                command=command,
+                context=context,
+                task_life_cycle_stage=TaskLifecycleStage.TASK_PRE_PROCESSING_COMPLETED,
+                key_value_store=copy.deepcopy(key_value_store),
+                task=task,
+                task_id=task.task_id,
+                logger=self.logger
+            )
         if key_value_store.store[task_run_id] == 1:
             try:
                 if call_process_task_if_check_pass is True:
-                    # FIXME - include Hook processing here....
-                    key_value_store = self.process_task(task=task, command=command, context=context, key_value_store=key_value_store, state_persistence=state_persistence)
+                    key_value_store = hooks.process_hook(
+                        command=command,
+                        context=context,
+                        task_life_cycle_stage=TaskLifecycleStage.TASK_PROCESSING_PRE_START,
+                        key_value_store=copy.deepcopy(key_value_store),
+                        task=task,
+                        task_id=task.task_id,
+                        logger=self.logger
+                    )
+                    key_value_store = self.process_task(task=task, command=command, context=context, key_value_store=copy.deepcopy(key_value_store), state_persistence=state_persistence)
                     key_value_store.store[task_run_id] = 2
+                    key_value_store =  hooks.process_hook(
+                        command=command,
+                        context=context,
+                        task_life_cycle_stage=TaskLifecycleStage.TASK_PRE_PROCESSING_COMPLETED,
+                        key_value_store=copy.deepcopy(key_value_store),
+                        task=task,
+                        task_id=task.task_id,
+                        logger=self.logger
+                    )
             except: # pragma: no cover
                 key_value_store.store[task_run_id] = -1
+                key_value_store =  hooks.process_hook(
+                    command=command,
+                    context=context,
+                    task_life_cycle_stage=TaskLifecycleStage.TASK_PRE_PROCESSING_COMPLETED_ERROR,
+                    key_value_store=copy.deepcopy(key_value_store),
+                    task=task,
+                    task_id=task.task_id,
+                    logger=self.logger
+                )
         else:
             self.logger.warning(message='Appears task was already previously validated and/or executed')
         return key_value_store
@@ -2161,21 +2199,6 @@ def build_command_identifier(command: str, context: str)->Identifier:
 
 
 class Tasks:
-
-    """
-        TASK_PRE_REGISTER                       = 1
-        TASK_PRE_REGISTER_ERROR                 = -1
-        TASK_REGISTERED                         = 2
-        TASK_REGISTERED_ERROR                   = -2
-        TASK_PRE_PROCESSING_START               = 3
-        TASK_PRE_PROCESSING_START_ERROR         = -3
-        TASK_PRE_PROCESSING_COMPLETED           = 4
-        TASK_PRE_PROCESSING_COMPLETED_ERROR     = -4
-        TASK_PROCESSING_PRE_START               = 5
-        TASK_PROCESSING_PRE_START_ERROR         = -5
-        TASK_PROCESSING_POST_DONE               = 6
-        TASK_PROCESSING_POST_DONE_ERROR         = -6
-    """
 
     def __init__(self, logger: LoggerWrapper=LoggerWrapper(), key_value_store: KeyValueStore=KeyValueStore(), hooks: Hooks=Hooks(), state_persistence: StatePersistence=StatePersistence()):
         self.logger = logger
@@ -2317,11 +2340,11 @@ class Tasks:
             if task_id in self.tasks:
                 task = self.tasks[task_id]
 
-                self.key_value_store = self.key_value_store = self.hooks.process_hook(
+                self.key_value_store = self.hooks.process_hook(
                     command=command,
                     context=context,
                     task_life_cycle_stage=TaskLifecycleStage.TASK_PRE_PROCESSING_START,
-                    key_value_store=self.key_value_store,
+                    key_value_store=copy.deepcopy(self.key_value_store),
                     task=task,
                     task_id=task_id,
                     logger=self.logger
@@ -2333,35 +2356,15 @@ class Tasks:
                     if target_task_processor_executor_id in self.task_processors_executors:
                         target_task_processor_executor = self.task_processors_executors[target_task_processor_executor_id]
                         if isinstance(target_task_processor_executor, TaskProcessor):                            
-                            self.key_value_store = target_task_processor_executor.task_pre_processing_check(task=task, command=command, context=context, key_value_store=self.key_value_store, call_process_task_if_check_pass=True, state_persistence=self.state_persistence)
-
-                            self.key_value_store = self.key_value_store = self.hooks.process_hook(
-                                command=command,
-                                context=context,
-                                task_life_cycle_stage=TaskLifecycleStage.TASK_PRE_PROCESSING_COMPLETED,
-                                key_value_store=self.key_value_store,
-                                task=task,
-                                task_id=task_id,
-                                logger=self.logger
-                            )
-
-                            self.key_value_store = self.key_value_store = self.hooks.process_hook(
-                                command=command,
-                                context=context,
-                                task_life_cycle_stage=TaskLifecycleStage.TASK_PROCESSING_PRE_START,
-                                key_value_store=self.key_value_store,
-                                task=task,
-                                task_id=task_id,
-                                logger=self.logger
-                            )
+                            self.key_value_store = target_task_processor_executor.task_pre_processing_check(task=task, command=command, context=context, key_value_store=copy.deepcopy(self.key_value_store), call_process_task_if_check_pass=True, state_persistence=self.state_persistence, hooks=self.hooks)
                             
                             self.state_persistence.persist_all_state()
 
-                            self.key_value_store = self.key_value_store = self.hooks.process_hook(
+                            self.key_value_store = self.hooks.process_hook(
                                 command=command,
                                 context=context,
                                 task_life_cycle_stage=TaskLifecycleStage.TASK_PROCESSING_POST_DONE,
-                                key_value_store=self.key_value_store,
+                                key_value_store=copy.deepcopy(self.key_value_store),
                                 task=task,
                                 task_id=task_id,
                                 logger=self.logger
