@@ -1646,65 +1646,98 @@ def build_contextual_identifiers(metadata: dict, current_identifiers: Identifier
 
 
 class Task:
+    """Holds a specific set of parameters as defined by a `spec`. A specification is in Python `dict` format and can
+    therefore include more complex parameters to be made available to the task during processing.
+
+    A task is a basic configuration item that a `TaskProcessor` will get as input in order to process based on a
+    `command` and a `context`. The content of the `Task` instance (attributes) serves as a kind of complex input
+    parameters for the task processor. Additional data that help organize and orchestrate the order of operations is
+    mainly defined in the task metadata,
+
+    The primary parameters for task processing is defined in the task `spec`. The layout of the spec is dependant on the
+    `TaskProcessor` implementation and it's requirements.
+
+    Task metadata may contain the following elements:
+
+    * (contextual) identifiers
+    * non-contextual identifiers
+    * Dependencies linking to other tasks by name or by identifying any task that include the defined labels.
+    * Annotations, which are also useful to provide parameters for `Hook` processing.
+
+    Below is a fairly complete hypothetical example of metadata with all possible elements defined:
+
+    ```json
+    {
+        "identifiers": [
+            {
+                "type": "ManifestName",
+                "key": "test1"
+            },
+        ],
+        "contextualIdentifiers": [
+            {
+                "type": "ExecutionScope",
+                "key": "INCLUDE",
+                "contexts": [
+                    {
+                        "type": "Environment",
+                        "names": [
+                            "sandbox1",
+                            "sandbox2"
+                        ]
+                    }
+                ]
+            }
+        ],
+        "dependencies": [
+            {
+                "identifierType": "ManifestName",
+                "identifiers": [
+                    { "key": "name1" },
+                    { "key": "name2" },
+                ]
+            },
+            {
+                "identifierType": "Label",
+                "identifiers": [
+                    {
+                        "key": "labelname1",
+                        "value": "labelvalue1"
+                    },
+                ]
+            }
+        ],
+        "annotations": {
+            "name1": "...",
+            "name2": "...",
+        }
+    }
+    ```
+
+    Attributes:
+        task_can_be_persisted: A boolean value to guide the persistance implementation of `StatePersistence` if this task can be persisted. The main qualifying criteria for this flag to be True is if a `ManifestName` type non-contextual `Identifier` has been defined in the metadata. With no name, it is strictly speaking never possible to retrieve the saved manifest because there is nothing to key the manifest on.
+        logger: An implementation of the `LoggerWrapper` class
+        kind: Links the task to a `TaskProcessor` implementation
+        version: Links the task to a compatible version of a `TaskProcessor` implementation
+        metadata: The original metadata as a dict
+        identifiers: An instance of `Identifiers` after the metadata is parsed.
+        spec: A copy of the spec as a dict
+        annotations: Extracted annotation from metadata. Looks for the key "annotations" in metadata and saves a copy of the value.
+        task_dependencies: A list of dependencies as extracted from metadata.
+        task_as_dict: Represents the entire `Task` definition as a dict
+        task_checksum: A calculated value based mainly on the SHA256 value of the `task_as_dict`
+        task_id: If the task name was defined in the metadata, the task_id will be the name, else it will be the value of `task_checksum`
+    """
 
     def __init__(self, kind: str, version: str, spec: dict, metadata: dict=dict(), logger: LoggerWrapper=LoggerWrapper()):
-        """
-            Typical Manifest:
+        """Initializes the `Task`
 
-                kind: STRING                                                                    # [required]
-                version: STRING                                                                 # [required]
-                metadata:
-
-                  # NEW....
-                  identifiers:                    # Non-contextual identifier
-                  - type: STRING                  # Example: ManifestName
-                    key: STRING                   # Example: my-manifest
-                    value: STRING|NULL            # [Optional]                  <-- Not required for type "ManifestName"
-                  - type: STRING                  # Example: Label
-                    key: STRING                   # Example: my-key
-                    value: STRING|NULL            # Example: my-value           <-- Required for type "Label"
-
-                  contextualIdentifiers:
-                  - type: STRING              # Example: ExecutionScope       <-- THEREFORE, this Manifest is scoped to 3x Environment contexts and 2x Command contexts
-                    key: STRING               # Example: INCLUDE              <-- or "EXCLUDE", to specifically exclude execution in a given context
-                    value val: STRING         # Example: Null|None
-                    contexts:
-                    - type: STRING              # Example: Environment
-                      names:
-                      - STRING                  # Example: sandbox
-                      - STRING                  # Example: test
-                      - STRING                  # Example: production
-                    - type: STRING              # Example: Command
-                      names:
-                      - STRING                  # Example: apply
-                      - STRING                  # Example: delete
-
-                  dependencies:
-                  - identifierType: ManifestName|Label      # Link to a Non-contextual identifier
-                    identifiers:
-                    - key: STRING
-                      value: STRING                         # Optional - required for identifierType "Label"
-
-
-                  # DEPRECATED...
-                  name: STRING                                                                  # [optional]
-                  labels:                                                                       # [optional]
-                    key: STRING
-
-                  annotations:                                                                  # [optional]
-
-                    # DEPRECATED....
-                    contexts: CSV-STRING                                                        # [optional, but when supplied only commands within the defined context will be in scope for processing]
-                    commands: CSV-STRING                                                        # [optional, but when supplied only commands listed here will bring the task in potential scope (dependant also on context)]
-                    dependency/name: CSV-STRING                                                 # [optional. list of other task names this task depends on]
-                    dependency/label/STRING(command)/STRING(label-name): STRING(label-value)    # [optional. select dependant task by label value]
-
-
-                    
-                          
-
-                spec:
-                  ... as required by the TaskProcessor ...
+        Args:
+            kind: The name of the `TaskProcessor` that will have the responsibility of processing this task.
+            version: A version string to assist the orchestration engine finding a suitable `TaskProcessor` implementation for this `Task`
+            spec: The spec, as required by the `TaskProcessor` implementation.
+            metadata: [optional] dict of metadata
+            logger: [optional] An implementation of the `LoggerWrapper` class
         """
         self.task_can_be_persisted = False
         self.logger = logger
@@ -1732,12 +1765,45 @@ class Task:
         logger.info('Task "{}" initialized. Task checksum: {}'.format(self.task_id, self.task_checksum))
 
     def task_match_name(self, name: str)->bool:
+        """Determines if the given name matches this task's name as (optionally) defined in metadata.
+
+        Args:
+            name: The name to match against the name of this task.
+
+        Returns:
+            Boolean `True` if the provided name matches the task name.
+        """
         return self.identifiers.identifier_matches_any_context(identifier_type='ManifestName', key=name)
 
     def task_match_label(self, key: str, value: str)->bool:
+        """Determines if the given label key and value matches any of this task's labels as (optionally) defined in metadata.
+
+        Args:
+            key: The label key to match
+            value: The label value to match
+
+        Returns:
+            Boolean `True` if the provided key and value pair matches any of the task's label key and value pairs.
+        """
         return self.identifiers.identifier_matches_any_context(identifier_type='Label', key=key, val=value)
     
     def task_qualifies_for_processing(self, processing_target_identifier: Identifier)->bool:
+        """Determines if the task must be processed given the processing context.
+
+        Args:
+            processing_target_identifier: An `Identifier` instance describing the target processing context.
+
+        Returns:
+            Boolean `True` task is deemed in scope for given the processing context.
+
+            By default the task is assumed to be in-scope, unless there are some criteria specifically excluding the
+            task from being processed.
+
+            Disqualifying criteria include the following (returns `False`):
+
+            * If the provided `processing_target_identifier` contains elements specifically in the "EXCLUDE" definition of the `ExecutionScope` in the `contextualIdentifiers` metadata
+            * If none of the provided "command" and/or "environment" definitions in the "INCLUDE" definition of the `ExecutionScope` in the `contextualIdentifiers` metadata matches the provided `processing_target_identifier`
+        """
         qualifies = True
 
         # Qualify the processing_target_identifier as a valid processing type identifier
@@ -1796,6 +1862,21 @@ class Task:
         return qualifies
 
     def match_name_or_label_identifier(self, identifier: Identifier)->bool:
+        """Determines if the given identifier matches either the `Task` name or labels extracted from metadata.
+
+        The input `Identifier` must be one of the following types:
+
+        * `ExecutionScope` (also requires the identifier key to be of value "processing"), in which case the match will return the boolean value from the method `task_qualifies_for_processing()`
+        * `ManifestName`
+        * `Label`
+
+        Args:
+            identifier: The `Identifier` to match against the `Task` name or labels extracted from metadata
+
+        Returns:
+            Boolean `True` if any matches are found.
+        """
+
         # Determine if this task can be processed given the processing identifier.
         if identifier.identifier_type == 'ExecutionScope' and identifier.key == 'processing':
             return self.task_qualifies_for_processing(processing_target_identifier=identifier)
@@ -1852,14 +1933,6 @@ class Task:
         return self.metadata['dependencies']
 
     def _register_dependencies(self):
-        """
-              metadata:
-                dependencies:
-                - identifierType: ManifestName|Label      # Link to a Non-contextual identifier
-                  identifiers:
-                  - key: STRING
-                    value: STRING                         # Optional - required for identifierType "Label"
-        """
         for dependency in self._dependencies_found_in_metadata(meta_data=self.metadata):
             if isinstance(dependency, dict) is True:
                 if 'identifierType' in dependency and 'identifiers' in dependency:
@@ -1897,15 +1970,6 @@ class Task:
         return hashlib.sha256(json.dumps(data).encode('utf-8')).hexdigest()
 
     def _determine_task_id(self):
-        """
-                  identifiers:                    # Non-contextual identifier
-                  - type: STRING                  # Example: ManifestName
-                    key: STRING                   # Example: my-manifest
-                    value: STRING|NULL            # [Optional]                  <-- Not required for type "ManifestName"
-                  - type: STRING                  # Example: Label
-                    key: STRING                   # Example: my-key
-                    value: STRING|NULL            # Example: my-value           <-- Required for type "Label"
-        """
         task_id = self._calculate_task_checksum()
         self.task_checksum = copy.deepcopy(task_id)
         
