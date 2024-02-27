@@ -1992,8 +1992,41 @@ class Task:
 
 
 class TaskProcessor:
+    """Must be implemented by the client and defines the logic of `Task` processing, given the task attributes at
+    runtime. Each `TaskProcessor` is identified by the `kind` and supported `version` and when each `Task` is
+    registered, a check will be made to ensure a compatible `TaskProcessor` is registered for that task.
+
+    This class is used as a base class that actual task processors will inherit.
+
+    Attributes:
+        logger: An implementation of the `LoggerWrapper` class
+        kind: The kind. Any `Task` with the same kind (and matching version) may be processed with this task processor.
+        versions: A list of supported versions that this task processor can process
+        supported_commands: A list of supported commands that this task processor can process on matching tasks.
+    """
 
     def __init__(self, kind: str, kind_versions: list, supported_commands: list=['apply', 'get', 'delete', 'describe'], logger: LoggerWrapper=LoggerWrapper()):
+        """Initializes the `TaskProcessor`. Task processors are generally not receiving parameters when initialized, and
+        therefore the client implementation of this base class must use sensible default values.
+
+        An hypothetical example would be a `TaskProcessor` that implements the logic to retrieve a resource via an
+        HTTP/HTTPS type call:
+
+        ```python
+        class HttpResource(TaskProcessor):
+            def __init__(self):
+                super().__init__(kind='HttpResource', kind_versions=['v1'], supported_commands=['apply', 'get', 'describe'], logger=ClientLogger())
+        ```
+
+        The client implementation of this base class must contain the suitable documentation that defines the required
+        `Task` "spec".
+
+        Args:
+            kind: The kind. Any `Task` with the same kind (and matching version) may be processed with this task processor.
+            versions: A list of supported versions that this task processor can process
+            supported_commands: A list of supported commands that this task processor can process on matching tasks.
+            logger: An implementation of the `LoggerWrapper` class
+        """
         self.logger = logger
         self.kind = kind
         self.versions = kind_versions
@@ -2008,8 +2041,26 @@ class TaskProcessor:
         call_process_task_if_check_pass: bool=False,
         state_persistence: StatePersistence=StatePersistence()
     )->KeyValueStore:
-        """
-        Checks if the task can be run.
+        """Checks if the task can be processed and then proceeds with the processing.
+
+        Any processed task will also be registered in the `KeyValueStore` in order to avoid processing the same `Task`
+        more than once.
+
+        Args:
+            task: The `Task` to process
+            command: The command to be applied in the processing context
+            context: A string containing the processing context
+            key_value_store: An instance of the `KeyValueStore`. If none is supplied, a new instance will be created.
+            call_process_task_if_check_pass: A boolean (default=False) to indicate if the processing must also be executed (which requires this value to be `True`).
+            state_persistence: An implementation of `StatePersistence` that the task processor can use to retrieve previous copies of the `Task` manifest in order to determine the actions to be performed.
+
+        Returns:
+            An updated `KeyValueStore` with a record with a key made up of the `task_id`, and the input `command` and
+            `context`. The value can be one of the following:
+
+            * `1` - The task is waiting/ready to be processed
+            * `2` - The task was successfully processed (only possible if `call_process_task_if_check_pass` was `True`)
+            * `-1` - An attempt to process the task resulted in an Exception being raised. (only possible if `call_process_task_if_check_pass` was `True`)
         """
         task_run_id = 'PROCESSING_TASK:{}:{}:{}'.format(
             task.task_id,
@@ -2021,6 +2072,7 @@ class TaskProcessor:
         if key_value_store.store[task_run_id] == 1:
             try:
                 if call_process_task_if_check_pass is True:
+                    # FIXME - include Hook processing here....
                     key_value_store = self.process_task(task=task, command=command, context=context, key_value_store=key_value_store, state_persistence=state_persistence)
                     key_value_store.store[task_run_id] = 2
             except: # pragma: no cover
@@ -2030,6 +2082,29 @@ class TaskProcessor:
         return key_value_store
 
     def process_task(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore(), state_persistence: StatePersistence=StatePersistence())->KeyValueStore:
+        """Processes a `Task` with the given processing context.
+
+        The client must implement the logic and will primarily work of the `Task` "spec" values which serves as
+        processing parameters.
+
+        During the processing of a `Task`, the implementation logic can also add (or even update and remove) values in
+        the `KeyValueStore`. This allows other tasks to re-use data created by preceding tasks and is especially useful
+        when used together with the feature of task dependencies.
+
+        Args:
+            task: The `Task` to process
+            command: The command to be applied in the processing context
+            context: A string containing the processing context
+            key_value_store: An instance of the `KeyValueStore`. If none is supplied, a new instance will be created.
+            state_persistence: An implementation of `StatePersistence` that the task processor can use to retrieve previous copies of the `Task` manifest in order to determine the actions to be performed.
+
+
+        Returns:
+            An updated `KeyValueStore`.
+
+        Raises:
+            Exception: As determined by the processing logic.
+        """
         raise Exception('Not implemented')  # pragma: no cover
 
 
