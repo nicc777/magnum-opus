@@ -2152,10 +2152,34 @@ def hook_function_always_throw_exception(
     key_value_store:KeyValueStore,
     command:str,
     context:str,
-    task_life_cycle_stage:int,
+    task_life_cycle_stage: TaskLifecycleStage,
     extra_parameters:dict,
     logger:LoggerWrapper
-):
+)->KeyValueStore:
+    """A hook function
+
+    THis particular function will always throw an exception and is intended as a default hook function to handle error
+    events.
+
+    Args:
+        hook_name: The name of the hook
+        task: An instance of a `Task`
+        key_value_store: An instance of KeyValueStore,
+        command: The command being issued for task processing
+        context: The context of task processing
+        task_life_cycle_stage: The task life cycle stage as an instance of TaskLifecycleStage
+        extra_parameters: A dict with extra parameters
+        logger: An implementation of the `LoggerWrapper` class for logging
+
+    Returns:
+        Normally a hook function will update `task_life_cycle_stage` and return a new copy of `TaskLifecycleStage`. 
+
+        This function will never return anything and will always throw an exception.
+
+    Raises:
+        Exception: An exception. This particular function will always throw an exception and is intended as a catchall
+        for error events/
+    """
     task_id = 'unknown'
     if task is not None:
         if isinstance(task, Task):
@@ -2164,7 +2188,7 @@ def hook_function_always_throw_exception(
         hook_name,
         command,
         context,
-        task_life_cycle_stage,
+        task_life_cycle_stage.name,
         task_id
     )
     if 'ExceptionMessage' in extra_parameters:
