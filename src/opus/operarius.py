@@ -2276,8 +2276,6 @@ class Tasks:
         self._register_task_registration_failure_exception_throwing_hook()
 
     def _register_task_registration_failure_exception_throwing_hook(self):
-        required_task_life_cycle_stages = TaskLifecycleStages(init_default_stages=False)
-        required_task_life_cycle_stages.register_lifecycle_stage(task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED_ERROR)
         for error_event_life_cycle in (
             TaskLifecycleStage.TASK_PRE_REGISTER_ERROR,
             TaskLifecycleStage.TASK_REGISTERED_ERROR,
@@ -2289,7 +2287,7 @@ class Tasks:
             if self.hooks.any_hook_exists(command='NOT_APPLICABLE', context='ALL', task_life_cycle_stage=error_event_life_cycle) is False:
                 self.hooks.register_hook(
                     hook=Hook(
-                        name='DEFAULT_TASK_REGISTERED_ERROR_HOOK',
+                        name='DEFAULT_{}_HOOK'.format(error_event_life_cycle.name),
                         commands=['NOT_APPLICABLE',],
                         contexts=['ALL',],
                         task_life_cycle_stages=error_event_life_cycle,
