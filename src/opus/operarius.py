@@ -2201,6 +2201,17 @@ def hook_function_always_throw_exception(
 
 
 def build_command_identifier(command: str, context: str)->Identifier:
+    """A helper function for creating an `Identifier` object for a given command and context processing run.
+
+    More specifically, an `Identifier` of type `ExecutionScope` in `processing` mode will be created.
+
+    Args:
+        command: The command to be applied in the processing context
+        context: A string containing the processing context
+
+    Returns:
+        An `Identifier` instance based on the input argument values.
+    """
     processing_contexts = IdentifierContexts()
     processing_contexts.add_identifier_context(
         identifier_context=IdentifierContext(
