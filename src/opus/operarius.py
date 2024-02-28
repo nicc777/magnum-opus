@@ -2234,6 +2234,35 @@ def build_command_identifier(command: str, context: str)->Identifier:
 
 
 class Tasks:
+    """The primary orchestration class that will identify classes eligible for processing given a certain `command` and 
+    `context`. The pre-processing steps will identify which tasks are eligible for processing, which also resolving
+    their dependencies and calculating the order of processing (dependencies are processed first).
+
+    To create `Tasks` the basic sequence of events are as follow:
+
+    * [Optional but recommended] The client create an appropriate `LoggerWrapper` class
+    * [Optional, but recommended when dealing with multiple `Tasks` instances] Create a `KeyValueStore` instance
+    * [Optional, dependant on client needs] Create `Hooks` instance and add individual `Hook` instances as needed.
+    * [Optional, dependant on client needs] Create an implementation of `StatePersistence`
+    * Create at least one `Tasks` instances, depending on client implementation, with the earlier created optional instances of various classes.
+    * CReate all `TaskProcessor` instances and add them to the `Tasks` implementation(s) with the `register_task_processor()` method
+    * Client create individual `Task` instances which are then added to the appropriate `Tasks` implementation, using the `add_task()` method
+    * Finally the client cal call the `process_context()` method with the appropriate runtime processing arguments to process tasks.
+    * Post processing, the `key_value_store` attribute will have the complete collection of all values defined during processing which the client can use for further processing decisions.
+
+    During the `Tasks` instance initialization, at least one default hook to handle `ERROR` events will be handled. In
+    this case, it is the `hook_function_always_throw_exception` function that will be added for each error type event
+    hook. This guarantees that any error event will ultimately throw an exception that will be passed to the client.
+
+    Attributes:
+        logger: An implementation of the `LoggerWrapper` class
+        tasks: A dictionary containing `Task` instances.
+        task_processors_executors: A dictionary containing all `TaskProcessor` instances
+        task_processor_register: A dictionary linking task processor identifiers to the actual processor implementations (for easier and more effective referencing)
+        key_value_store: The `KeyValueStore` keeping all values that is shared with all hooks and tasks during processing and that is updated by tasks and hooks.
+        hooks: An instance of `Hooks` containing all defined hooks.
+        state_persistence: An instance of `StatePersistence` for managing persisted data
+    """
 
     def __init__(self, logger: LoggerWrapper=LoggerWrapper(), key_value_store: KeyValueStore=KeyValueStore(), hooks: Hooks=Hooks(), state_persistence: StatePersistence=StatePersistence()):
         self.logger = logger
@@ -2249,17 +2278,25 @@ class Tasks:
     def _register_task_registration_failure_exception_throwing_hook(self):
         required_task_life_cycle_stages = TaskLifecycleStages(init_default_stages=False)
         required_task_life_cycle_stages.register_lifecycle_stage(task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED_ERROR)
-        if self.hooks.any_hook_exists(command='NOT_APPLICABLE', context='ALL', task_life_cycle_stage=TaskLifecycleStage.TASK_REGISTERED_ERROR) is False:
-            self.hooks.register_hook(
-                hook=Hook(
-                    name='DEFAULT_TASK_REGISTERED_ERROR_HOOK',
-                    commands=['NOT_APPLICABLE',],
-                    contexts=['ALL',],
-                    task_life_cycle_stages=required_task_life_cycle_stages,
-                    function_impl=hook_function_always_throw_exception,
-                    logger=self.logger
+        for error_event_life_cycle in (
+            TaskLifecycleStage.TASK_PRE_REGISTER_ERROR,
+            TaskLifecycleStage.TASK_REGISTERED_ERROR,
+            TaskLifecycleStage.TASK_PRE_PROCESSING_START_ERROR,
+            TaskLifecycleStage.TASK_PRE_PROCESSING_COMPLETED_ERROR,
+            TaskLifecycleStage.TASK_PROCESSING_PRE_START_ERROR,
+            TaskLifecycleStage.TASK_PROCESSING_POST_DONE_ERROR,
+        ):
+            if self.hooks.any_hook_exists(command='NOT_APPLICABLE', context='ALL', task_life_cycle_stage=error_event_life_cycle) is False:
+                self.hooks.register_hook(
+                    hook=Hook(
+                        name='DEFAULT_TASK_REGISTERED_ERROR_HOOK',
+                        commands=['NOT_APPLICABLE',],
+                        contexts=['ALL',],
+                        task_life_cycle_stages=error_event_life_cycle,
+                        function_impl=hook_function_always_throw_exception,
+                        logger=self.logger
+                    )
                 )
-            )
 
     def add_task(self, task: Task):
         if task.task_id in self.tasks:
