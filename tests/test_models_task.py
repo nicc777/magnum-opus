@@ -799,13 +799,12 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
             )
         )
 
-        key_value_store = tasks.key_value_store
         logger = tasks.logger
 
         tasks.process_context(command='command2', context='c1')
-        self.assertIsNotNone(key_value_store)
-        self.assertIsInstance(key_value_store, KeyValueStore)
-        self.assertEqual(len(key_value_store.store), 4, 'key_value_store={}'.format(key_value_store.store))
+        self.assertIsNotNone(tasks.key_value_store)
+        self.assertIsInstance(tasks.key_value_store, KeyValueStore)
+        self.assertEqual(len(tasks.key_value_store.store), 4, 'key_value_store={}'.format(tasks.key_value_store.store))
         self.assertTrue(len(logger.info_lines) > 0)
         self.assertTrue(len(logger.error_lines) == 0)
         self.assertTrue(len(logger.critical_lines) == 0)
@@ -959,7 +958,6 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
             )
         )
 
-        key_value_store = tasks.key_value_store
         logger = tasks.logger
 
         # order = tasks.calculate_current_task_order(command='command2', context='c1')
@@ -967,9 +965,9 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
         print('order={}'.format(order))
 
         tasks.process_context(command='command2', context='c1')
-        self.assertIsNotNone(key_value_store)
-        self.assertIsInstance(key_value_store, KeyValueStore)
-        self.assertEqual(len(key_value_store.store), 4, 'key_value_store={}'.format(key_value_store.store))
+        self.assertIsNotNone(tasks.key_value_store)
+        self.assertIsInstance(tasks.key_value_store, KeyValueStore)
+        self.assertEqual(len(tasks.key_value_store.store), 4, 'key_value_store={}'.format(tasks.key_value_store.store))
         self.assertTrue(len(logger.info_lines) > 0)
         self.assertTrue(len(logger.error_lines) == 0)
         self.assertTrue(len(logger.critical_lines) == 0)
@@ -1124,14 +1122,13 @@ class TestClassTasks(unittest.TestCase):    # pragma: no cover
             )
         )
 
-        key_value_store = tasks.key_value_store
         logger = tasks.logger
 
         tasks.process_context(command='command1', context='c1')
 
-        self.assertIsNotNone(key_value_store)
-        self.assertIsInstance(key_value_store, KeyValueStore)
-        self.assertEqual(len(key_value_store.store), 2, 'key_value_store={}'.format(key_value_store.store))
+        self.assertIsNotNone(tasks.key_value_store)
+        self.assertIsInstance(tasks.key_value_store, KeyValueStore)
+        self.assertEqual(len(tasks.key_value_store.store), 2, 'key_value_store={}'.format(tasks.key_value_store.store))
         self.assertTrue(len(logger.info_lines) > 0)
         self.assertTrue(len(logger.error_lines) == 0)
         self.assertTrue(len(logger.critical_lines) == 0)
