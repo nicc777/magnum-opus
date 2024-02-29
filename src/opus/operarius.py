@@ -2276,6 +2276,7 @@ class Tasks:
         self._register_task_registration_failure_exception_throwing_hook()
 
     def _register_task_registration_failure_exception_throwing_hook(self):
+        life_cycle_stages = TaskLifecycleStages()
         for error_event_life_cycle in (
             TaskLifecycleStage.TASK_PRE_REGISTER_ERROR,
             TaskLifecycleStage.TASK_REGISTERED_ERROR,
@@ -2284,17 +2285,18 @@ class Tasks:
             TaskLifecycleStage.TASK_PROCESSING_PRE_START_ERROR,
             TaskLifecycleStage.TASK_PROCESSING_POST_DONE_ERROR,
         ):
-            if self.hooks.any_hook_exists(command='NOT_APPLICABLE', context='ALL', task_life_cycle_stage=error_event_life_cycle) is False:
-                self.hooks.register_hook(
-                    hook=Hook(
-                        name='DEFAULT_{}_HOOK'.format(error_event_life_cycle.name),
-                        commands=['NOT_APPLICABLE',],
-                        contexts=['ALL',],
-                        task_life_cycle_stages=error_event_life_cycle,
-                        function_impl=hook_function_always_throw_exception,
-                        logger=self.logger
-                    )
+            life_cycle_stages.register_lifecycle_stage(task_life_cycle_stage=error_event_life_cycle)
+        if self.hooks.any_hook_exists(command='NOT_APPLICABLE', context='ALL', task_life_cycle_stage=error_event_life_cycle) is False:
+            self.hooks.register_hook(
+                hook=Hook(
+                    name='DEFAULT_{}_HOOK'.format(error_event_life_cycle.name),
+                    commands=['NOT_APPLICABLE',],
+                    contexts=['ALL',],
+                    task_life_cycle_stages=life_cycle_stages,
+                    function_impl=hook_function_always_throw_exception,
+                    logger=self.logger
                 )
+            )
 
     def add_task(self, task: Task):
         if task.task_id in self.tasks:
