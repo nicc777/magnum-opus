@@ -2265,6 +2265,14 @@ class Tasks:
     """
 
     def __init__(self, logger: LoggerWrapper=LoggerWrapper(), key_value_store: KeyValueStore=KeyValueStore(), hooks: Hooks=Hooks(), state_persistence: StatePersistence=StatePersistence()):
+        """Initializes a `Tasks` instance in preparation for processing `Task` objects
+
+        Args:
+            logger: An implementation of the `LoggerWrapper` class
+            key_value_store: The `KeyValueStore` keeping all values that is shared with all hooks and tasks during processing and that is updated by tasks and hooks.
+            hooks: An instance of `Hooks` containing all defined hooks.
+            state_persistence: An instance of `StatePersistence` for managing persisted data
+        """
         self.logger = logger
         self.tasks = dict()
         self.task_processors_executors = dict()
