@@ -2307,6 +2307,14 @@ class Tasks:
             )
 
     def add_task(self, task: Task):
+        """Add a `Task` instance for potential processing
+
+        Args:
+            task: A `Task`
+
+        Raises:
+            Exception: If the task can not be registered for whatever reason, an Exception may be raised.
+        """
         if task.task_id in self.tasks:
             raise Exception('Task with ID "{}" was already added previously. Please use the "metadata.name" attribute to identify separate (but perhaps similar) manifests.')
         self.key_value_store = self.hooks.process_hook(
@@ -2341,6 +2349,11 @@ class Tasks:
         )
 
     def register_task_processor(self, processor: TaskProcessor):
+        """Add a `TaskProcessor` instance for `Task` processing
+
+        Args:
+            processor: A `TaskProcessor` implementation
+        """
         if isinstance(processor.versions, list):
             executor_id = '{}'.format(processor.kind)
             for version in processor.versions:
@@ -2351,6 +2364,16 @@ class Tasks:
                 self.task_processor_register[id] = executor_id
 
     def find_task_by_name(self, name: str, calling_task_id: str=None)->Task:
+        """Finds a task by name
+
+        Args:
+            name: A string with the name of a task to find
+            calling_task_id: A string with the calling task identifier, if applicable.
+
+        Returns:
+            A `Task`
+        """
+        candidate_task: Task
         for task_id, candidate_task in self.tasks.items():
             process = True
             if calling_task_id is not None:
