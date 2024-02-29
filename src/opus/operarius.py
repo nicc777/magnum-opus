@@ -1335,7 +1335,7 @@ class Hooks:
         hook: Hook
         for hook_name, hook in self.hook_registrar.items():
             if hook.hook_exists_for_command_and_context(command=command, context=context) is True:
-                stages = TaskLifecycleStages()
+                stages = TaskLifecycleStages(init_default_stages=False)
                 stages.register_lifecycle_stage(task_life_cycle_stage=TaskLifecycleStage(task_life_cycle_stage.value))
                 if hook.hook_exists_for_task_of_the_provided_life_cycle_events(life_cycle_stages_to_evaluate=stages) is True:
                     hooks.append(hook)
@@ -1412,7 +1412,7 @@ class Hooks:
                             command='NOT_APPLICABLE',
                             context='ALL',
                             task_life_cycle_stage=get_task_lifecycle_error_stage(stage=task_life_cycle_stage),
-                            key_value_store=copy.deepcopy(self.key_value_store),
+                            key_value_store=copy.deepcopy(key_value_store),
                             task=task,
                             task_id=task_id,
                             extra_parameters={'Traceback': e, 'ExceptionMessage': exception_message},
@@ -2276,7 +2276,7 @@ class Tasks:
         self._register_task_registration_failure_exception_throwing_hook()
 
     def _register_task_registration_failure_exception_throwing_hook(self):
-        life_cycle_stages = TaskLifecycleStages()
+        life_cycle_stages = TaskLifecycleStages(init_default_stages=False)
         for error_event_life_cycle in (
             TaskLifecycleStage.TASK_PRE_REGISTER_ERROR,
             TaskLifecycleStage.TASK_REGISTERED_ERROR,
