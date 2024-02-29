@@ -2402,6 +2402,25 @@ class Tasks:
         raise Exception('Task with task_id "{}" NOT FOUND'.format(task_id))
 
     def find_tasks_matching_identifier_and_return_list_of_task_ids(self, identifier: Identifier)->list:
+        """Finds all tasks that matches a given `Identifier`
+
+        This method may be useful in several examples, for example to get a list of `Task` objects of all dependencies
+        of a given `Task`. Example:
+
+        ```python
+        tasks = Tasks() 
+        
+        # later.... while working on "some_task" which is a `Task` instance:
+        for task_dependency_identifier in some_task.task_dependencies:
+            candidate_dependant_tasks_as_list = tasks.find_tasks_matching_identifier_and_return_list_of_task_ids(identifier=task_dependency_identifier)
+        ```
+        
+        Args:
+            identifier: An `Identifier`
+
+        Returns:
+            A list of matching `Task` objects.
+        """
         tasks_found = list()
         task_id: str
         task: Task
