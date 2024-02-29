@@ -1070,13 +1070,11 @@ class TaskLifecycleStages(Sequence):
         """
         if isinstance(task_life_cycle_stage, TaskLifecycleStage) is False:
             raise Exception('Expected a TaskLifecycleStage')
-        stage: TaskLifecycleStage
         if len(self.stages) == 0:
             self.stages.append(task_life_cycle_stage)
         else:
-            for stage in self.stages:
-                if stage.value != task_life_cycle_stage.value:
-                    self.stages.append(task_life_cycle_stage)
+            if self.stage_registered(stage=task_life_cycle_stage) is False:
+                self.stages.append(task_life_cycle_stage)
 
     def stage_registered(self, stage: TaskLifecycleStage)->bool:
         """Determines if the given stage is registered with this collection
@@ -1193,6 +1191,8 @@ class Hook:
         Returns:
             Boolean `True` if the Hook is matching the given command and context
         """
+        if len(self.task_life_cycle_stages.stages) > 12:
+            raise Exception('To many life cycle stages registered for this hook')
         return self._command_matches(command=command) and self._context_matches(context=context)
     
     def hook_exists_for_task_of_the_provided_life_cycle_events(self, life_cycle_stages_to_evaluate: TaskLifecycleStages)->bool:
@@ -1204,6 +1204,8 @@ class Hook:
         Returns:
             Boolean `True` if the any of this Hook's life cycle stages matches any one of the `TaskLifecycleStage` instances contained in `life_cycle_stages_to_evaluate`
         """
+        if len(self.task_life_cycle_stages.stages) > 12:
+            raise Exception('To many life cycle stages registered for this hook')
         life_cycle_stage_to_evaluate: TaskLifecycleStage
         for life_cycle_stage_to_evaluate in life_cycle_stages_to_evaluate:
             life_cycle_stage: TaskLifecycleStage
@@ -1244,6 +1246,8 @@ class Hook:
         Raises:
             Exception: When the Hook fails with an exception. The error will be logged before the exception is passed on.
         """
+        if len(self.task_life_cycle_stages.stages) > 12:
+            raise Exception('To many life cycle stages registered for this hook')
         final_logger = self.logger
         result = copy.deepcopy(key_value_store)
         if logger is not None:
