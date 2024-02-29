@@ -2385,6 +2385,14 @@ class Tasks:
         return None
        
     def get_task_by_task_id(self, task_id: str)->Task:
+        """Finds a task by task ID
+
+        Args:
+            task_id: A string with the task ID of a task to find
+
+        Returns:
+            A `Task`
+        """
         if task_id in self.tasks:
             return self.tasks[task_id]
         raise Exception('Task with task_id "{}" NOT FOUND'.format(task_id))
