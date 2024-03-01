@@ -37,6 +37,8 @@ The client application has to provide the following implementations:
 
 The client then creates an instance of `Tasks` and adds all `TaskProcessor` implementations before adding `Task` objects. Finally, the processing is performed by calling the `process_context()` method of the `Tasks` instance.
 
+The [opus-instrumenta](https://github.com/nicc777/opus-instrumenta) project provides some "standard" `TaskProcessor` implementations for common types of tasks.
+
 ## Hello World Example
 
 Here is a really quick ["hello world" example](./examples/hello_world.py) that will implement a `TaskProcessor` that creates a file with the text "Hello World!" in it:
