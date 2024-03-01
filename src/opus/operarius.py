@@ -2471,6 +2471,20 @@ class Tasks:
         return task_order
 
     def process_context(self, command: str, context: str):
+        """The method that starts `Task` processing.
+
+        First the order of task processing will be determined, and then each of the tasks will be processed in order.
+
+        Only tasks that qualify given the input parameters will be considered.
+
+        No value will be returned, but the attribute `key_value_store` will be updated and can be referenced to 
+        determine results and other information from the task processing actions as well as the hooks processing.
+
+        Args:
+            command: The command to be applied in the processing context
+            context: A string containing the processing context
+        """
+
         # First, build the processing identifier object
         processing_target_identifier = build_command_identifier(command=command, context=context)
 
