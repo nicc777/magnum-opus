@@ -2450,6 +2450,16 @@ class Tasks:
         return new_ordered_list
 
     def calculate_current_task_order(self, processing_target_identifier: Identifier)->list:
+        """Method that returns a list of tasks in the order they should be processed.
+
+        The order depends on the individual task dependencies.
+
+        Args:
+            processing_target_identifier: The `Identifier` object build from the output of `build_command_identifier(command=..., context=...)`
+
+        Returns:
+            A list with strings that contain the task ID's, in the order they should be processed.
+        """
         task_order = list()
         task_id: str
         task: Task
