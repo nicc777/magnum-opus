@@ -2038,6 +2038,42 @@ class TaskProcessor:
         self.versions = kind_versions
         self.supported_commands = supported_commands
 
+    def log(self, message: str, task: Task, command: str, context: str='default',  level: str='info'):
+        """A log helper method that adds some critical information regarding the task processing to the log message.
+
+        The message format will be modified to:
+
+        * `[LOG_CONTEXT] ORIGINAL_MESSAGE`
+
+        Where `LOG_CONTEXT` is made up of the string:
+
+        * `KIND:TASK_ID:COMMAND:CONTEXT`
+
+        Args:
+            message: String with the `ORIGINAL_MESSAGE`
+            task: The `Task` to process, from where the `KIND` and `TASK_ID` will be obtained.
+            command: The `COMMAND` to be applied in the processing context
+            context: A string containing the processing `CONTEXT`
+            level: The intended log level (default is `info`)
+        """
+        header = '{}:{}:{}:{}'.format(
+            task.kind,
+            task.task_id,
+            command,
+            context
+        )
+        final_message = '[{}] {}'.format(header, message)
+        if level.lower().startswith('info'):
+            self.logger.info(message=final_message)
+        elif level.lower().startswith('debug'):
+            self.logger.debug(message=final_message)
+        elif level.lower().startswith('err'):
+            self.logger.error(message=final_message)
+        elif level.lower().startswith('warn'):
+            self.logger.warning(message=final_message)
+        elif level.lower().startswith('crit'):
+            self.logger.critical(message=final_message)
+
     def task_pre_processing_check(
         self,
         task: Task,
