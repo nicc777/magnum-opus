@@ -685,7 +685,7 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
         self.assertTrue(key_value_store.store['Processor1:Processed:{}:Success'.format(t1.task_id)], 'key_value_store={}'.format(key_value_store.store))
 
         key_value_store = p1.task_pre_processing_check(task=t1, command='command1', context='c1', key_value_store=key_value_store, call_process_task_if_check_pass=True, state_persistence=StatePersistence())
-        self.assertTrue('[LOG] WARNING: Appears task was already previously validated and/or executed' in p1.logger.warn_lines, 'warn_lines={}'.format(p1.logger.warn_lines))
+        self.assertTrue('[LOG] WARNING: [Processor1:test1:command1:c1] Appears task was already previously validated and/or executed' in p1.logger.warn_lines, 'warn_lines={}'.format(p1.logger.warn_lines))
 
 
 class TestClassTasks(unittest.TestCase):    # pragma: no cover
