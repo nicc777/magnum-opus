@@ -2039,12 +2039,16 @@ class TaskProcessor:
         self.supported_commands = supported_commands
 
     def format_log_header(self, task: Task, command: str, context: str='default')->str:
-        return '[{}:{}:{}:{}] '.format(
-            task.kind,
-            task.task_id,
-            command,
-            context
-        )
+        try:
+            return '[{}:{}:{}:{}] '.format(
+                task.kind,
+                task.task_id,
+                command,
+                context
+            )
+        except:
+            traceback.print_exc()
+            return ''
 
     def log(self, message: str, task: Task=None, command: str='unknown', context: str='default', level: str='info', build_log_message_header: bool=True, header: str=''):
         """A log helper method that adds some critical information regarding the task processing to the log message.
