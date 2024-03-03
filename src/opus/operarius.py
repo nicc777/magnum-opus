@@ -1721,6 +1721,7 @@ class Task:
     ```
 
     Attributes:
+        original_data: Dictionary with original versions of the `spec` and `metadata` used in the object initialization
         task_can_be_persisted: A boolean value to guide the persistance implementation of `StatePersistence` if this task can be persisted. The main qualifying criteria for this flag to be True is if a `ManifestName` type non-contextual `Identifier` has been defined in the metadata. With no name, it is strictly speaking never possible to retrieve the saved manifest because there is nothing to key the manifest on.
         logger: An implementation of the `LoggerWrapper` class
         kind: Links the task to a `TaskProcessor` implementation
@@ -1745,6 +1746,9 @@ class Task:
             metadata: [optional] dict of metadata
             logger: [optional] An implementation of the `LoggerWrapper` class
         """
+        self.original_data = dict()
+        self.original_data['spec'] = copy.deepcopy(spec)
+        self.original_data['metadata'] = copy.deepcopy(metadata)
         self.task_can_be_persisted = False
         self.logger = logger
         self.kind = kind
