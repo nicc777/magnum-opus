@@ -2370,7 +2370,7 @@ class Tasks:
             Exception: If the task can not be registered for whatever reason, an Exception may be raised.
         """
         if task.task_id in self.tasks:
-            raise Exception('Task with ID "{}" was already added previously. Please use the "metadata.name" attribute to identify separate (but perhaps similar) manifests.')
+            raise Exception('Task with ID "{}" was already added previously. Please use the "metadata.name" attribute to identify separate (but perhaps similar) manifests.'.format(task.task_id))
         self.key_value_store = self.hooks.process_hook(
             command='NOT_APPLICABLE',
             context='ALL',
