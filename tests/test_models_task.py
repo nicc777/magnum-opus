@@ -1,5 +1,6 @@
 import sys
 import os
+from itertools import permutations
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/../src")
 print('sys.path={}'.format(sys.path))
@@ -436,14 +437,16 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
 
 class Processor1(TaskProcessor):
 
-    def __init__(self):
-        super().__init__(kind='Processor1', kind_versions=['v1'], supported_commands=['command1', 'command2'], logger=TestLogger())
+    def __init__(self, logger: LoggerWrapper=TestLogger()):
+        super().__init__(kind='Processor1', kind_versions=['v1'], supported_commands=['command1', 'command2'], logger=logger)
 
     def process_task(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore(), state_persistence: StatePersistence=StatePersistence())->KeyValueStore:
         self.logger.info('[Processor1]: {}'.format('-'*80))
         self.logger.info('[Processor1]: Processing task_id "{}"'.format(task.task_id))
         self.logger.info('[Processor1]: command="{}"'.format(command))
         self.logger.info('[Processor1]: context="{}"'.format(context))
+        new_key_value_store = KeyValueStore()
+        new_key_value_store.store = copy.deepcopy(key_value_store.store)
         current_state = state_persistence.get_object_state(object_identifier=task.task_id)
         can_process = True
         if task.kind != 'Processor1':
@@ -459,9 +462,9 @@ class Processor1(TaskProcessor):
         if can_process is True:
             # Emulate processing....
             state_persistence.save_object_state(object_identifier=task.task_id, data={'ResourcesCreated': True})
-        key_value_store.save(key='Processor1:Processed:{}:Success'.format(task.task_id), value=can_process)
+        new_key_value_store.save(key='Processor1:Processed:{}:Success'.format(task.task_id), value=can_process)
         self.logger.info('[Processor1]: {}'.format('='*80))
-        return key_value_store
+        return new_key_value_store
 
 
 class Processor2(TaskProcessor):
@@ -2358,6 +2361,157 @@ class TestFunctionBuildContextualIdentifiers(unittest.TestCase):    # pragma: no
             self.assertIsNotNone(identifier)
             self.assertIsInstance(identifier, Identifier)
             self.assertTrue(identifier.is_contextual_identifier)
+
+
+def validate_order(must_be_before_input_task_name: str, input_task_name: str, list_of_tasks: list)->bool:
+    must_be_before_input_task_name_pos = list_of_tasks.index(must_be_before_input_task_name)
+    input_task_name_pos = list_of_tasks.index(input_task_name)
+    return must_be_before_input_task_name_pos < input_task_name_pos
+
+
+class TestScenariosInLine(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self) -> None:
+        print()
+        print('-'*80)
+        self.logger = TestLogger()
+        return super().setUp()
+
+    def tearDown(self):
+        print_logger_lines(logger=self.logger)
+        self.logger = None
+        return super().tearDown()
+
+    def test_order_expected_to_work_01(self):
+        shell_script = Processor1(logger=self.logger)
+        t_1 = Task(
+            kind='Processor1',
+            version='v1',
+            metadata={
+                "identifiers": [
+                    {
+                        "type": "ManifestName",
+                        "key": "t_1"
+                    },
+                    {
+                        "type": "Label",
+                        "key": "is_unittest",
+                        "value": "TRUE"
+                    }
+                ],
+                "dependencies": [
+                    {
+                        "identifierType": "ManifestName",
+                        "identifiers": [
+                            { "key": "t_2" },
+                            { "key": "t_3" },
+                        ]
+                    }
+                ]
+            },
+            spec={'field1': 'value1'},
+            logger=self.logger
+        )
+        t_2 = Task(
+            kind='Processor1',
+            version='v1',
+            metadata={
+                "identifiers": [
+                    {
+                        "type": "ManifestName",
+                        "key": "t_2"
+                    },
+                    {
+                        "type": "Label",
+                        "key": "is_unittest",
+                        "value": "TRUE"
+                    }
+                ],
+                "dependencies": [
+                    {
+                        "identifierType": "ManifestName",
+                        "identifiers": [
+                            { "key": "t_3" },
+                        ]
+                    }
+                ]
+            },
+            spec={'field1': 'value1'},
+            logger=self.logger
+        )
+        t_3 = Task(
+            kind='Processor1',
+            version='v1',
+            metadata={
+                "identifiers": [
+                    {
+                        "type": "ManifestName",
+                        "key": "t_3"
+                    },
+                    {
+                        "type": "Label",
+                        "key": "is_unittest",
+                        "value": "TRUE"
+                    }
+                ]
+            },
+            spec={'field1': 'value1'},
+            logger=self.logger
+        )
+        t_4 = Task(
+            kind='Processor1',
+            version='v1',
+            metadata={
+                "identifiers": [
+                    {
+                        "type": "ManifestName",
+                        "key": "t_4"
+                    },
+                    {
+                        "type": "Label",
+                        "key": "is_unittest",
+                        "value": "TRUE"
+                    }
+                ],
+                "dependencies": [
+                    {
+                        "identifierType": "ManifestName",
+                        "identifiers": [
+                            { "key": "t_1" },
+                            { "key": "t_2" },
+                        ]
+                    }
+                ]
+            },
+            spec={'field1': 'value1'},
+            logger=self.logger
+        )
+
+        tasks_to_process = [t_1,t_2,t_3,t_4]
+        permutations_of_tasks = list(permutations(tasks_to_process))
+
+        processing_target_identifier = build_command_identifier(command='test', context='test')
+        set_nr = 0
+        for permutation_set in permutations_of_tasks:
+            set_nr += 1
+            print('Set #{}'.format(set_nr))
+            tasks = Tasks(logger=self.logger)
+            tasks.register_task_processor(processor=shell_script)
+            task: Task
+            added_task_order = list()
+            for task in permutation_set:
+                print('   Adding task "{}"'.format(task.task_id))
+                added_task_order.append(task.task_id)
+                tasks.add_task(task=task)
+            calculated_task_order = tasks.calculate_current_task_order(processing_target_identifier=processing_target_identifier)
+            print('   calculated_task_order={}'.format(calculated_task_order))
+            tasks = None
+            self.assertTrue(validate_order(must_be_before_input_task_name='t_2', input_task_name='t_1', list_of_tasks=calculated_task_order), 'Set #{} - Expected t_2 to be before t_1: added_task_order={}   calculated_task_order={}'.format(set_nr, added_task_order, calculated_task_order))
+            self.assertTrue(validate_order(must_be_before_input_task_name='t_3', input_task_name='t_1', list_of_tasks=calculated_task_order), 'Set #{} - Expected t_3 to be before t_1: added_task_order={}   calculated_task_order={}'.format(set_nr, added_task_order, calculated_task_order))
+            self.assertTrue(validate_order(must_be_before_input_task_name='t_3', input_task_name='t_2', list_of_tasks=calculated_task_order), 'Set #{} - Expected t_3 to be before t_2: added_task_order={}   calculated_task_order={}'.format(set_nr, added_task_order, calculated_task_order))
+            self.assertTrue(validate_order(must_be_before_input_task_name='t_1', input_task_name='t_4', list_of_tasks=calculated_task_order), 'Set #{} - Expected t_1 to be before t_4: added_task_order={}   calculated_task_order={}'.format(set_nr, added_task_order, calculated_task_order))
+            self.assertTrue(validate_order(must_be_before_input_task_name='t_2', input_task_name='t_4', list_of_tasks=calculated_task_order), 'Set #{} - Expected t_2 to be before t_4: added_task_order={}   calculated_task_order={}'.format(set_nr, added_task_order, calculated_task_order))
+
 
 
 if __name__ == '__main__':
