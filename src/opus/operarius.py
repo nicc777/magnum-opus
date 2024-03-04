@@ -2492,7 +2492,7 @@ class Tasks:
                     dependant_candidate_task = self.get_task_by_task_id(task_id=candidate_dependant_task_id)
                     if dependant_candidate_task.task_qualifies_for_processing(processing_target_identifier=processing_target_identifier) is True:
                         if dependant_candidate_task not in new_ordered_list:
-                            new_ordered_list.append(candidate_dependant_task_id)
+                            new_ordered_list = self._order_tasks(ordered_list=copy.deepcopy(new_ordered_list), candidate_task=dependant_candidate_task, processing_target_identifier=processing_target_identifier)
                     else:
                         raise Exception('Dependant task "{}" has Task "{}" as dependency, but the dependant task is not in scope for processing - cannot proceed. Either remove the task dependency or adjust the execution scope of the dependant task.'.format(candidate_task.task_id, candidate_dependant_task_id))
         if candidate_task.task_id not in new_ordered_list:
