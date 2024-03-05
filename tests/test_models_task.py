@@ -2511,7 +2511,9 @@ class TestScenariosInLine(unittest.TestCase):    # pragma: no cover
             self.assertTrue(validate_order(must_be_before_input_task_name='t_3', input_task_name='t_2', list_of_tasks=calculated_task_order), 'Set #{} - Expected t_3 to be before t_2: added_task_order={}   calculated_task_order={}'.format(set_nr, added_task_order, calculated_task_order))
             self.assertTrue(validate_order(must_be_before_input_task_name='t_1', input_task_name='t_4', list_of_tasks=calculated_task_order), 'Set #{} - Expected t_1 to be before t_4: added_task_order={}   calculated_task_order={}'.format(set_nr, added_task_order, calculated_task_order))
             self.assertTrue(validate_order(must_be_before_input_task_name='t_2', input_task_name='t_4', list_of_tasks=calculated_task_order), 'Set #{} - Expected t_2 to be before t_4: added_task_order={}   calculated_task_order={}'.format(set_nr, added_task_order, calculated_task_order))
-
+            print_logger_lines(logger=self.logger)
+            self.logger = None
+            self.logger = TestLogger()
 
 
 if __name__ == '__main__':
