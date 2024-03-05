@@ -2160,8 +2160,10 @@ class TaskProcessor:
             self.logger.critical(message=final_message)
 
     def register_process_task_functions(self, functions: dict):
-        self.process_task_functions = functions
-        self.logger.info('TaskProcessor "{}" registered task processing functions: {}'.format(self.kind, list(self.process_task_functions.keys())))
+        for function_name, potential_callable_object in functions.items():
+            if callable(potential_callable_object) is True:
+                self.process_task_functions[function_name] = potential_callable_object
+                self.logger.info('TaskProcessor "{}" registered task processing function: {}'.format(self.kind, function_name))
 
     def task_pre_processing_check(
         self,
