@@ -38,6 +38,7 @@ import copy
 from collections.abc import Sequence
 from enum import Enum
 import traceback
+import inspect
 
 
 def keys_to_lower(data: dict):
@@ -2001,6 +2002,18 @@ class Task:
             yield (k, v)
 
 
+def get_processing_methods_from_task_processor(clazz: object, class_name: str='unspecified', logger: LoggerWrapper=LoggerWrapper())->dict:
+    methods = dict()
+    members = inspect.getmembers(clazz, predicate=inspect.isfunction)
+    logger.debug(message='members of class "{}": {}'.format(class_name, members))
+    for method in members:
+        logger.debug(message='method "{}"'.format(method[0]))
+        if method[0].startswith('process_task'):
+            methods[method[0]] = method[1]
+    logger.debug(message='methods: {}'.format(methods))
+    return methods
+
+
 class TaskProcessor:
     """Must be implemented by the client and defines the logic of `Task` processing, given the task attributes at
     runtime. Each `TaskProcessor` is identified by the `kind` and supported `version` and when each `Task` is
@@ -2041,6 +2054,7 @@ class TaskProcessor:
         self.kind = kind
         self.versions = kind_versions
         self.supported_commands = supported_commands
+        self.process_task_functions = {'process_task': self.process_task}
 
     def format_log_header(self, task: Task, command: str, context: str='default')->str:
         try:
@@ -2086,6 +2100,10 @@ class TaskProcessor:
         elif level.lower().startswith('crit'):
             self.logger.critical(message=final_message)
 
+    def register_process_task_functions(self, functions: dict):
+        self.process_task_functions = functions
+        self.logger.info('TaskProcessor "{}" registered task processing functions: {}'.format(self.kind, list(self.process_task_functions.keys())))
+
     def task_pre_processing_check(
         self,
         task: Task,
@@ -2094,7 +2112,8 @@ class TaskProcessor:
         key_value_store: KeyValueStore=KeyValueStore(),
         call_process_task_if_check_pass: bool=False,
         state_persistence: StatePersistence=StatePersistence(),
-        hooks: Hooks=Hooks()
+        hooks: Hooks=Hooks(),
+        default_task_processing_function_name: str='process_task'
     )->KeyValueStore:
         """Checks if the task can be processed and then proceeds with the processing.
 
@@ -2126,6 +2145,7 @@ class TaskProcessor:
         new_key_value_store.store = copy.deepcopy(key_value_store.store)
         if task_run_id not in key_value_store.store:
             new_key_value_store.save(key=task_run_id, value=1)
+            new_key_value_store.save(key='{}:TASK_PROCESSING_FUNCTION_NAME'.format(task_run_id), value=default_task_processing_function_name)
             new_key_value_store = hooks.process_hook(
                 command=command,
                 context=context,
@@ -2147,18 +2167,52 @@ class TaskProcessor:
                         task_id=task.task_id,
                         logger=self.logger
                     )
-                    new_key_value_store = self.process_task(task=task, command=command, context=context, key_value_store=copy.deepcopy(new_key_value_store), state_persistence=state_persistence)
-                    new_key_value_store.store[task_run_id] = 2
-                    new_key_value_store =  hooks.process_hook(
-                        command=command,
-                        context=context,
-                        task_life_cycle_stage=TaskLifecycleStage.TASK_PRE_PROCESSING_COMPLETED,
-                        key_value_store=copy.deepcopy(new_key_value_store),
-                        task=task,
-                        task_id=task.task_id,
-                        logger=self.logger
-                    )
+                    """
+                        The `TASK_PROCESSING_PRE_START` hook could modify the value of 
+                        `new_key_value_store.store[task_run_id]` and therefore we have to check again if the task can 
+                        be run.
+
+                        This is useful where a hook needs to check some pre-condition, for example if a resource already
+                        exists and does not need to be created. 
+
+                        From an implementation perspective, the client can add methods to the `Task` class that a 
+                        `TASK_PROCESSING_PRE_START` hook must run to determine the exact actions to be taken in the main
+                        task processing event. In a practical example using AWS CloudFormation, this could mean the
+                        difference between creating a new stack, or just creating a change set for an existing stack.
+                    """
+                    if new_key_value_store.store[task_run_id] == 1:
+                        final_task_processing_function_name = new_key_value_store.store.pop('{}:TASK_PROCESSING_FUNCTION_NAME'.format(task_run_id))
+                        self.log(message='Final task processing function name: {}'.format(final_task_processing_function_name), task=task, command=command, context=context, level='info')
+                        # new_key_value_store = self.process_task(task=task, command=command, context=context, key_value_store=copy.deepcopy(new_key_value_store), state_persistence=state_persistence)
+                        if final_task_processing_function_name == 'process_task':
+                            new_key_value_store = self.process_task_functions[final_task_processing_function_name](
+                                task=task,
+                                command=command,
+                                context=context,
+                                key_value_store=copy.deepcopy(new_key_value_store),
+                                state_persistence=state_persistence
+                            )
+                        else:
+                            new_key_value_store = self.process_task_functions[final_task_processing_function_name](
+                                self,
+                                task=task,
+                                command=command,
+                                context=context,
+                                key_value_store=copy.deepcopy(new_key_value_store),
+                                state_persistence=state_persistence
+                            )
+                        new_key_value_store.store[task_run_id] = 2
+                        new_key_value_store =  hooks.process_hook(
+                            command=command,
+                            context=context,
+                            task_life_cycle_stage=TaskLifecycleStage.TASK_PRE_PROCESSING_COMPLETED,
+                            key_value_store=copy.deepcopy(new_key_value_store),
+                            task=task,
+                            task_id=task.task_id,
+                            logger=self.logger
+                        )
             except: # pragma: no cover
+                traceback.print_exc()
                 new_key_value_store.store[task_run_id] = -1
                 new_key_value_store =  hooks.process_hook(
                     command=command,
@@ -2408,6 +2462,10 @@ class Tasks:
         Args:
             processor: A `TaskProcessor` implementation
         """
+        task_processing_functions = get_processing_methods_from_task_processor(clazz=processor.__class__, class_name=processor.__class__.__name__, logger=self.logger)
+        if 'process_Task' in task_processing_functions:
+            self.logger.info('Registering task processing functions for task processor named "{}"'.format(processor.__class__.__name__))
+            processor.register_process_task_functions(task_processing_functions)
         if isinstance(processor.versions, list):
             executor_id = '{}'.format(processor.kind)
             for version in processor.versions:

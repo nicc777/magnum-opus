@@ -442,9 +442,37 @@ class Processor1(TaskProcessor):
 
     def process_task(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore(), state_persistence: StatePersistence=StatePersistence())->KeyValueStore:
         self.logger.info('[Processor1]: {}'.format('-'*80))
-        self.logger.info('[Processor1]: Processing task_id "{}"'.format(task.task_id))
-        self.logger.info('[Processor1]: command="{}"'.format(command))
-        self.logger.info('[Processor1]: context="{}"'.format(context))
+        self.logger.info('[Processor1]: Processing task_id : "{}"'.format(task.task_id))
+        self.logger.info('[Processor1]: command            : "{}"'.format(command))
+        self.logger.info('[Processor1]: context            : "{}"'.format(context))
+        self.logger.info('[Processor1]: Processing Method  : "process_task()"')
+        new_key_value_store = KeyValueStore()
+        new_key_value_store.store = copy.deepcopy(key_value_store.store)
+        current_state = state_persistence.get_object_state(object_identifier=task.task_id)
+        can_process = True
+        if task.kind != 'Processor1':
+            self.logger.error('[Processor1]: Task kind "{}" mismatched and the task will NOT be processed'.format(task.kind))
+            can_process = False
+        if task.version not in self.versions:
+            self.logger.error('[Processor1]: Task version "{}" is not supported and the task will NOT be processed'.format(task.version))
+            can_process = False
+        if len(current_state) > 0:
+            self.logger.error('[Processor1]: Task version "{}" is already in the correct state'.format(task.version))
+            can_process = False
+        self.logger.info('[Processor1]: can_process={}'.format(can_process))
+        if can_process is True:
+            # Emulate processing....
+            state_persistence.save_object_state(object_identifier=task.task_id, data={'ResourcesCreated': True})
+        new_key_value_store.save(key='Processor1:Processed:{}:Success'.format(task.task_id), value=can_process)
+        self.logger.info('[Processor1]: {}'.format('='*80))
+        return new_key_value_store
+    
+    def process_task_alternate_method(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore(), state_persistence: StatePersistence=StatePersistence())->KeyValueStore:
+        self.logger.info('[Processor1]: {}'.format('-'*80))
+        self.logger.info('[Processor1]: Processing task_id : "{}"'.format(task.task_id))
+        self.logger.info('[Processor1]: command            : "{}"'.format(command))
+        self.logger.info('[Processor1]: context            : "{}"'.format(context))
+        self.logger.info('[Processor1]: Processing Method  : "process_task_alternate_method()"')
         new_key_value_store = KeyValueStore()
         new_key_value_store.store = copy.deepcopy(key_value_store.store)
         current_state = state_persistence.get_object_state(object_identifier=task.task_id)
@@ -469,14 +497,16 @@ class Processor1(TaskProcessor):
 
 class Processor2(TaskProcessor):
 
-    def __init__(self):
-        super().__init__(kind='Processor2', kind_versions=['v1'], supported_commands=['command2'], logger=TestLogger())
+    def __init__(self, logger: LoggerWrapper=TestLogger()):
+        super().__init__(kind='Processor2', kind_versions=['v1'], supported_commands=['command2'], logger=logger)
     
     def process_task(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore(), state_persistence: StatePersistence=StatePersistence())->KeyValueStore:
         self.logger.info('[Processor2]: {}'.format('-'*80))
         self.logger.info('[Processor2]: Processing task_id "{}"'.format(task.task_id))
         self.logger.info('[Processor2]: command="{}"'.format(command))
         self.logger.info('[Processor2]: context="{}"'.format(context))
+        new_key_value_store = KeyValueStore()
+        new_key_value_store.store = copy.deepcopy(key_value_store.store)
         current_state = state_persistence.get_object_state(object_identifier=task.task_id)
         can_process = True
         if task.kind != 'Processor2':
@@ -492,9 +522,36 @@ class Processor2(TaskProcessor):
         if can_process is True:
             # Emulate processing....
             state_persistence.save_object_state(object_identifier=task.task_id, data={'ResourcesCreated': True})
-        key_value_store.save(key='Processor2:Processed:{}:Success'.format(task.task_id), value=can_process)
+        new_key_value_store.save(key='Processor2:Processed:{}:Success'.format(task.task_id), value=can_process)
         self.logger.info('[Processor2]: {}'.format('='*80))
-        return key_value_store
+        return new_key_value_store
+    
+    def process_task_alternate_method(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore(), state_persistence: StatePersistence=StatePersistence())->KeyValueStore:
+        self.logger.info('[Processor1]: {}'.format('-'*80))
+        self.logger.info('[Processor1]: Processing task_id : "{}"'.format(task.task_id))
+        self.logger.info('[Processor1]: command            : "{}"'.format(command))
+        self.logger.info('[Processor1]: context            : "{}"'.format(context))
+        self.logger.info('[Processor1]: Processing Method  : "process_task_alternate_method()"')
+        new_key_value_store = KeyValueStore()
+        new_key_value_store.store = copy.deepcopy(key_value_store.store)
+        current_state = state_persistence.get_object_state(object_identifier=task.task_id)
+        can_process = True
+        if task.kind != 'Processor2':
+            self.logger.error('[Processor2]: Task kind "{}" mismatched and the task will NOT be processed'.format(task.kind))
+            can_process = False
+        if task.version not in self.versions:
+            self.logger.error('[Processor2]: Task version "{}" is not supported and the task will NOT be processed'.format(task.version))
+            can_process = False
+        if len(current_state) > 0:
+            self.logger.error('[Processor2]: Task version "{}" is already in the correct state'.format(task.version))
+            can_process = False
+        self.logger.info('[Processor2]: can_process={}'.format(can_process))
+        if can_process is True:
+            # Emulate processing....
+            state_persistence.save_object_state(object_identifier=task.task_id, data={'ResourcesCreated': True})
+        new_key_value_store.save(key='Processor2:Processed:{}:Success'.format(task.task_id), value=can_process)
+        self.logger.info('[Processor2]: {}'.format('='*80))
+        return new_key_value_store
 
 
 class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
@@ -628,9 +685,55 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
         self.assertIsInstance(key_value_store, KeyValueStore)
         self.assertIsNotNone(key_value_store.store)
         self.assertIsInstance(key_value_store.store, dict)
-        self.assertEqual(len(key_value_store.store), 1)
+        self.assertEqual(len(key_value_store.store), 2, 'key_value_store.store={}'.format(key_value_store.store))
         self.assertTrue(expected_key in key_value_store.store)
         self.assertEqual(key_value_store.store[expected_key], 1)
+
+    def test_method_task_pre_processing_check_with_valid_task__using_alternate_task_processing_method_1(self):
+        logger = TestLogger()
+        p1 = Processor2(logger=logger)
+        p1.register_process_task_functions(functions=get_processing_methods_from_task_processor(clazz=p1.__class__, class_name=p1.__class__.__name__, logger=logger))
+        self.assertTrue('process_task_alternate_method' in p1.process_task_functions)
+        self.assertTrue('process_task' in p1.process_task_functions)
+        t1 = Task(
+            kind='Processor2',  # !!!
+            version='v1',
+            spec={'field1': 'value1'},
+            metadata = {
+                "identifiers": [
+                    {
+                        "type": "ManifestName",
+                        "key": "test1"
+                    },
+                ],
+                "contextualIdentifiers": [
+                    {
+                        "type": "ExecutionScope",
+                        "key": "INCLUDE",
+                        "contexts": [
+                            {
+                                "type": "Environment",
+                                "names": [
+                                    "c1",
+                                    "c2"
+                                ]
+                            }
+                        ]
+                    }
+                ],
+            },
+            logger=logger
+        )
+        expected_key = 'PROCESSING_TASK:{}:command1:c1'.format(t1.task_id)
+        key_value_store = p1.task_pre_processing_check(task=t1, command='command1', context='c1', key_value_store=KeyValueStore(), call_process_task_if_check_pass=True, state_persistence=StatePersistence(), default_task_processing_function_name='process_task_alternate_method')
+        print_logger_lines(logger=logger)
+        self.assertIsNotNone(key_value_store)
+        self.assertIsInstance(key_value_store, KeyValueStore)
+        self.assertIsNotNone(key_value_store.store)
+        self.assertIsInstance(key_value_store.store, dict)
+        self.assertEqual(len(key_value_store.store), 2, 'key_value_store.store={}'.format(key_value_store.store))
+        self.assertTrue(expected_key in key_value_store.store)
+        self.assertEqual(key_value_store.store[expected_key], 2, 'key_value_store.store={}'.format(key_value_store.store))
 
     def test_method_task_pre_processing_check_with_valid_task_and_execute_1(self):
         p1 = Processor1()
