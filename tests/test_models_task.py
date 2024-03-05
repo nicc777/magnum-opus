@@ -693,6 +693,7 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
         logger = TestLogger()
         p1 = Processor2(logger=logger)
         p1.register_process_task_functions(functions=get_processing_methods_from_task_processor(clazz=p1.__class__, class_name=p1.__class__.__name__, logger=logger))
+        p1.link_processing_function_name_to_command(processing_function_name='process_task_alternate_method', commands=['*',])
         self.assertTrue('process_task_alternate_method' in p1.process_task_functions)
         self.assertTrue('process_task' in p1.process_task_functions)
         t1 = Task(
