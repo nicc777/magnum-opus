@@ -2161,9 +2161,11 @@ class TaskProcessor:
 
     def register_process_task_functions(self, functions: dict):
         for function_name, potential_callable_object in functions.items():
-            if callable(potential_callable_object) is True:
-                self.process_task_functions[function_name] = potential_callable_object
-                self.logger.info('TaskProcessor "{}" registered task processing function: {}'.format(self.kind, function_name))
+            if isinstance(function_name, str):
+                if function_name.startswith('process_task'):
+                    if callable(potential_callable_object) is True:
+                        self.process_task_functions[function_name] = potential_callable_object
+                        self.logger.info('TaskProcessor "{}" registered task processing function: {}'.format(self.kind, function_name))
 
     def task_pre_processing_check(
         self,
