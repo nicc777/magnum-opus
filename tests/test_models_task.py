@@ -773,7 +773,7 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
         self.assertIsInstance(key_value_store, KeyValueStore)
         self.assertIsNotNone(key_value_store.store)
         self.assertIsInstance(key_value_store.store, dict)
-        self.assertEqual(len(key_value_store.store), 2)
+        self.assertEqual(len(key_value_store.store), 2, 'key_value_store={}'.format(key_value_store.store))
         self.assertTrue(expected_key in key_value_store.store)
         self.assertEqual(key_value_store.store[expected_key], 2, 'key_value_store={}'.format(key_value_store.store))
         self.assertTrue('Processor1:Processed:{}:Success'.format(t1.task_id) in key_value_store.store)

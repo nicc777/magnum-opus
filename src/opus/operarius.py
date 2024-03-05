@@ -2021,6 +2021,65 @@ class TaskProcessor:
 
     This class is used as a base class that actual task processors will inherit.
 
+    Apart from the provided `process_task()` function to process a task, additional methods can be added with the 
+    following conditions:
+
+    * The function name *must* start with "process_task", for example "process_task_alternate_scenario"
+    * The function arguments must match exactly those of the `process_task()` function
+
+    In this case, the `TaskProcessor` initialization takes a slightly other flow in that the
+    `register_process_task_functions()` function must be called after `TaskProcessor` initialization:
+
+    ```python
+    class MyProcessor(TaskProcessor):
+        ...
+
+        def process_task(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore(), state_persistence: StatePersistence=StatePersistence())->KeyValueStore:
+            # Overriding the "standard" process_task() function logic. As an example, an AWS CloudFormation `TaskProcessor` will process "Create Stack" logic here.
+            ...
+
+        def process_task_alternate_scenario(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore(), state_persistence: StatePersistence=StatePersistence())->KeyValueStore:
+            # Implement another type of process_task() function with different logic. As an example, an AWS CloudFormation `TaskProcessor` could process "Create Change Set" logic here.
+            ...
+
+    processor = MyProcessor()
+    processor.register_process_task_functions(functions=get_processing_methods_from_task_processor(clazz=p1.__class__, class_name=p1.__class__.__name__, logger=logger))
+    ```
+
+    A `TASK_PRE_PROCESSING_START` hook could be used to determine the function name. This hook is called during the 
+    `task_pre_processing_check()` function call. If the hook updates the `KeyValueStore` value of the function name, the
+    alternate function can be used. To derive the appropriate `key` for the `KeyValueStore`, use the following code
+    snippet in the hook:
+
+    ```python
+    def my_hook(
+        hook_name:str,
+        task:Task,
+        key_value_store:KeyValueStore,
+        command:str,
+        context:str,
+        task_life_cycle_stage: TaskLifecycleStage,
+        extra_parameters:dict,
+        logger:LoggerWrapper
+    )->KeyValueStore:
+        new_key_value_store = KeyValueStore()
+        new_key_value_store.store = copy.deepcopy(key_value_store.store)
+        task_run_id = 'PROCESSING_TASK:{}:{}:{}'.format(
+            task.task_id,
+            command,
+            context
+        )
+        ...
+        # To update the function name:
+        new_key_value_store.save(key='{}:TASK_PROCESSING_FUNCTION_NAME'.format(task_run_id), value='...')
+        ...
+        return new_key_value_store
+    ```
+
+    NOTE: The `KeyValueStore` key for the `TASK_PROCESSING_FUNCTION_NAME` will be removed just before the processing 
+    function is called, and therefore, by the time the task processing function has a copy of the `KeyValueSTore`, the
+    `TASK_PROCESSING_FUNCTION_NAME` key for this task will no longer be present.
+
     Attributes:
         logger: An implementation of the `LoggerWrapper` class
         kind: The kind. Any `Task` with the same kind (and matching version) may be processed with this task processor.
@@ -2183,8 +2242,8 @@ class TaskProcessor:
                     if new_key_value_store.store[task_run_id] == 1:
                         final_task_processing_function_name = new_key_value_store.store.pop('{}:TASK_PROCESSING_FUNCTION_NAME'.format(task_run_id))
                         self.log(message='Final task processing function name: {}'.format(final_task_processing_function_name), task=task, command=command, context=context, level='info')
-                        # new_key_value_store = self.process_task(task=task, command=command, context=context, key_value_store=copy.deepcopy(new_key_value_store), state_persistence=state_persistence)
-                        if final_task_processing_function_name == 'process_task':
+                        try:
+                            # FIXME Sometimes I need to add "self" and sometimes not. The requirements is erratic, so for now I just handle the logic through exception...
                             new_key_value_store = self.process_task_functions[final_task_processing_function_name](
                                 task=task,
                                 command=command,
@@ -2192,7 +2251,7 @@ class TaskProcessor:
                                 key_value_store=copy.deepcopy(new_key_value_store),
                                 state_persistence=state_persistence
                             )
-                        else:
+                        except:
                             new_key_value_store = self.process_task_functions[final_task_processing_function_name](
                                 self,
                                 task=task,
@@ -2463,7 +2522,7 @@ class Tasks:
             processor: A `TaskProcessor` implementation
         """
         task_processing_functions = get_processing_methods_from_task_processor(clazz=processor.__class__, class_name=processor.__class__.__name__, logger=self.logger)
-        if 'process_Task' in task_processing_functions:
+        if 'process_task' in task_processing_functions:
             self.logger.info('Registering task processing functions for task processor named "{}"'.format(processor.__class__.__name__))
             processor.register_process_task_functions(task_processing_functions)
         if isinstance(processor.versions, list):
