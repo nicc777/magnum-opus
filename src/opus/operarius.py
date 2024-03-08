@@ -39,6 +39,26 @@ from collections.abc import Sequence
 from enum import Enum
 import traceback
 import inspect
+import string
+import random
+
+
+def random_string(string_length: int=16, character_set: str=string.ascii_uppercase + string.ascii_lowercase + string.digits)->str:
+    """Creates a string with a given length made up of randomly selected characters from a provided set of characters to
+    choose from.
+
+    Args:
+        string_length: Integer value of how long the string must be (default=16)
+        character_set: A string of characters from which the randomly selected characters will be made to build up the desired random string
+
+    Returns:
+        A string of random characters
+    """
+    character_set = string.ascii_uppercase + string.ascii_lowercase + string.digits
+    random_str = ''
+    while len(random_str) < string_length:
+        random_str = '{}{}'.format(random_str, random.choice(character_set))
+    return random_str
 
 
 def keys_to_lower(data: dict):
@@ -2699,8 +2719,10 @@ class Tasks:
         # Process tasks in order, with the available task processor registered for this task kind and version
         for task_id in task_order:
             if task_id in self.tasks:
+                task: Task
                 task = self.tasks[task_id]
 
+                spec_modify_key = '{}:TASK_PRE_PROCESSING_START:{}'.format(task_id, random_string(string_length=64))
                 self.key_value_store = self.hooks.process_hook(
                     command=command,
                     context=context,
@@ -2708,8 +2730,14 @@ class Tasks:
                     key_value_store=copy.deepcopy(self.key_value_store),
                     task=task,
                     task_id=task_id,
-                    logger=self.logger
+                    logger=self.logger,
+                    extra_parameters={'SpecModifierKey': spec_modify_key}
                 )
+                if spec_modify_key in self.key_value_store.store:
+                    updated_spec = self.key_value_store.store[spec_modify_key]
+                    if updated_spec is not None:
+                        if isinstance(updated_spec, dict):
+                            task.spec = updated_spec
 
                 target_task_processor_id = '{}:{}'.format(task.kind, task.version)
                 if target_task_processor_id in self.task_processor_register:
@@ -2719,6 +2747,7 @@ class Tasks:
                         if isinstance(target_task_processor_executor, TaskProcessor):                            
                             self.key_value_store = target_task_processor_executor.task_pre_processing_check(task=task, command=command, context=context, key_value_store=copy.deepcopy(self.key_value_store), call_process_task_if_check_pass=True, state_persistence=self.state_persistence, hooks=self.hooks)
                             
+                            task.spec = keys_to_lower(task.original_data['spec'])
                             self.state_persistence.persist_all_state()
 
                             self.key_value_store = self.hooks.process_hook(
