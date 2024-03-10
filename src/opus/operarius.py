@@ -1190,6 +1190,8 @@ class Hook:
         if command.lower() not in self.commands:
             if len(self.commands) == 1 and 'NOT_APPLICABLE'.lower() in self.commands:
                 return True
+            if len(self.commands) == 1 and 'ALL' in self.commands:
+                return True
         if command.lower() in self.commands:
             return True
         return False
@@ -1197,6 +1199,8 @@ class Hook:
     def _context_matches(self, context: str)->bool:
         if context.lower() not in self.contexts:
             if len(self.contexts) == 1 and 'ALL'.lower() in self.contexts:
+                return True
+            if len(self.contexts) == 1 and 'ALL' in self.contexts:
                 return True
         if context.lower() in self.contexts:
             return True
