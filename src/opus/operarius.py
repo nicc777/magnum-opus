@@ -2303,15 +2303,16 @@ class TaskProcessor:
                             try:
                                 # FIXME Sometimes I need to add "self" and sometimes not. The requirements is erratic, so for now I just handle the logic through exception...
                                 new_key_value_store = self.process_task_functions[final_task_processing_function_name](
+                                    self,
                                     task=task,
                                     command=command,
                                     context=context,
                                     key_value_store=copy.deepcopy(new_key_value_store),
                                     state_persistence=state_persistence
                                 )
+                                
                             except:
                                 new_key_value_store = self.process_task_functions[final_task_processing_function_name](
-                                    self,
                                     task=task,
                                     command=command,
                                     context=context,
