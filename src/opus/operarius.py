@@ -1300,7 +1300,7 @@ class Hook:
                 context=context,
                 task_life_cycle_stage=task_life_cycle_stage,
                 extra_parameters=extra_parameters,
-                logger=self.logger
+                logger=logger
             )
             if result is None:
                 result = copy.deepcopy(key_value_store)
@@ -2727,6 +2727,7 @@ class Tasks:
                 task = self.tasks[task_id]
 
                 spec_modify_key = '{}:TASK_PRE_PROCESSING_START:{}'.format(task_id, random_string(string_length=64))
+                self.logger.debug('  spec_modify_key={}'.format(spec_modify_key))
                 self.key_value_store = self.hooks.process_hook(
                     command=command,
                     context=context,
@@ -2737,11 +2738,15 @@ class Tasks:
                     logger=self.logger,
                     extra_parameters={'SpecModifierKey': spec_modify_key}
                 )
+                self.logger.debug('    Post TASK_PRE_PROCESSING_START Hook Processing: looking for key "{}" in key_value_store: {}'.format(spec_modify_key, self.key_value_store.store.keys()))
                 if spec_modify_key in self.key_value_store.store:
+                    self.logger.debug('      FOUND')
                     updated_spec = self.key_value_store.store[spec_modify_key]
                     if updated_spec is not None:
                         if isinstance(updated_spec, dict):
                             task.spec = updated_spec
+                else:
+                    self.logger.debug('      NOT FOUND')
 
                 target_task_processor_id = '{}:{}'.format(task.kind, task.version)
                 if target_task_processor_id in self.task_processor_register:
