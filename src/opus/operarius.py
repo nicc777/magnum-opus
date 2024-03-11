@@ -2724,7 +2724,8 @@ class Tasks:
         for task_id in task_order:
             if task_id in self.tasks:
                 task: Task
-                task = self.tasks[task_id]
+                task = copy.deepcopy(self.tasks[task_id])
+                task.spec = keys_to_lower(task.original_data['spec'])
 
                 spec_modify_key = '{}:TASK_PRE_PROCESSING_START:{}'.format(task_id, random_string(string_length=64))
                 self.logger.debug('  spec_modify_key={}'.format(spec_modify_key))
@@ -2761,7 +2762,6 @@ class Tasks:
                         if isinstance(target_task_processor_executor, TaskProcessor):                            
                             self.key_value_store = target_task_processor_executor.task_pre_processing_check(task=task, command=command, context=context, key_value_store=copy.deepcopy(self.key_value_store), call_process_task_if_check_pass=True, state_persistence=self.state_persistence, hooks=self.hooks)
                             
-                            task.spec = keys_to_lower(task.original_data['spec'])
                             self.state_persistence.persist_all_state()
 
                             self.key_value_store = self.hooks.process_hook(
