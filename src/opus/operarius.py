@@ -2744,7 +2744,12 @@ class Tasks:
                     updated_spec = self.key_value_store.store[spec_modify_key]
                     if updated_spec is not None:
                         if isinstance(updated_spec, dict):
-                            task.spec = updated_spec
+                            task.spec = copy.deepcopy(updated_spec)
+                            self.logger.debug('        Task spec updated: {}'.format(json.dumps(task.spec)))
+                        else:
+                            self.logger.debug('        OOPS: updated_spec was not a dict: {}'.format(type(updated_spec)))
+                    else:
+                        self.logger.debug('        OOPS: updated_spec is NoneType')
                 else:
                     self.logger.debug('      NOT FOUND')
 
