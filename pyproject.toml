@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "opus"
+name = "magnum-opus"
 version = "1"
 dependencies = []
 requires-python = ">= 3.8"
@@ -39,11 +39,11 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/nicc777/opus"
-Documentation = "https://github.com/nicc777/opus"
-Repository = "https://github.com/nicc777/opus"
-Issues = "https://github.com/nicc777/opus/issues"
-Changelog = "https://raw.githubusercontent.com/nicc777/opus/main/CHANGELOG.md"
+Homepage = "https://github.com/nicc777/magnum-opus"
+Documentation = "https://github.com/nicc777/magnum-opus"
+Repository = "https://github.com/nicc777/magnum-opus"
+Issues = "https://github.com/nicc777/magnum-opus/issues"
+Changelog = "https://raw.githubusercontent.com/nicc777/magnum-opus/main/CHANGELOG.md"
 
 
 

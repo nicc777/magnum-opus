@@ -5,7 +5,7 @@ import random
 import os
 from pathlib import Path
 
-from opus.operarius import KeyValueStore, LoggerWrapper, StatePersistence, Task, TaskProcessor, Tasks
+from magnum_opus.operarius import KeyValueStore, LoggerWrapper, StatePersistence, Task, TaskProcessor, Tasks
 
 
 def random_string(string_length: int=16)->str:

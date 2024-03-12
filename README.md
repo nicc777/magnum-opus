@@ -1,9 +1,16 @@
 ```text
- o-o  o--o  o   o  o-o  
-o   o |   | |   | |     
-|   | O--o  |   |  o-o  
-o   o |     |   |     | 
- o-o  o      o-o  o--o  
+o   o   O   o-o  o   o o   o o   o 
+|\ /|  / \ o     |\  | |   | |\ /| 
+| O | o---o|  -o | \ | |   | | O | 
+|   | |   |o   | |  \| |   | |   | 
+o   o o   o o-o  o   o  o-o  o   o 
+                                   
+                                   
+     o-o  o--o  o   o  o-o         
+    o   o |   | |   | |            
+    |   | O--o  |   |  o-o         
+    o   o |     |   |     |        
+     o-o  o      o-o  o--o         
 ```
 
 - [About](#about)
@@ -24,14 +31,14 @@ A typical stack will include the following components:
 ```mermaid
 graph TD
     A[Client Application] -- parses configuration using --> B[Parsing Library]
-    A -- execute parsed configuration using --> C[opus]
+    A -- execute parsed configuration using --> C[magnum-opus]
 ```
 
 The client application has to provide the following implementations:
 
 | Base Class         | Usage                                                                                                                                                                                                                                                                                      |
 |--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `LoggerWrapper`    | ( optional ) Used for logging. If not implemented, log messages from `opus` will be printed to STDOUT                                                                                                                                                                                      |
+| `LoggerWrapper`    | ( optional ) Used for logging. If not implemented, log messages from `magnum-opus` will be printed to STDOUT                                                                                                                                                                               |
 | `StatePersistance` | ( optional ) Used to persist state during the various stages of task execution. Can also be used by `TaskProcessor` implementation to retrieve previous execution state of any individual task. If not implemented by the client, no persistance functionality will be provided/available. |
 | `TaskProcessor`    | ( required ) This is the class that implements the logic of processing a given task. No out-of-the-bos task processors exist, so the client must supply it's own.                                                                                                                          |
 
