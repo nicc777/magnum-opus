@@ -13,7 +13,7 @@ authors = [
 maintainers = [
   {name = "Nico Coetzee", email = "nicc777@gmail.com"}
 ]
-description = "Another experimental go at a general purpose task manager or workflow engine, driven by manifest files"
+description = "An extendable general purpose task manager or workflow engine."
 readme = "README.md"
 license = {file = "LICENSE"}
 classifiers = [
