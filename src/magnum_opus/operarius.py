@@ -80,6 +80,36 @@ def keys_to_lower(data: dict):
     return final_data
 
 
+def produce_column_headers(with_checksums: bool=False, space_len: int=2)->str:
+    space                               = ' '*space_len
+    #                                                                  Index #      Label Length    Final Field Length
+    label                               = 'Manifest'                    # 0         len = 8             16
+    is_created                          = 'Created'                     # 2         len = 7             7
+    created_datetime                    = 'Created Timestamp'           # 4         len = 17            25
+    spec_drifted                        = 'Spec Drifted'                # 6         len = 12            17
+    resource_drifted                    = 'Resources Drifted'           # 8         len = 17            17
+    applied_spec_checksum               = 'Applied Spec CHecksum'       # 10        len = 21            32
+    current_resolved_spec_checksum      = 'Current Spec Checksum'       # 12        len = 21            32
+    applied_resource_checksum           = 'Applied Resource Checksum'   # 14        len = 25            32
+    spec_resource_expectation_checksum  = 'Expected Resource Checksum'  # 16        len = 26            32
+
+    report_column_header                = '{0:<16}{1}{2:<7}{3}{4:<25}{5}{6:<17}{7}{8:<17}'.format(label, space, is_created, space, created_datetime, space, spec_drifted, space, resource_drifted)
+    report_column_header_with_checksums = '{0:<16}{1}{2:<7}{3}{4:<25}{5}{6:<17}{7}{8:<17}{9}{10:<32}{11}{12:<32}{13}{14:<32}{15}{16:<32}'.format(label, space, is_created, space, created_datetime, space, spec_drifted, space, resource_drifted, space, applied_spec_checksum, space, current_resolved_spec_checksum, space, applied_resource_checksum, space, spec_resource_expectation_checksum)
+
+    if with_checksums is True:
+        return report_column_header_with_checksums
+    return report_column_header
+
+
+def produce_column_header_horizontal_line(with_checksums: bool=False, space_len: int=2, line_char: str='-')->str:
+    short_len = 16+7+25+17+17
+    long_len = short_len + 32 + 32 + 32 + 32
+    final_len = short_len + (space_len*4)       # 90 characters, using defaults
+    if with_checksums is True:
+        final_len = long_len + (space_len*8)    # 226 characters, using defaults
+    return '{}'.format(line_char)*final_len
+
+
 class TaskState:
 
     def __init__(
@@ -100,8 +130,6 @@ class TaskState:
         self.is_created = False
         if len(applied_spec) > 0 or created_timestamp > 0:
             self.is_created = True
-        self.manifest_checksum = self.calculate_manifest_state_checksum(spec=manifest_spec, metadata=manifest_metadata)
-        self.applied_checksum = self.calculate_manifest_state_checksum(spec=applied_spec)
         self.applied_resources_checksum = applied_resources_checksum
         self.spec_resource_expectation_checksum = spec_resource_expectation_checksum
 
@@ -141,6 +169,8 @@ class TaskState:
             data['CurrentResolvedSpecChecksum'] = 'unavailable'
             if len(current_resolved_spec) > 1:
                 data['CurrentResolvedSpecChecksum'] = self.calculate_manifest_state_checksum(spec=current_resolved_spec)
+            data['AppliedResourcesChecksum'] = 'unavailable'
+            data['SpecResourceExpectedChecksum'] = 'unavailable'
         if include_applied_spec:
             data['AppliedSpec'] = self.applied_spec
         return data
@@ -154,17 +184,27 @@ class TaskState:
     def column_str(self, human_readable: bool=False, current_resolved_spec: dict=None, with_checksums: bool=False, space_len: int=2)->str:
         data = self.to_dict(human_readable=human_readable, current_resolved_spec=current_resolved_spec, with_checksums=with_checksums)
         label = self._cut_str(input_str=data['Label'], max_len=16)
-        is_created = self._cut_str(input_str='{}'.format(data['IsCreated']), max_len=6)
+        is_created = self._cut_str(input_str='{}'.format(data['IsCreated']), max_len=7)
         created_datetime = self._cut_str(input_str='{}'.format(data['CreatedTimestamp']), max_len=25) # max: 0000-00-00 00:00:00 +0000 (25 characters)
-        spec_drifted = self._cut_str(input_str=data['SpecDrifted'], max_len=8)
-        resource_drifted = self._cut_str(input_str=data['ResourceDrifted'], max_len=8)
+        spec_drifted = self._cut_str(input_str=data['SpecDrifted'], max_len=17)
+        resource_drifted = self._cut_str(input_str=data['ResourceDrifted'], max_len=17)
         space = ' '*space_len
         if with_checksums is True:
-            if 'AppliedSpecChecksum' in data and 'CurrentResolvedSpecChecksum' in data:
-                applied_checksum = data['AppliedSpecChecksum'][0:16]
-                current_resolved_spec_checksum = data['CurrentResolvedSpecChecksum'][0:16]
-                return '{0:<16}{1}{2:<6}{3}{4:<25}{5}{6:<8}{7}{8:<8}{9}{10:<16}{11}{12:<16}'.format(label, space, is_created, space, created_datetime, space, spec_drifted, space, resource_drifted, space, applied_checksum, space, current_resolved_spec_checksum)
-        return '{0:<16}{1}{2:<6}{3}{4:<25}{5}{6:<8}{7}{8:<8}'.format(label, space, is_created, space, created_datetime, space, spec_drifted, space, resource_drifted)
+            applied_spec_checksum = 'unavailable'
+            current_resolved_spec_checksum ='unavailable'
+            applied_resource_checksum = 'unavailable'
+            spec_resource_expectation_checksum = 'unavailable'
+            if 'AppliedSpecChecksum' in data:
+                applied_spec_checksum = data['AppliedSpecChecksum'][0:32]
+            if 'CurrentResolvedSpecChecksum' in data
+                current_resolved_spec_checksum = data['CurrentResolvedSpecChecksum'][0:32]
+            if 'AppliedResourcesChecksum' in data:
+                applied_resource_checksum = data['AppliedResourcesChecksum'][0:32]
+            if 'SpecResourceExpectedChecksum' in data:
+                spec_resource_expectation_checksum = data['SpecResourceExpectedChecksum'][0:32]
+            #         0     1   2    3   4     5   6    7    8     9    10    11    12    13    14    15    16     ||||     0      1      2           3       4                5      6             7       8                9      10                     11     12                              13     14                         15     16
+            return '{0:<16}{1}{2:<7}{3}{4:<25}{5}{6:<17}{7}{8:<17}{9}{10:<32}{11}{12:<32}{13}{14:<32}{15}{16:<32}'.format(label, space, is_created, space, created_datetime, space, spec_drifted, space, resource_drifted, space, applied_spec_checksum, space, current_resolved_spec_checksum, space, applied_resource_checksum, space, spec_resource_expectation_checksum)
+        return '{0:<16}{1}{2:<7}{3}{4:<25}{5}{6:<17}{7}{8:<17}'.format(label, space, is_created, space, created_datetime, space, spec_drifted, space, resource_drifted)
     
     def __str__(self) -> str:
         return json.dumps(self.to_dict())
