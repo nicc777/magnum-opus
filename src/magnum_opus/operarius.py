@@ -41,6 +41,7 @@ import traceback
 import inspect
 import string
 import random
+from datetime import datetime
 
 
 def random_string(string_length: int=16, character_set: str=string.ascii_uppercase + string.ascii_lowercase + string.digits)->str:
@@ -77,6 +78,50 @@ def keys_to_lower(data: dict):
         else:
             final_data[key.lower()] = data[key]
     return final_data
+
+
+class TaskState:
+
+    def __init__(
+        self,
+        manifest_spec: dict=dict(),
+        applied_spec: dict=dict(),
+        manifest_metadata: dict=dict(),
+        report_label: str='',
+        is_created: bool=False,
+        created_timestamp: int=0
+    ):
+        self.raw_spec = manifest_spec
+        self.raw_metadata = manifest_metadata
+        self.report_label = report_label
+        self.is_created = is_created
+        self.created_timestamp = created_timestamp
+        self.applied_spec = applied_spec
+        self.manifest_checksum = self.calculate_manifest_state_checksum(spec=manifest_spec, metadata=manifest_metadata)
+        self.applied_checksum = self.calculate_manifest_state_checksum(spec=applied_spec)
+
+    def calculate_manifest_state_checksum(self, spec: dict=dict, metadata: dict=dict())->str:
+        data = {
+            'spec': spec,
+            'metadata': metadata
+        }
+        return hashlib.sha256(json.dumps(data).encode('utf-8')).hexdigest()
+    
+    def to_dict(self, human_readable: bool=False, current_resolved_spec: dict=None):
+        data = dict()
+        data['Label'] = self.report_label
+        data['IsCreated'] = self.is_created,
+        data['CreatedTimestamp'] = '-'
+        if self.is_created is True and self.created_timestamp > 0:
+            data['CreatedTimestamp'] = self.created_timestamp
+            if human_readable is True:
+                data['CreatedTimestamp'] = datetime.fromtimestamp(self.created_timestamp).strftime('%Y-%m-%d %H:%M:%S %z').strip()
+        data['Drifted'] = 'Unknown'
+        if current_resolved_spec is not None:
+            data['Drifted'] = 'No'
+            if self.calculate_manifest_state_checksum(spec=self.applied_spec) != self.calculate_manifest_state_checksum(spec=current_resolved_spec):
+                data['Drifted'] = 'Yes'
+        return data
 
 
 class KeyValueStore:
@@ -1798,6 +1843,7 @@ class Task:
         self.task_checksum = None
         self.task_id = self._determine_task_id()
         logger.info('Task "{}" initialized. Task checksum: {}'.format(self.task_id, self.task_checksum))
+        self.task_state = TaskState(manifest_spec=spec, manifest_metadata=metadata, report_label=self.task_id)
 
     def task_match_name(self, name: str)->bool:
         """Determines if the given name matches this task's name as (optionally) defined in metadata.
@@ -2005,8 +2051,9 @@ class Task:
         return hashlib.sha256(json.dumps(data).encode('utf-8')).hexdigest()
 
     def _determine_task_id(self):
-        task_id = self._calculate_task_checksum()
-        self.task_checksum = copy.deepcopy(task_id)
+        complete_checksum = self._calculate_task_checksum()
+        task_id = '{}:{}'.format(self.kind, complete_checksum[0:8])
+        self.task_checksum = copy.deepcopy(complete_checksum)
         
         identifier: Identifier
         for identifier in self.identifiers:
