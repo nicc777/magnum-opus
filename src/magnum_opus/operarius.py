@@ -88,17 +88,22 @@ class TaskState:
         applied_spec: dict=dict(),
         manifest_metadata: dict=dict(),
         report_label: str='',
-        is_created: bool=False,
-        created_timestamp: int=0
+        created_timestamp: int=0,
+        applied_resources_checksum: str=None,
+        spec_resource_expectation_checksum: str=None
     ):
         self.raw_spec = manifest_spec
         self.raw_metadata = manifest_metadata
         self.report_label = report_label
-        self.is_created = is_created
         self.created_timestamp = created_timestamp
         self.applied_spec = applied_spec
+        self.is_created = False
+        if len(applied_spec) > 0 or created_timestamp > 0:
+            self.is_created = True
         self.manifest_checksum = self.calculate_manifest_state_checksum(spec=manifest_spec, metadata=manifest_metadata)
         self.applied_checksum = self.calculate_manifest_state_checksum(spec=applied_spec)
+        self.applied_resources_checksum = applied_resources_checksum
+        self.spec_resource_expectation_checksum = spec_resource_expectation_checksum
 
     def calculate_manifest_state_checksum(self, spec: dict=dict, metadata: dict=dict())->str:
         data = {
@@ -107,21 +112,62 @@ class TaskState:
         }
         return hashlib.sha256(json.dumps(data).encode('utf-8')).hexdigest()
     
-    def to_dict(self, human_readable: bool=False, current_resolved_spec: dict=None):
+    def to_dict(self, human_readable: bool=False, current_resolved_spec: dict=None, with_checksums: bool=False, include_applied_spec: bool=False)->dict:
         data = dict()
         data['Label'] = self.report_label
-        data['IsCreated'] = self.is_created,
+        data['IsCreated'] = self.is_created
+        if human_readable is True:
+            data['IsCreated'] = 'No'
+            if self.is_created is True:
+                data['IsCreated'] = 'Yes'
         data['CreatedTimestamp'] = '-'
         if self.is_created is True and self.created_timestamp > 0:
             data['CreatedTimestamp'] = self.created_timestamp
             if human_readable is True:
                 data['CreatedTimestamp'] = datetime.fromtimestamp(self.created_timestamp).strftime('%Y-%m-%d %H:%M:%S %z').strip()
-        data['Drifted'] = 'Unknown'
+        data['SpecDrifted'] = 'Unknown'
         if current_resolved_spec is not None:
-            data['Drifted'] = 'No'
+            data['SpecDrifted'] = 'No'
             if self.calculate_manifest_state_checksum(spec=self.applied_spec) != self.calculate_manifest_state_checksum(spec=current_resolved_spec):
-                data['Drifted'] = 'Yes'
+                data['SpecDrifted'] = 'Yes'
+        data['ResourceDrifted'] = 'Unknown'
+        if self.applied_resources_checksum is not None:
+            data['ResourceDrifted'] = 'Yes'
+            if self.spec_resource_expectation_checksum is not None:
+                if self.spec_resource_expectation_checksum == self.applied_resources_checksum:
+                    data['ResourceDrifted'] = 'No'
+        if with_checksums is True:
+            data['AppliedSpecChecksum'] = self.calculate_manifest_state_checksum(spec=self.applied_spec)
+            data['CurrentResolvedSpecChecksum'] = 'unavailable'
+            if len(current_resolved_spec) > 1:
+                data['CurrentResolvedSpecChecksum'] = self.calculate_manifest_state_checksum(spec=current_resolved_spec)
+        if include_applied_spec:
+            data['AppliedSpec'] = self.applied_spec
         return data
+    
+    def _cut_str(self, input_str: str, max_len: int=32)->str:
+        final_str = '{}'.format(input_str)
+        if len(final_str) > max_len:
+            final_str = final_str[0:max_len]
+        return final_str
+
+    def column_str(self, human_readable: bool=False, current_resolved_spec: dict=None, with_checksums: bool=False, space_len: int=2)->str:
+        data = self.to_dict(human_readable=human_readable, current_resolved_spec=current_resolved_spec, with_checksums=with_checksums)
+        label = self._cut_str(input_str=data['Label'], max_len=16)
+        is_created = self._cut_str(input_str='{}'.format(data['IsCreated']), max_len=6)
+        created_datetime = self._cut_str(input_str='{}'.format(data['CreatedTimestamp']), max_len=25) # max: 0000-00-00 00:00:00 +0000 (25 characters)
+        spec_drifted = self._cut_str(input_str=data['SpecDrifted'], max_len=8)
+        resource_drifted = self._cut_str(input_str=data['ResourceDrifted'], max_len=8)
+        space = ' '*space_len
+        if with_checksums is True:
+            if 'AppliedSpecChecksum' in data and 'CurrentResolvedSpecChecksum' in data:
+                applied_checksum = data['AppliedSpecChecksum'][0:16]
+                current_resolved_spec_checksum = data['CurrentResolvedSpecChecksum'][0:16]
+                return '{0:<16}{1}{2:<6}{3}{4:<25}{5}{6:<8}{7}{8:<8}{9}{10:<16}{11}{12:<16}'.format(label, space, is_created, space, created_datetime, space, spec_drifted, space, resource_drifted, space, applied_checksum, space, current_resolved_spec_checksum)
+        return '{0:<16}{1}{2:<6}{3}{4:<25}{5}{6:<8}{7}{8:<8}'.format(label, space, is_created, space, created_datetime, space, spec_drifted, space, resource_drifted)
+    
+    def __str__(self) -> str:
+        return json.dumps(self.to_dict())
 
 
 class KeyValueStore:
