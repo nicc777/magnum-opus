@@ -81,6 +81,15 @@ def keys_to_lower(data: dict):
 
 
 def produce_column_headers(with_checksums: bool=False, space_len: int=2)->str:
+    """Function description
+
+    Args:
+        with_checksums: boolean (default=False) - If True. include checksum columns
+        space_len: int (default=2). The number of spaces between column boundaries
+
+    Returns:
+        A string with the column headings
+    """
     space                               = ' '*space_len
     #                                                                  Index #      Label Length    Final Field Length
     label                               = 'Manifest'                    # 0         len = 8             16
@@ -196,7 +205,7 @@ class TaskState:
             spec_resource_expectation_checksum = 'unavailable'
             if 'AppliedSpecChecksum' in data:
                 applied_spec_checksum = data['AppliedSpecChecksum'][0:32]
-            if 'CurrentResolvedSpecChecksum' in data
+            if 'CurrentResolvedSpecChecksum' in data:
                 current_resolved_spec_checksum = data['CurrentResolvedSpecChecksum'][0:32]
             if 'AppliedResourcesChecksum' in data:
                 applied_resource_checksum = data['AppliedResourcesChecksum'][0:32]
