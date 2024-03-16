@@ -2620,7 +2620,7 @@ class TestScenariosInLine(unittest.TestCase):    # pragma: no cover
             self.logger = TestLogger()
 
 
-class TestFunctionKeysRandomString(unittest.TestCase):    # pragma: no cover
+class TestFunctionRandomString(unittest.TestCase):    # pragma: no cover
 
     def setUp(self):
         print()
@@ -2633,6 +2633,32 @@ class TestFunctionKeysRandomString(unittest.TestCase):    # pragma: no cover
         characters_that_must_not_be_present = 'defghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789'
         for char in characters_that_must_not_be_present:
             self.assertFalse(char in result, 'Unexpectedly found character "{}" in result "{}"'.format(char, result))
+
+
+class TestFunctionProduceColumnHeaders(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+
+    def test_generate_header_as_string_1(self):
+        result = produce_column_headers()
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, str)
+
+
+class TestFunctionProduceColumnHeaderHorizontalLine(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+
+    def test_generate_horizontal_line_as_string_1(self):
+        result = produce_column_header_horizontal_line()
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, str)
+        for char in result:
+            self.assertTrue('-' in char, 'Unexpected character "{}" found in horizontal line "{}"'.format(char,result))
 
 
 if __name__ == '__main__':
