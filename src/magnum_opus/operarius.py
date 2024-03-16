@@ -55,7 +55,6 @@ def random_string(string_length: int=16, character_set: str=string.ascii_upperca
     Returns:
         A string of random characters
     """
-    character_set = string.ascii_uppercase + string.ascii_lowercase + string.digits
     random_str = ''
     while len(random_str) < string_length:
         random_str = '{}{}'.format(random_str, random.choice(character_set))

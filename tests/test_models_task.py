@@ -2620,6 +2620,21 @@ class TestScenariosInLine(unittest.TestCase):    # pragma: no cover
             self.logger = TestLogger()
 
 
+class TestFunctionKeysRandomString(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+
+    def test_generate_random_str_1(self):
+        result = random_string(string_length=4, character_set='abc')
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, str)
+        characters_that_must_not_be_present = 'defghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789'
+        for char in characters_that_must_not_be_present:
+            self.assertFalse(char in result, 'Unexpectedly found character "{}" in result "{}"'.format(char, result))
+
+
 if __name__ == '__main__':
     unittest.main()
 
