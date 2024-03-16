@@ -1,6 +1,7 @@
 import sys
 import os
 from itertools import permutations
+import hashlib
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/../src")
 print('sys.path={}'.format(sys.path))
@@ -2659,6 +2660,51 @@ class TestFunctionProduceColumnHeaderHorizontalLine(unittest.TestCase):    # pra
         self.assertIsInstance(result, str)
         for char in result:
             self.assertTrue('-' in char, 'Unexpected character "{}" found in horizontal line "{}"'.format(char,result))
+
+
+class TestClassTaskState(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+
+    def test_produce_basic_report_string_1(self):
+        ts = TaskState(
+            manifest_spec={'field1': 'abc'},
+            applied_spec={},
+            resolved_spec={'field1': 'abc'},
+            manifest_metadata={},
+            report_label='TEST_LABEL',
+            created_timestamp=1000,
+            applied_resources_checksum=hashlib.sha256('test'.encode('utf-8')).hexdigest(),
+            spec_resource_expectation_checksum=hashlib.sha256('test'.encode('utf-8')).hexdigest()
+        )
+        report = str(ts)
+        print(report)
+        self.assertIsNotNone(report)
+        self.assertIsInstance(report, str)
+        self.assertTrue('\n' in report)
+
+    def test_produce_extended_report_string_1(self):
+        ts = TaskState(
+            manifest_spec={'field1': 'abc'},
+            applied_spec={'field1': 'abc'},
+            resolved_spec={'field1': 'abc'},
+            manifest_metadata={},
+            report_label='TEST_LABEL',
+            created_timestamp=1000,
+            applied_resources_checksum=hashlib.sha256('test'.encode('utf-8')).hexdigest(),
+            spec_resource_expectation_checksum=hashlib.sha256('test'.encode('utf-8')).hexdigest()
+        )
+        report = '{}\n{}\n{}'.format(
+            produce_column_headers(with_checksums=True),
+            produce_column_header_horizontal_line(with_checksums=True, line_char='+'),
+            ts.column_str(human_readable=True, current_resolved_spec={'field1': 'abc'}, with_checksums=True)
+        )
+        print(report)
+        self.assertIsNotNone(report)
+        self.assertIsInstance(report, str)
+        self.assertTrue('\n' in report)
 
 
 if __name__ == '__main__':
