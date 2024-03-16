@@ -125,6 +125,7 @@ class TaskState:
         self,
         manifest_spec: dict=dict(),
         applied_spec: dict=dict(),
+        resolved_spec: dict=dict(),
         manifest_metadata: dict=dict(),
         report_label: str='',
         created_timestamp: int=0,
@@ -136,6 +137,7 @@ class TaskState:
         self.report_label = report_label
         self.created_timestamp = created_timestamp
         self.applied_spec = applied_spec
+        self.current_resolved_spec = resolved_spec
         self.is_created = False
         if len(applied_spec) > 0 or created_timestamp > 0:
             self.is_created = True
@@ -215,7 +217,14 @@ class TaskState:
             return '{0:<16}{1}{2:<7}{3}{4:<25}{5}{6:<17}{7}{8:<17}{9}{10:<32}{11}{12:<32}{13}{14:<32}{15}{16:<32}'.format(label, space, is_created, space, created_datetime, space, spec_drifted, space, resource_drifted, space, applied_spec_checksum, space, current_resolved_spec_checksum, space, applied_resource_checksum, space, spec_resource_expectation_checksum)
         return '{0:<16}{1}{2:<7}{3}{4:<25}{5}{6:<17}{7}{8:<17}'.format(label, space, is_created, space, created_datetime, space, spec_drifted, space, resource_drifted)
     
-    def __str__(self) -> str:
+    def __str__(self)->str:
+        return '{}\n{}\n{}'.format(
+            produce_column_headers(),
+            produce_column_header_horizontal_line(),
+            self.column_str(human_readable=True, current_resolved_spec=self.current_resolved_spec)
+        )
+
+    def __repr__(self)->str:
         return json.dumps(self.to_dict())
 
 
