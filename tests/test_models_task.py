@@ -2,6 +2,7 @@ import sys
 import os
 from itertools import permutations
 import hashlib
+from datetime import datetime
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/../src")
 print('sys.path={}'.format(sys.path))
@@ -2675,7 +2676,7 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
             resolved_spec={'field1': 'abc'},
             manifest_metadata={},
             report_label='TEST_LABEL',
-            created_timestamp=1000,
+            created_timestamp=0,
             applied_resources_checksum=hashlib.sha256('test'.encode('utf-8')).hexdigest(),
             spec_resource_expectation_checksum=hashlib.sha256('test'.encode('utf-8')).hexdigest()
         )
@@ -2705,6 +2706,64 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
         self.assertIsNotNone(report)
         self.assertIsInstance(report, str)
         self.assertTrue('\n' in report)
+
+    def test_to_dict_basic__not_yet_applied_1(self):
+        ts = TaskState(
+            manifest_spec={'field1': 'abc'},
+            applied_spec={},
+            resolved_spec={'field1': 'abc'},
+            manifest_metadata={},
+            report_label='TEST_LABEL',
+            created_timestamp=0
+        )
+        task_state_summary_as_dict = ts.to_dict(human_readable=False, current_resolved_spec={'field1': 'abc'}, with_checksums=False, include_applied_spec=False)
+        print('JSON value of task_state_summary_as_dict: {}'.format(json.dumps(task_state_summary_as_dict)))
+        self.assertIsNotNone(task_state_summary_as_dict)
+        self.assertIsInstance(task_state_summary_as_dict, dict)
+
+        dict_tests = {
+            'Label': {
+                'type': str,
+                'canBeNone': False,
+                'mustBePresent': True,
+                'expectedValue': 'TEST_LABEL',
+            },
+            'IsCreated': {
+                'type': bool,
+                'canBeNone': False,
+                'mustBePresent': True,
+                'expectedValue': False,
+            },
+            'CreatedTimestamp': {
+                'type': datetime,
+                'canBeNone': True,
+                'mustBePresent': True,
+                'expectedValue': None,
+            },
+            'SpecDrifted': {
+                'type': bool,
+                'canBeNone': False,
+                'mustBePresent': True,
+                'expectedValue': True,
+            },
+            'ResourceDrifted': {
+                'type': bool,
+                'canBeNone': True,
+                'mustBePresent': True,
+                'expectedValue': None,
+            },
+        }
+
+        for key, test_config in dict_tests.items():
+            if test_config['mustBePresent'] is True:
+                self.assertTrue(key in task_state_summary_as_dict, 'Expected key "{}" but it was NOT present. Keys: {}'.format(key, list(task_state_summary_as_dict.keys())))
+                if test_config['canBeNone'] is False:
+                    self.assertIsNotNone(task_state_summary_as_dict[key], 'Value of key "{}" can not be NONE.'.format(key))
+                if task_state_summary_as_dict[key] is not None:
+                    self.assertIsInstance(task_state_summary_as_dict[key], test_config['type'], 'Key "{}" type expected was "{}" but found "{}"'.format(key, test_config['type'], type(task_state_summary_as_dict[key])))
+                    self.assertEqual(task_state_summary_as_dict[key], test_config['expectedValue'], 'Key "{}" value expected was "{}" but found "{}"'.format(key, test_config['expectedValue'], task_state_summary_as_dict[key]))
+            else:
+                self.assertFalse(key in task_state_summary_as_dict, 'NOT Expecting key "{}" but it was present. Keys: {}'.format(key, list(task_state_summary_as_dict.keys())))
 
 
 if __name__ == '__main__':

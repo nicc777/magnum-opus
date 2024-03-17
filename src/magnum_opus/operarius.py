@@ -80,7 +80,7 @@ def keys_to_lower(data: dict):
 
 
 def produce_column_headers(with_checksums: bool=False, space_len: int=2)->str:
-    """Function description
+    """Produce a string of formatted column headers, ideal for `TaskState` output in human readable column format.
 
     Args:
         with_checksums: boolean (default=False) - If True. include checksum columns
@@ -110,6 +110,16 @@ def produce_column_headers(with_checksums: bool=False, space_len: int=2)->str:
 
 
 def produce_column_header_horizontal_line(with_checksums: bool=False, space_len: int=2, line_char: str='-')->str:
+    """Function description
+
+    Args:
+        with_checksums: boolean (default=False) - If True. include checksum columns in total length calculation
+        space_len: int (default=2). The number of spaces between column boundaries, used in total length calculation
+        line_char: str (default='-'). The character to be used to create the horizontal line
+
+    Returns:
+        A string with a horizontal line as a text string
+    """
     short_len = 16+7+25+17+17
     long_len = short_len + 32 + 32 + 32 + 32
     final_len = short_len + (space_len*4)       # 90 characters, using defaults
@@ -119,6 +129,22 @@ def produce_column_header_horizontal_line(with_checksums: bool=False, space_len:
 
 
 class TaskState:
+    """A helper class to track state of various elements that may help to determine what kind of changes is required
+    when executing task commands in a particular environment.
+
+    The initial values are generally set during the loading of Task state via `StatePersistence`.
+
+    Attributes:
+        raw_spec: The current task raw spec, which may include dynamic variables which is not yet resolved.
+        raw_metadata: The current task raw metadata dict
+        report_label: Some label that can be printed on reports. This is usually the `Task` ID.
+        created_timestamp: A Unix timestamp of the last recorded timestamp the task manifest was applied (created or updated). A value of "0" (zero) indicates that this `Task` have never been deployed (created or updated) within the specific context. It may also mean that a previous implementation was deleted.
+        applied_spec: The `Task` spec, with all variables resolved, that was applied previously (if applicable).
+        current_resolved_spec: The current `Task` spec with all variables resolved.
+        is_created: A boolean flag to indicate if the current `Task` is currently in a "created" state given the current context.
+        applied_resources_checksum: A SHA256 checksum of the last known applied `applied_spec` dict.
+        spec_resource_expectation_checksum: A SHA256 string of the calculated deployed/created resource state after he previous applied spec. Future resource checksum calculation should yield the same result and any change in the calculated value typically translates to some drift detection.
+    """
 
     def __init__(
         self,
@@ -158,22 +184,35 @@ class TaskState:
             data['IsCreated'] = 'No'
             if self.is_created is True:
                 data['IsCreated'] = 'Yes'
-        data['CreatedTimestamp'] = '-'
+        data['CreatedTimestamp'] = None
         if self.is_created is True and self.created_timestamp > 0:
             data['CreatedTimestamp'] = self.created_timestamp
             if human_readable is True:
                 data['CreatedTimestamp'] = datetime.fromtimestamp(self.created_timestamp).strftime('%Y-%m-%d %H:%M:%S %z').strip()
+        elif self.is_created is False or self.created_timestamp == 0:
+            if human_readable is True:
+                data['CreatedTimestamp'] = '-'
         data['SpecDrifted'] = 'Unknown'
         if current_resolved_spec is not None:
-            data['SpecDrifted'] = 'No'
+            data['SpecDrifted'] = False
+            if human_readable is True:
+                data['SpecDrifted'] = 'No'
             if self.calculate_manifest_state_checksum(spec=self.applied_spec) != self.calculate_manifest_state_checksum(spec=current_resolved_spec):
-                data['SpecDrifted'] = 'Yes'
-        data['ResourceDrifted'] = 'Unknown'
+                data['SpecDrifted'] = True
+                if human_readable is True:
+                    data['SpecDrifted'] = 'Yes'
+        data['ResourceDrifted'] = None
+        if human_readable is True:
+            data['ResourceDrifted'] = 'Unknown'
         if self.applied_resources_checksum is not None:
-            data['ResourceDrifted'] = 'Yes'
+            data['ResourceDrifted'] = True
+            if human_readable is True:
+                data['ResourceDrifted'] = 'Yes'
             if self.spec_resource_expectation_checksum is not None:
                 if self.spec_resource_expectation_checksum == self.applied_resources_checksum:
-                    data['ResourceDrifted'] = 'No'
+                    data['ResourceDrifted'] = False
+                    if human_readable is True:
+                        data['ResourceDrifted'] = 'No'
         if with_checksums is True:
             data['AppliedSpecChecksum'] = self.calculate_manifest_state_checksum(spec=self.applied_spec)
             data['CurrentResolvedSpecChecksum'] = 'unavailable'
