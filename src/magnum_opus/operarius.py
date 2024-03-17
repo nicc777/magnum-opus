@@ -223,6 +223,9 @@ class TaskState:
                 data['CurrentResolvedSpecChecksum'] = self.calculate_manifest_state_checksum(spec=current_resolved_spec)
             data['AppliedResourcesChecksum'] = 'unavailable'
             data['SpecResourceExpectedChecksum'] = 'unavailable'
+
+            
+
         if include_applied_spec:
             data['AppliedSpec'] = self.applied_spec
         return data

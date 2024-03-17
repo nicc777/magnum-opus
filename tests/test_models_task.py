@@ -2705,7 +2705,25 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
         self.assertIsInstance(report, str)
         self.assertTrue('\n' in report)
 
-    def test_to_dict_basic__not_yet_applied_1(self):
+    def _validate_task_state_summary_as_dict_against_dict_tests(self, task_state_summary_as_dict: dict, dict_tests: dict):
+        for key, test_config in dict_tests.items():
+            validate_value = True
+            if test_config['mustBePresent'] is True:
+                self.assertTrue(key in task_state_summary_as_dict, 'Expected key "{}" but it was NOT present. Keys: {}'.format(key, list(task_state_summary_as_dict.keys())))                
+            else:
+                self.assertFalse(key in task_state_summary_as_dict, 'NOT Expecting key "{}" but it was present. Keys: {}'.format(key, list(task_state_summary_as_dict.keys())))
+                validate_value = False
+                if key in task_state_summary_as_dict is True:
+                    validate_value = True
+            if validate_value is True:
+                if test_config['canBeNone'] is False:
+                    self.assertIsNotNone(task_state_summary_as_dict[key], 'Value of key "{}" can not be NONE.'.format(key))
+                if task_state_summary_as_dict[key] is not None:
+                    self.assertIsInstance(task_state_summary_as_dict[key], test_config['type'], 'Key "{}" type expected was "{}" but found "{}"'.format(key, test_config['type'], type(task_state_summary_as_dict[key])))
+                    self.assertEqual(task_state_summary_as_dict[key], test_config['expectedValue'], 'Key "{}" value expected was "{}" but found "{}"'.format(key, test_config['expectedValue'], task_state_summary_as_dict[key]))
+
+
+    def test_to_dict_basic_not_yet_applied_1(self):
         ts = TaskState(
             manifest_spec={'field1': 'abc'},
             applied_spec=None,
@@ -2716,6 +2734,9 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
         )
         task_state_summary_as_dict = ts.to_dict(human_readable=False, current_resolved_spec={'field1': 'abc'}, with_checksums=False, include_applied_spec=False)
         print('JSON value of task_state_summary_as_dict: {}'.format(json.dumps(task_state_summary_as_dict)))
+        print()
+        print(str(ts))
+        print()
         self.assertIsNotNone(task_state_summary_as_dict)
         self.assertIsInstance(task_state_summary_as_dict, dict)
 
@@ -2733,7 +2754,7 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
                 'expectedValue': False,
             },
             'CreatedTimestamp': {
-                'type': datetime,
+                'type': int,
                 'canBeNone': True,
                 'mustBePresent': True,
                 'expectedValue': None,
@@ -2752,16 +2773,60 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
             },
         }
 
-        for key, test_config in dict_tests.items():
-            if test_config['mustBePresent'] is True:
-                self.assertTrue(key in task_state_summary_as_dict, 'Expected key "{}" but it was NOT present. Keys: {}'.format(key, list(task_state_summary_as_dict.keys())))
-                if test_config['canBeNone'] is False:
-                    self.assertIsNotNone(task_state_summary_as_dict[key], 'Value of key "{}" can not be NONE.'.format(key))
-                if task_state_summary_as_dict[key] is not None:
-                    self.assertIsInstance(task_state_summary_as_dict[key], test_config['type'], 'Key "{}" type expected was "{}" but found "{}"'.format(key, test_config['type'], type(task_state_summary_as_dict[key])))
-                    self.assertEqual(task_state_summary_as_dict[key], test_config['expectedValue'], 'Key "{}" value expected was "{}" but found "{}"'.format(key, test_config['expectedValue'], task_state_summary_as_dict[key]))
-            else:
-                self.assertFalse(key in task_state_summary_as_dict, 'NOT Expecting key "{}" but it was present. Keys: {}'.format(key, list(task_state_summary_as_dict.keys())))
+        self._validate_task_state_summary_as_dict_against_dict_tests(task_state_summary_as_dict=task_state_summary_as_dict, dict_tests=dict_tests)
+
+    def test_to_dict_basic_applied__and_no_diff_from_current_spec1(self):
+        ts = TaskState(
+            manifest_spec={},
+            applied_spec={'field1': 'abc'},
+            resolved_spec={'field1': 'abc'},
+            manifest_metadata={},
+            report_label='TEST_LABEL',
+            created_timestamp=1710686853
+        )
+        task_state_summary_as_dict = ts.to_dict(human_readable=False, current_resolved_spec={'field1': 'abc'}, with_checksums=False, include_applied_spec=False)
+        print('JSON value of task_state_summary_as_dict: {}'.format(json.dumps(task_state_summary_as_dict)))
+        print()
+        print(str(ts))
+        print()
+        self.assertIsNotNone(task_state_summary_as_dict)
+        self.assertIsInstance(task_state_summary_as_dict, dict)
+
+        dict_tests = {
+            'Label': {
+                'type': str,
+                'canBeNone': False,
+                'mustBePresent': True,
+                'expectedValue': 'TEST_LABEL',
+            },
+            'IsCreated': {
+                'type': bool,
+                'canBeNone': False,
+                'mustBePresent': True,
+                'expectedValue': True,
+            },
+            'CreatedTimestamp': {
+                'type': int,
+                'canBeNone': True,
+                'mustBePresent': True,
+                'expectedValue': 1710686853,
+            },
+            'SpecDrifted': {
+                'type': bool,
+                'canBeNone': True,
+                'mustBePresent': True,
+                'expectedValue': False,
+            },
+            'ResourceDrifted': {
+                'type': bool,
+                'canBeNone': True,
+                'mustBePresent': True,
+                'expectedValue': None,
+            },
+        }
+
+        self._validate_task_state_summary_as_dict_against_dict_tests(task_state_summary_as_dict=task_state_summary_as_dict, dict_tests=dict_tests)
+
 
 
 if __name__ == '__main__':
