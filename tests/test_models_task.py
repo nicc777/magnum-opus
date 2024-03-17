@@ -2672,7 +2672,7 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
     def test_produce_basic_report_string_1(self):
         ts = TaskState(
             manifest_spec={'field1': 'abc'},
-            applied_spec={},
+            applied_spec=None,
             resolved_spec={'field1': 'abc'},
             manifest_metadata={},
             report_label='TEST_LABEL',
@@ -2708,7 +2708,7 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
     def test_to_dict_basic__not_yet_applied_1(self):
         ts = TaskState(
             manifest_spec={'field1': 'abc'},
-            applied_spec={},
+            applied_spec=None,
             resolved_spec={'field1': 'abc'},
             manifest_metadata={},
             report_label='TEST_LABEL',
@@ -2740,9 +2740,9 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
             },
             'SpecDrifted': {
                 'type': bool,
-                'canBeNone': False,
+                'canBeNone': True,
                 'mustBePresent': True,
-                'expectedValue': True,
+                'expectedValue': None,
             },
             'ResourceDrifted': {
                 'type': bool,

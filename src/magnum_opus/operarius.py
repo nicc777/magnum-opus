@@ -164,8 +164,9 @@ class TaskState:
         self.applied_spec = applied_spec
         self.current_resolved_spec = resolved_spec
         self.is_created = False
-        if len(applied_spec) > 0 or created_timestamp > 0:
-            self.is_created = True
+        if applied_spec is not None:
+            if len(applied_spec) > 0 or created_timestamp > 0:
+                self.is_created = True
         self.applied_resources_checksum = applied_resources_checksum
         self.spec_resource_expectation_checksum = spec_resource_expectation_checksum
 
@@ -192,8 +193,10 @@ class TaskState:
         elif self.is_created is False or self.created_timestamp == 0:
             if human_readable is True:
                 data['CreatedTimestamp'] = '-'
-        data['SpecDrifted'] = 'Unknown'
-        if current_resolved_spec is not None:
+        data['SpecDrifted'] = None
+        if human_readable is True:
+            data['SpecDrifted'] = 'Unknown'
+        if current_resolved_spec is not None and self.applied_spec is not None:
             data['SpecDrifted'] = False
             if human_readable is True:
                 data['SpecDrifted'] = 'No'
