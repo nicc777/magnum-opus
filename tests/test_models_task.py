@@ -2676,9 +2676,7 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
             resolved_spec={'field1': 'abc'},
             manifest_metadata={},
             report_label='TEST_LABEL',
-            created_timestamp=0,
-            applied_resources_checksum=hashlib.sha256('test'.encode('utf-8')).hexdigest(),
-            spec_resource_expectation_checksum=hashlib.sha256('test'.encode('utf-8')).hexdigest()
+            created_timestamp=0
         )
         report = str(ts)
         print(report)
