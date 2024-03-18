@@ -196,11 +196,14 @@ class TaskState:
         data['SpecDrifted'] = None
         if human_readable is True:
             data['SpecDrifted'] = 'Unknown'
-        if current_resolved_spec is not None and self.applied_spec is not None:
+        if current_resolved_spec is not None:
+            if isinstance(current_resolved_spec, dict):
+                self.current_resolved_spec = current_resolved_spec
+        if self.current_resolved_spec is not None and self.applied_spec is not None:
             data['SpecDrifted'] = False
             if human_readable is True:
                 data['SpecDrifted'] = 'No'
-            if self.calculate_manifest_state_checksum(spec=self.applied_spec) != self.calculate_manifest_state_checksum(spec=current_resolved_spec):
+            if self.calculate_manifest_state_checksum(spec=self.applied_spec) != self.calculate_manifest_state_checksum(spec=self.current_resolved_spec):
                 data['SpecDrifted'] = True
                 if human_readable is True:
                     data['SpecDrifted'] = 'Yes'
@@ -224,7 +227,7 @@ class TaskState:
             data['AppliedResourcesChecksum'] = 'unavailable'
             data['SpecResourceExpectedChecksum'] = 'unavailable'
 
-            
+
 
         if include_applied_spec:
             data['AppliedSpec'] = self.applied_spec

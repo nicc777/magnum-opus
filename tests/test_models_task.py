@@ -2774,7 +2774,7 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
         }
         self._validate_task_state_summary_as_dict_against_dict_tests(task_state_summary_as_dict=task_state_summary_as_dict, dict_tests=dict_tests)
 
-    def test_to_dict_basic_applied__and_no_diff_from_current_spec1(self):
+    def test_to_dict_basic_applied_and_no_diff_from_current_spec1(self):
         ts = TaskState(
             manifest_spec={},
             applied_spec={'field1': 'abc'},
@@ -2815,6 +2815,57 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
                 'canBeNone': True,
                 'mustBePresent': True,
                 'expectedValue': False,
+            },
+            'ResourceDrifted': {
+                'type': bool,
+                'canBeNone': True,
+                'mustBePresent': True,
+                'expectedValue': None,
+            },
+        }
+        self._validate_task_state_summary_as_dict_against_dict_tests(task_state_summary_as_dict=task_state_summary_as_dict, dict_tests=dict_tests)
+
+    def test_to_dict_basic_applied_with_diff_from_current_spec_but_no_diff_to_detected_resources_1(self):
+        ts = TaskState(
+            manifest_spec={},
+            applied_spec={'field1': 'abc'},
+            resolved_spec={'field1': 'abc'},
+            manifest_metadata={},
+            report_label='TEST_LABEL',
+            created_timestamp=1710686853
+        )
+        task_state_summary_as_dict = ts.to_dict(human_readable=False, current_resolved_spec={'field1': 'xyz'}, with_checksums=False, include_applied_spec=False)
+        print('JSON value of task_state_summary_as_dict: {}'.format(json.dumps(task_state_summary_as_dict)))
+        print()
+        print(str(ts))
+        print()
+        self.assertIsNotNone(task_state_summary_as_dict)
+        self.assertIsInstance(task_state_summary_as_dict, dict)
+
+        dict_tests = {
+            'Label': {
+                'type': str,
+                'canBeNone': False,
+                'mustBePresent': True,
+                'expectedValue': 'TEST_LABEL',
+            },
+            'IsCreated': {
+                'type': bool,
+                'canBeNone': False,
+                'mustBePresent': True,
+                'expectedValue': True,
+            },
+            'CreatedTimestamp': {
+                'type': int,
+                'canBeNone': True,
+                'mustBePresent': True,
+                'expectedValue': 1710686853,
+            },
+            'SpecDrifted': {
+                'type': bool,
+                'canBeNone': True,
+                'mustBePresent': True,
+                'expectedValue': True,
             },
             'ResourceDrifted': {
                 'type': bool,
