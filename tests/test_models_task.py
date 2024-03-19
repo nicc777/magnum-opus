@@ -2771,6 +2771,30 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
                 'mustBePresent': True,
                 'expectedValue': None,
             },
+            'AppliedSpecChecksum': {
+                'type': str,
+                'canBeNone': True,
+                'mustBePresent': False,
+                'expectedValue': None,
+            },
+            'CurrentResolvedSpecChecksum': {
+                'type': str,
+                'canBeNone': True,
+                'mustBePresent': False,
+                'expectedValue': None,
+            },
+            'AppliedResourcesChecksum': {
+                'type': str,
+                'canBeNone': True,
+                'mustBePresent': False,
+                'expectedValue': None,
+            },
+            'CurrentResourceChecksum': {
+                'type': str,
+                'canBeNone': True,
+                'mustBePresent': False,
+                'expectedValue': None,
+            },
         }
         self._validate_task_state_summary_as_dict_against_dict_tests(task_state_summary_as_dict=task_state_summary_as_dict, dict_tests=dict_tests)
 
@@ -2822,6 +2846,30 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
                 'mustBePresent': True,
                 'expectedValue': None,
             },
+            'AppliedSpecChecksum': {
+                'type': str,
+                'canBeNone': True,
+                'mustBePresent': False,
+                'expectedValue': None,
+            },
+            'CurrentResolvedSpecChecksum': {
+                'type': str,
+                'canBeNone': True,
+                'mustBePresent': False,
+                'expectedValue': None,
+            },
+            'AppliedResourcesChecksum': {
+                'type': str,
+                'canBeNone': True,
+                'mustBePresent': False,
+                'expectedValue': None,
+            },
+            'CurrentResourceChecksum': {
+                'type': str,
+                'canBeNone': True,
+                'mustBePresent': False,
+                'expectedValue': None,
+            },
         }
         self._validate_task_state_summary_as_dict_against_dict_tests(task_state_summary_as_dict=task_state_summary_as_dict, dict_tests=dict_tests)
 
@@ -2871,6 +2919,30 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
                 'type': bool,
                 'canBeNone': True,
                 'mustBePresent': True,
+                'expectedValue': None,
+            },
+            'AppliedSpecChecksum': {
+                'type': str,
+                'canBeNone': True,
+                'mustBePresent': False,
+                'expectedValue': None,
+            },
+            'CurrentResolvedSpecChecksum': {
+                'type': str,
+                'canBeNone': True,
+                'mustBePresent': False,
+                'expectedValue': None,
+            },
+            'AppliedResourcesChecksum': {
+                'type': str,
+                'canBeNone': True,
+                'mustBePresent': False,
+                'expectedValue': None,
+            },
+            'CurrentResourceChecksum': {
+                'type': str,
+                'canBeNone': True,
+                'mustBePresent': False,
                 'expectedValue': None,
             },
         }
