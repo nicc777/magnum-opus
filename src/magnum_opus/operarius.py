@@ -99,7 +99,7 @@ def produce_column_headers(with_checksums: bool=False, space_len: int=2)->str:
     applied_spec_checksum               = 'Applied Spec CHecksum'       # 10        len = 21            32
     current_resolved_spec_checksum      = 'Current Spec Checksum'       # 12        len = 21            32
     applied_resource_checksum           = 'Applied Resource Checksum'   # 14        len = 25            32
-    spec_resource_expectation_checksum  = 'Expected Resource Checksum'  # 16        len = 26            32
+    spec_resource_expectation_checksum  = 'Current Resource Checksum'   # 16        len = 25            32
 
     report_column_header                = '{0:<16}{1}{2:<7}{3}{4:<25}{5}{6:<17}{7}{8:<17}'.format(label, space, is_created, space, created_datetime, space, spec_drifted, space, resource_drifted)
     report_column_header_with_checksums = '{0:<16}{1}{2:<7}{3}{4:<25}{5}{6:<17}{7}{8:<17}{9}{10:<32}{11}{12:<32}{13}{14:<32}{15}{16:<32}'.format(label, space, is_created, space, created_datetime, space, spec_drifted, space, resource_drifted, space, applied_spec_checksum, space, current_resolved_spec_checksum, space, applied_resource_checksum, space, spec_resource_expectation_checksum)
@@ -155,7 +155,7 @@ class TaskState:
         report_label: str='',
         created_timestamp: int=0,
         applied_resources_checksum: str=None,
-        spec_resource_expectation_checksum: str=None
+        current_resource_checksum: str=None
     ):
         self.raw_spec = manifest_spec
         self.raw_metadata = manifest_metadata
@@ -168,7 +168,7 @@ class TaskState:
             if len(applied_spec) > 0 or created_timestamp > 0:
                 self.is_created = True
         self.applied_resources_checksum = applied_resources_checksum
-        self.spec_resource_expectation_checksum = spec_resource_expectation_checksum
+        self.current_resource_checksum = current_resource_checksum
 
     def calculate_manifest_state_checksum(self, spec: dict=dict, metadata: dict=dict())->str:
         data = {
@@ -177,7 +177,14 @@ class TaskState:
         }
         return hashlib.sha256(json.dumps(data).encode('utf-8')).hexdigest()
     
-    def to_dict(self, human_readable: bool=False, current_resolved_spec: dict=None, with_checksums: bool=False, include_applied_spec: bool=False)->dict:
+    def to_dict(
+            self,
+            human_readable: bool=False,
+            current_resolved_spec: dict=None,
+            current_resource_checksum: str=None,
+            with_checksums: bool=False,
+            include_applied_spec: bool=False
+        )->dict:
         data = dict()
         data['Label'] = self.report_label
         data['IsCreated'] = self.is_created
@@ -196,17 +203,24 @@ class TaskState:
         data['SpecDrifted'] = None
         if human_readable is True:
             data['SpecDrifted'] = 'Unknown'
+
         if current_resolved_spec is not None:
             if isinstance(current_resolved_spec, dict):
                 self.current_resolved_spec = current_resolved_spec
+
+        if current_resource_checksum is not None:
+            if isinstance(current_resource_checksum, str):
+                self.current_resource_checksum = current_resource_checksum
+
+        data['SpecDrifted'] = False
+        if human_readable is True:
+            data['SpecDrifted'] = 'No'
         if self.current_resolved_spec is not None and self.applied_spec is not None:
-            data['SpecDrifted'] = False
-            if human_readable is True:
-                data['SpecDrifted'] = 'No'
             if self.calculate_manifest_state_checksum(spec=self.applied_spec) != self.calculate_manifest_state_checksum(spec=self.current_resolved_spec):
                 data['SpecDrifted'] = True
                 if human_readable is True:
                     data['SpecDrifted'] = 'Yes'
+
         data['ResourceDrifted'] = None
         if human_readable is True:
             data['ResourceDrifted'] = 'Unknown'
@@ -214,21 +228,39 @@ class TaskState:
             data['ResourceDrifted'] = True
             if human_readable is True:
                 data['ResourceDrifted'] = 'Yes'
-            if self.spec_resource_expectation_checksum is not None:
-                if self.spec_resource_expectation_checksum == self.applied_resources_checksum:
+            if self.current_resource_checksum is not None:
+                if self.current_resource_checksum == self.applied_resources_checksum:
                     data['ResourceDrifted'] = False
                     if human_readable is True:
                         data['ResourceDrifted'] = 'No'
+
         if with_checksums is True:
-            data['AppliedSpecChecksum'] = self.calculate_manifest_state_checksum(spec=self.applied_spec)
-            data['CurrentResolvedSpecChecksum'] = 'unavailable'
-            if len(current_resolved_spec) > 1:
-                data['CurrentResolvedSpecChecksum'] = self.calculate_manifest_state_checksum(spec=current_resolved_spec)
-            data['AppliedResourcesChecksum'] = 'unavailable'
-            data['SpecResourceExpectedChecksum'] = 'unavailable'
+            data['AppliedSpecChecksum'] = None
+            data['CurrentResolvedSpecChecksum'] = None
+            data['AppliedResourcesChecksum'] = None
+            data['CurrentResourceChecksum'] =None
+            if human_readable is True:
+                data['AppliedSpecChecksum'] = 'unavailable'
+                data['CurrentResolvedSpecChecksum'] = 'unavailable'
+                data['AppliedResourcesChecksum'] = 'unavailable'
+                data['CurrentResourceChecksum'] = 'unavailable'
 
+            if self.applied_spec is not None:
+                if isinstance(self.applied_spec, dict) is True:
+                    data['AppliedSpecChecksum'] = self.calculate_manifest_state_checksum(spec=self.applied_spec)    
 
+            if self.current_resolved_spec is not None:
+                if isinstance(self.current_resolved_spec, dict) is True:
+                    data['CurrentResolvedSpecChecksum'] = self.calculate_manifest_state_checksum(spec=current_resolved_spec)
+            
+            if self.applied_resources_checksum is not None:
+                if isinstance(self.applied_resources_checksum, str) is True:
+                    data['AppliedResourcesChecksum'] = self.applied_resources_checksum
 
+            if self.current_resource_checksum is not None:
+                if isinstance(self.current_resource_checksum, str) is True:
+                    data['CurrentResourceChecksum'] = self.current_resource_checksum
+            
         if include_applied_spec:
             data['AppliedSpec'] = self.applied_spec
         return data
@@ -239,8 +271,15 @@ class TaskState:
             final_str = final_str[0:max_len]
         return final_str
 
-    def column_str(self, human_readable: bool=False, current_resolved_spec: dict=None, with_checksums: bool=False, space_len: int=2)->str:
-        data = self.to_dict(human_readable=human_readable, current_resolved_spec=current_resolved_spec, with_checksums=with_checksums)
+    def column_str(
+        self,
+        human_readable: bool=False,
+        current_resolved_spec: dict=None,
+        current_resource_checksum: str=None,
+        with_checksums: bool=False,
+        space_len: int=2
+    )->str:
+        data = self.to_dict(human_readable=human_readable, current_resolved_spec=current_resolved_spec, current_resource_checksum=current_resource_checksum, with_checksums=with_checksums)
         label = self._cut_str(input_str=data['Label'], max_len=16)
         is_created = self._cut_str(input_str='{}'.format(data['IsCreated']), max_len=7)
         created_datetime = self._cut_str(input_str='{}'.format(data['CreatedTimestamp']), max_len=25) # max: 0000-00-00 00:00:00 +0000 (25 characters)
@@ -251,17 +290,17 @@ class TaskState:
             applied_spec_checksum = 'unavailable'
             current_resolved_spec_checksum ='unavailable'
             applied_resource_checksum = 'unavailable'
-            spec_resource_expectation_checksum = 'unavailable'
+            current_resource_checksum = 'unavailable'
             if 'AppliedSpecChecksum' in data:
                 applied_spec_checksum = data['AppliedSpecChecksum'][0:32]
             if 'CurrentResolvedSpecChecksum' in data:
                 current_resolved_spec_checksum = data['CurrentResolvedSpecChecksum'][0:32]
             if 'AppliedResourcesChecksum' in data:
                 applied_resource_checksum = data['AppliedResourcesChecksum'][0:32]
-            if 'SpecResourceExpectedChecksum' in data:
-                spec_resource_expectation_checksum = data['SpecResourceExpectedChecksum'][0:32]
+            if 'CurrentResourceChecksum' in data:
+                current_resource_checksum = data['CurrentResourceChecksum'][0:32]
             #         0     1   2    3   4     5   6    7    8     9    10    11    12    13    14    15    16     ||||     0      1      2           3       4                5      6             7       8                9      10                     11     12                              13     14                         15     16
-            return '{0:<16}{1}{2:<7}{3}{4:<25}{5}{6:<17}{7}{8:<17}{9}{10:<32}{11}{12:<32}{13}{14:<32}{15}{16:<32}'.format(label, space, is_created, space, created_datetime, space, spec_drifted, space, resource_drifted, space, applied_spec_checksum, space, current_resolved_spec_checksum, space, applied_resource_checksum, space, spec_resource_expectation_checksum)
+            return '{0:<16}{1}{2:<7}{3}{4:<25}{5}{6:<17}{7}{8:<17}{9}{10:<32}{11}{12:<32}{13}{14:<32}{15}{16:<32}'.format(label, space, is_created, space, created_datetime, space, spec_drifted, space, resource_drifted, space, applied_spec_checksum, space, current_resolved_spec_checksum, space, applied_resource_checksum, space, current_resource_checksum)
         return '{0:<16}{1}{2:<7}{3}{4:<25}{5}{6:<17}{7}{8:<17}'.format(label, space, is_created, space, created_datetime, space, spec_drifted, space, resource_drifted)
     
     def __str__(self)->str:
@@ -272,7 +311,7 @@ class TaskState:
         )
 
     def __repr__(self)->str:
-        return json.dumps(self.to_dict())
+        return json.dumps(self.to_dict(with_checksums=True, include_applied_spec=True))
 
 
 class KeyValueStore:

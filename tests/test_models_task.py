@@ -2693,7 +2693,7 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
             report_label='TEST_LABEL',
             created_timestamp=1000,
             applied_resources_checksum=hashlib.sha256('test'.encode('utf-8')).hexdigest(),
-            spec_resource_expectation_checksum=hashlib.sha256('test'.encode('utf-8')).hexdigest()
+            current_resource_checksum=hashlib.sha256('test'.encode('utf-8')).hexdigest()
         )
         report = '{}\n{}\n{}'.format(
             produce_column_headers(with_checksums=True),
@@ -2763,7 +2763,7 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
                 'type': bool,
                 'canBeNone': True,
                 'mustBePresent': True,
-                'expectedValue': None,
+                'expectedValue': False,
             },
             'ResourceDrifted': {
                 'type': bool,
