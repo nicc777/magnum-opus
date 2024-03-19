@@ -134,6 +134,22 @@ class TaskState:
 
     The initial values are generally set during the loading of Task state via `StatePersistence`.
 
+    The aim of this class is to track the `Task` spec and physical resource states that will also aid in determining the
+    changes required when tasks are processed.
+
+    The class also includes the ability to produce a summary in human readable format of the current spec and resource
+    states and to indicate if any drift occurred.
+
+    There are essentially two types of drift that can occur:
+
+    * Spec drift - where the last applied `Task` spec is different from the current spec.
+    * Resource drift - where the last applied or created resources somehow differ from the current resources.
+
+    Important to note the following about drift:
+
+    * Even through spec drift may be present, it does not necessarily mean changes are required for the resources. Each `TaskProcessor` may approach this differently when determining if changes should be applied.    
+    * The exact changes required for resources might not be known until after changes were applied by the `TaskProcessor`.
+
     Attributes:
         raw_spec: The current task raw spec, which may include dynamic variables which is not yet resolved.
         raw_metadata: The current task raw metadata dict
@@ -143,7 +159,7 @@ class TaskState:
         current_resolved_spec: The current `Task` spec with all variables resolved.
         is_created: A boolean flag to indicate if the current `Task` is currently in a "created" state given the current context.
         applied_resources_checksum: A SHA256 checksum of the last known applied `applied_spec` dict.
-        spec_resource_expectation_checksum: A SHA256 string of the calculated deployed/created resource state after he previous applied spec. Future resource checksum calculation should yield the same result and any change in the calculated value typically translates to some drift detection.
+        current_resource_checksum: A SHA256 string of the calculated deployed/created resource state after he previous applied spec. Future resource checksum calculation should yield the same result and any change in the calculated value typically translates to some drift detection.
     """
 
     def __init__(
@@ -157,6 +173,18 @@ class TaskState:
         applied_resources_checksum: str=None,
         current_resource_checksum: str=None
     ):
+        """Initializes the instance with some optional initial attribute values.
+
+        Args:
+            manifest_spec: A dict containing the raw spec (no variables resolved)
+            applied_spec: A dict with the spec as applied to create resources, with all variables resolved to their final values
+            resolved_spec: A dict with the current spec with all variables resolved to their final values
+            manifest_metadata: A dict with the current manifest metadata
+            report_label: A string containing a label, typically the task ID
+            created_timestamp: An integer with the Unix timestamp of when the resources were created. If resources were created, this value should be greater than 0
+            applied_resources_checksum: A string with the SHA256 checksum after the initial resource creation process was completed
+            current_resource_checksum: A string with the SHA256 checksum of the current state of running resources. A difference to the `applied_resources_checksum` could indicate some changes in the deployed resources that was not applied through task processing.
+        """
         self.raw_spec = manifest_spec
         self.raw_metadata = manifest_metadata
         self.report_label = report_label
