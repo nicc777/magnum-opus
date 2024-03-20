@@ -362,6 +362,41 @@ class TaskState:
         with_checksums: bool=False,
         space_len: int=2
     )->str:
+        """Based on the supplied parameters, produce a columnar output of the appropriate fields.
+
+        To produce a short report of a single task, a typical example would be the following:
+
+        ```python
+        report = '{}\n{}\n{}'.format(
+            produce_column_headers(with_checksums=True),
+            produce_column_header_horizontal_line(with_checksums=True, line_char='+'),
+            ts.column_str(human_readable=True, current_resolved_spec={...}, with_checksums=True)
+        )
+        print(report)
+        ```
+
+        To print the status of multiple `TaskState` instances:
+
+        ```python
+        list_of_task_state_instances = [...]
+        print('{}\n{}\n{}'.format(
+            produce_column_headers(with_checksums=True),
+            produce_column_header_horizontal_line(with_checksums=True, line_char='=')
+        )
+        for ts in list_of_task_state_instances:
+            print(ts.column_str(human_readable=True, current_resolved_spec={...}, with_checksums=True))
+        ```
+
+        Args:
+            human_readable: Boolean (default=False). If set to True, values like booleans and nulls will be converted to more appropriate english descriptive terms
+            current_resolved_spec: Optional dict that will replace the current resolved spec with an updated version on which calculations will be performed (replaces `self.current_resolved_spec`). This will be used to determine the drift from the last applied spec.
+            current_resource_checksum: An optional string with the SHA256 checksum of resources under management of this task
+            with_checksums: In the final result, include a summary of all checksums
+            space_len: An integer (default `2`) for the number of space characters spaces between column boundaries.
+
+        Returns:
+            A string with the data in well formatted columns.
+        """
         data = self.to_dict(human_readable=human_readable, current_resolved_spec=current_resolved_spec, current_resource_checksum=current_resource_checksum, with_checksums=with_checksums)
         label = self._cut_str(input_str=data['Label'], max_len=16)
         is_created = self._cut_str(input_str='{}'.format(data['IsCreated']), max_len=7)
