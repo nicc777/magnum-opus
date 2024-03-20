@@ -198,7 +198,17 @@ class TaskState:
         self.applied_resources_checksum = applied_resources_checksum
         self.current_resource_checksum = current_resource_checksum
 
-    def calculate_manifest_state_checksum(self, spec: dict=dict, metadata: dict=dict())->str:
+    def calculate_manifest_state_checksum(self, spec: dict=dict(), metadata: dict=dict())->str:
+        """Helper class to calculate the SHA256 checksum of the provided
+        dictionaries
+
+        Args:
+            spec: A dictionary
+            metadata: A dictionary
+
+        Returns:
+            A string with the SHA256 checksum of the two provided dictionaries.
+        """
         data = {
             'spec': spec,
             'metadata': metadata
@@ -213,6 +223,51 @@ class TaskState:
             with_checksums: bool=False,
             include_applied_spec: bool=False
         )->dict:
+        """Converts the current state into a dictionary.
+
+        Key phrases:
+
+        * Resolved spec: A dict containing the spec where all variable placeholders have been replaced by final values.
+        * Resource checksum: refers to a calculated values based on existing resources. For example, a deployed virtual machine may use a combination of hostname and network interface MAC address as inputs to generate the checksum.
+
+        Args:
+            human_readable: Boolean (default=False). If set to True, values like booleans and nulls will be converted to more appropriate english descriptive terms
+            current_resolved_spec: Optional dict that will replace the current resolved spec with an updated version on which calculations will be performed (replaces `self.current_resolved_spec`). This will be used to determine the drift from the last applied spec.
+            current_resource_checksum: An optional string with the SHA256 checksum of resources under management of this task
+            with_checksums: In the final result, include a summary of all checksums
+            include_applied_spec: In the final result, include a copy of the last applied spec.
+
+        Returns:
+            A dictionary with data representing the state. The following are examples:
+
+            Basic output:
+
+            ```json
+            {
+                "Label": "some-task-id",
+                "IsCreated": false,
+                "CreatedTimestamp": null,
+                "SpecDrifted": false,
+                "ResourceDrifted": null
+            }
+            ```
+
+            Extended, human readable data:
+
+            ```json
+            {
+                "Label": "some-task-id",
+                "IsCreated": "Yes",
+                "CreatedTimestamp": "1970-01-01 01:16:40",
+                "SpecDrifted": "No",
+                "ResourceDrifted": "No",
+                "AppliedSpecChecksum": "83b5...e2ac10",
+                "CurrentResolvedSpecChecksum": "83b5...e2ac10",
+                "AppliedResourcesChecksum": "9f86...00a08",
+                "CurrentResourceChecksum": "9f86...00a08"
+            }
+            ```
+        """
         data = dict()
         data['Label'] = self.report_label
         data['IsCreated'] = self.is_created

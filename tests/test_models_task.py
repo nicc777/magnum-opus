@@ -2700,7 +2700,10 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
             produce_column_header_horizontal_line(with_checksums=True, line_char='+'),
             ts.column_str(human_readable=True, current_resolved_spec={'field1': 'abc'}, with_checksums=True)
         )
+        print('JSON value of task_state_summary_as_dict: {}'.format(json.dumps(ts.to_dict(human_readable=True, current_resolved_spec={'field1': 'abc'}, with_checksums=True))))
+        print()
         print(report)
+        print()
         self.assertIsNotNone(report)
         self.assertIsInstance(report, str)
         self.assertTrue('\n' in report)
