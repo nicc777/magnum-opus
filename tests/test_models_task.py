@@ -2966,7 +2966,7 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
             human_readable=False,
             current_resolved_spec={'field1': 'abc'},
             with_checksums=True,
-            include_applied_spec=False,
+            include_applied_spec=True,
             current_resource_checksum=hashlib.sha256('check-2'.encode('utf-8')).hexdigest()
         )
         print('JSON value of task_state_summary_as_dict: {}'.format(json.dumps(task_state_summary_as_dict)))
@@ -3030,6 +3030,12 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
                 'canBeNone': True,
                 'mustBePresent': True,
                 'expectedValue': hashlib.sha256('check-2'.encode('utf-8')).hexdigest(),
+            },
+            'AppliedSpec': {
+                'type': dict,
+                'canBeNone': True,
+                'mustBePresent': True,
+                'expectedValue': {'field1': 'abc'},
             },
         }
         self._validate_task_state_summary_as_dict_against_dict_tests(task_state_summary_as_dict=task_state_summary_as_dict, dict_tests=dict_tests)
