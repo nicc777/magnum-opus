@@ -1526,7 +1526,7 @@ class TestClassHook(unittest.TestCase):    # pragma: no cover
                 key_value_store=KeyValueStore(),
                 task=t1,
                 task_id=t1.task_id,
-                logger=TestLogger()
+                logger=logger
             )
             expected_log_entry = '[LOG] INFO: Function "hook_function_test_1" called on hook_name "{}" for task "{}" during task_lifecycle_stage "{}"'.format(
                 hook.name,
@@ -2798,6 +2798,12 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
                 'mustBePresent': False,
                 'expectedValue': None,
             },
+            'AppliedSpec': {
+                'type': dict,
+                'canBeNone': True,
+                'mustBePresent': False,
+                'expectedValue': None,
+            },
         }
         self._validate_task_state_summary_as_dict_against_dict_tests(task_state_summary_as_dict=task_state_summary_as_dict, dict_tests=dict_tests)
 
@@ -2873,6 +2879,12 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
                 'mustBePresent': False,
                 'expectedValue': None,
             },
+            'AppliedSpec': {
+                'type': dict,
+                'canBeNone': True,
+                'mustBePresent': False,
+                'expectedValue': None,
+            },
         }
         self._validate_task_state_summary_as_dict_against_dict_tests(task_state_summary_as_dict=task_state_summary_as_dict, dict_tests=dict_tests)
 
@@ -2944,6 +2956,12 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
             },
             'CurrentResourceChecksum': {
                 'type': str,
+                'canBeNone': True,
+                'mustBePresent': False,
+                'expectedValue': None,
+            },
+            'AppliedSpec': {
+                'type': dict,
                 'canBeNone': True,
                 'mustBePresent': False,
                 'expectedValue': None,
@@ -3039,6 +3057,19 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
             },
         }
         self._validate_task_state_summary_as_dict_against_dict_tests(task_state_summary_as_dict=task_state_summary_as_dict, dict_tests=dict_tests)
+
+    def test_helper_method__cut_str_no_effect(self):
+        s = 'abcdef'
+        ts = TaskState()
+        result = ts._cut_str(input_str=s, max_len=10)
+        self.assertEqual(result, s)
+
+    def test_helper_method__cut_str_shorten_string(self):
+        s = 'abcdefabcdef'
+        e = 'abcdefabcd'
+        ts = TaskState()
+        result = ts._cut_str(input_str=s, max_len=10)
+        self.assertEqual(result, e)
 
 
 if __name__ == '__main__':
