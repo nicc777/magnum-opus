@@ -3071,6 +3071,88 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
         result = ts._cut_str(input_str=s, max_len=10)
         self.assertEqual(result, e)
 
+    def test_to_dict_basic_applied_with_no_diff_from_current_spec_and_diff_detected_resources_1(self):
+        ts = TaskState(
+            manifest_spec={'field1': 'abc'},
+            applied_spec={'field1': 'abc'},
+            resolved_spec={'field1': 'abc'},
+            manifest_metadata={},
+            report_label='TEST_LABEL',
+            created_timestamp=1710686853,
+            applied_resources_checksum=hashlib.sha256('check-1'.encode('utf-8')).hexdigest()
+        )
+        task_state_summary_as_dict = repr(ts)
+        print('JSON value of task_state_summary_as_dict: {}'.format(json.dumps(task_state_summary_as_dict)))
+        print()
+        print(str(ts))
+        print()
+        self.assertIsNotNone(task_state_summary_as_dict)
+        self.assertIsInstance(task_state_summary_as_dict, dict)
+
+        dict_tests = {
+            'Label': {
+                'type': str,
+                'canBeNone': False,
+                'mustBePresent': True,
+                'expectedValue': 'TEST_LABEL',
+            },
+            'IsCreated': {
+                'type': bool,
+                'canBeNone': False,
+                'mustBePresent': True,
+                'expectedValue': True,
+            },
+            'CreatedTimestamp': {
+                'type': int,
+                'canBeNone': True,
+                'mustBePresent': True,
+                'expectedValue': 1710686853,
+            },
+            'SpecDrifted': {
+                'type': bool,
+                'canBeNone': True,
+                'mustBePresent': True,
+                'expectedValue': False,
+            },
+            'ResourceDrifted': {
+                'type': bool,
+                'canBeNone': False,
+                'mustBePresent': True,
+                'expectedValue': True,
+            },
+            'AppliedSpecChecksum': {
+                'type': str,
+                'canBeNone': True,
+                'mustBePresent': True,
+                'expectedValue': '83b5b0e4aa22036e6e64cc4a38bf4226d5c5b295d948ff7babefc6949ce2ac10',
+            },
+            'CurrentResolvedSpecChecksum': {
+                'type': str,
+                'canBeNone': True,
+                'mustBePresent': True,
+                'expectedValue': '83b5b0e4aa22036e6e64cc4a38bf4226d5c5b295d948ff7babefc6949ce2ac10',
+            },
+            'AppliedResourcesChecksum': {
+                'type': str,
+                'canBeNone': True,
+                'mustBePresent': True,
+                'expectedValue': hashlib.sha256('check-1'.encode('utf-8')).hexdigest(),
+            },
+            'CurrentResourceChecksum': {
+                'type': str,
+                'canBeNone': True,
+                'mustBePresent': True,
+                'expectedValue': hashlib.sha256('check-2'.encode('utf-8')).hexdigest(),
+            },
+            'AppliedSpec': {
+                'type': dict,
+                'canBeNone': True,
+                'mustBePresent': True,
+                'expectedValue': {'field1': 'abc'},
+            },
+        }
+        self._validate_task_state_summary_as_dict_against_dict_tests(task_state_summary_as_dict=task_state_summary_as_dict, dict_tests=dict_tests)
+
 
 if __name__ == '__main__':
     unittest.main()
