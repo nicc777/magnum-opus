@@ -3071,7 +3071,7 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
         result = ts._cut_str(input_str=s, max_len=10)
         self.assertEqual(result, e)
 
-    def test_to_dict_basic_applied_with_no_diff_from_current_spec_and_diff_detected_resources_1(self):
+    def test_repr_1(self):
         ts = TaskState(
             manifest_spec={'field1': 'abc'},
             applied_spec={'field1': 'abc'},
