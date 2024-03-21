@@ -3081,13 +3081,14 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
             created_timestamp=1710686853,
             applied_resources_checksum=hashlib.sha256('check-1'.encode('utf-8')).hexdigest()
         )
-        task_state_summary_as_dict = repr(ts)
-        print('JSON value of task_state_summary_as_dict: {}'.format(json.dumps(task_state_summary_as_dict)))
+        task_state_summary_as_str = repr(ts)
+        print('JSON value of task_state_summary_as_dict: {}'.format(task_state_summary_as_str))
         print()
         print(str(ts))
         print()
-        self.assertIsNotNone(task_state_summary_as_dict)
-        self.assertIsInstance(task_state_summary_as_dict, dict)
+        self.assertIsNotNone(task_state_summary_as_str)
+        self.assertIsInstance(task_state_summary_as_str, str)
+        task_state_summary_as_dict = json.loads(task_state_summary_as_str)
 
         dict_tests = {
             'Label': {
@@ -3130,7 +3131,7 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
                 'type': str,
                 'canBeNone': True,
                 'mustBePresent': True,
-                'expectedValue': '83b5b0e4aa22036e6e64cc4a38bf4226d5c5b295d948ff7babefc6949ce2ac10',
+                'expectedValue': '6b1791a6b1ebdffc9f2de2e7578c56c5d96c0601a95f2de48844c6f2f342a8b6',
             },
             'AppliedResourcesChecksum': {
                 'type': str,

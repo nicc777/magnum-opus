@@ -2500,6 +2500,8 @@ class TaskProcessor:
         self.supported_commands = supported_commands
         self.process_task_functions = {'process_task': self.process_task}
         self.map_task_processing_function_name_to_commands = {'process_task': ['*',]}
+        self.spec = dict()
+        self.metadata = dict()
 
     def format_log_header(self, task: Task, command: str, context: str='default')->str:
         try:
@@ -2702,6 +2704,112 @@ class TaskProcessor:
             self.log(message='Appears task was already previously validated and/or executed', task=task, command=command, context=context, level='warning')
         return new_key_value_store
 
+    def task_state_drift_detection(
+        self,
+        task: Task,
+        final_spec: dict,
+        current_resources_checksum: str,
+        state_persistence: StatePersistence=StatePersistence()
+    )->dict:
+        """Updates the `Task` state based on the `TaskState` values.
+
+        The implementation of the `process_task()` method can use this method to determine the exact changes to apply,
+        if any.
+
+        Args:
+            task: A `Task` instance
+            final_spec: A dict with the final resolved spec (assuming all variables have been fully resolved)
+            resources_checksum: A str with the applied resources checksum. 
+            state_persistence: An instance of `StatePersistence` used to persist the data
+        
+        Returns:
+            A dict with the drift results, for example:
+
+            ```json
+            {
+                "Label": "...",
+                "IsCreated": true|false,
+                "CreatedTimestamp": 1234567890,
+                "SpecDrifted": true|false,
+                "ResourceDrifted": true|false,
+                "AppliedSpecChecksum": "...",
+                "CurrentResolvedSpecChecksum": "...",
+                "AppliedResourcesChecksum": "...",
+                "CurrentResourceChecksum": "...",
+                "AppliedSpec": {...}
+            }
+            ```
+        """
+        current_state = state_persistence.get_object_state(object_identifier=task.task_id)
+        task.task_state = TaskState(
+            manifest_spec=copy.deepcopy(task.spec),
+            applied_spec=copy.deepcopy(current_state['AppliedSpec']),
+            resolved_spec=copy.deepcopy(self.spec),
+            manifest_metadata=copy.deepcopy(task.metadata),
+            report_label=copy.deepcopy(task.task_id),
+            applied_resources_checksum=copy.deepcopy(current_state['AppliedResourcesChecksum'])
+        )
+        task_state_comparison_data = task.task_state.to_dict(
+            human_readable=False,
+            current_resolved_spec=copy.deepcopy(final_spec),
+            current_resource_checksum=copy.deepcopy(current_resources_checksum),
+            with_checksums=True, 
+            include_applied_spec=True
+        )
+        self.logger.info(
+            message='DRIFT DETECTION RESULTS for "{}": {}'.format(
+                task.task_id,
+                json.dumps(task_state_comparison_data)
+            )
+        )
+        return task_state_comparison_data
+
+    def update_task_state_persistence(
+        self,
+        task: Task,
+        final_spec: dict,
+        resources_checksum: str,
+        state_persistence: StatePersistence=StatePersistence()
+    ):
+        """Updates the `Task` state based on the `TaskState` values.
+
+        The implementation of the `process_task()` method can use this method to determine the exact changes to apply,
+        if any.
+
+        An example of the data that will be persisted in JSON format:
+
+        ```json
+        {
+            "IsCreated": true|false,
+            "CreatedTimestamp": 1234567890,
+            "AppliedSpecChecksum": "...",
+            "CurrentResolvedSpecChecksum": "...",
+            "AppliedResourcesChecksum": "...",
+            "CurrentResourceChecksum": "...",
+            "AppliedSpec": {...}
+        }
+        ```
+
+        Args:
+            task: A `Task` instance
+            final_spec: A dict with the final resolved spec (assuming all variables have been fully resolved)
+            resources_checksum: A str with the applied resources checksum. 
+            state_persistence: An instance of `StatePersistence` used to persist the data
+        """
+        task.task_state.applied_spec = copy.deepcopy(final_spec)
+        task.task_state.applied_resources_checksum = copy.deepcopy(resources_checksum)
+        task_data = task.task_state.to_dict(
+            human_readable=False,
+            current_resolved_spec=final_spec,
+            current_resource_checksum=resources_checksum,
+            with_checksums=True,
+            include_applied_spec=True
+        )
+        task_data.pop('Label')
+        task_data.pop('SpecDrifted')
+        task_data.pop('ResourceDrifted')
+        state_persistence.save_object_state(object_identifier=task.task_id, data=copy.deepcopy(task_data))
+
     def process_task(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore(), state_persistence: StatePersistence=StatePersistence())->KeyValueStore:
         """Processes a `Task` with the given processing context.
 
@@ -2711,6 +2819,13 @@ class TaskProcessor:
         During the processing of a `Task`, the implementation logic can also add (or even update and remove) values in
         the `KeyValueStore`. This allows other tasks to re-use data created by preceding tasks and is especially useful
         when used together with the feature of task dependencies.
+
+        The proposed workflow:
+
+        * Call `task_state_drift_detection()`
+        * Determine actions based on returned data (drift analysis)
+        * Implement actions based on command and context
+        * Call `update_task_state_persistence()` if any updates to the local spec and/or resources were done.
 
         Args:
             task: The `Task` to process
