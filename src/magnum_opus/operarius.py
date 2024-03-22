@@ -2470,9 +2470,21 @@ class TaskProcessor:
         kind: The kind. Any `Task` with the same kind (and matching version) may be processed with this task processor.
         versions: A list of supported versions that this task processor can process
         supported_commands: A list of supported commands that this task processor can process on matching tasks.
+        state_persistence: An instance of `StatePersistence` used to persist the data
+        process_task_functions: A dict that holds the function name  mapping to processing task types
+        map_task_processing_function_name_to_commands: A dict that holds the mapping of commands to processing task types
+        spec: A dict holding a copy of the current processed task spec.
+        metadata: A dict holding a copy of the current processed task metadata.
     """
 
-    def __init__(self, kind: str, kind_versions: list, supported_commands: list=['apply', 'get', 'delete', 'describe'], logger: LoggerWrapper=LoggerWrapper()):
+    def __init__(
+        self,
+        kind: str,
+        kind_versions: list,
+        supported_commands: list=['apply', 'get', 'delete', 'describe'],
+        logger: LoggerWrapper=LoggerWrapper(),
+        state_persistence: StatePersistence=StatePersistence()
+    ):
         """Initializes the `TaskProcessor`. Task processors are generally not receiving parameters when initialized, and
         therefore the client implementation of this base class must use sensible default values.
 
@@ -2490,18 +2502,28 @@ class TaskProcessor:
 
         Args:
             kind: The kind. Any `Task` with the same kind (and matching version) may be processed with this task processor.
-            versions: A list of supported versions that this task processor can process
+            kind_versions: A list of supported versions that this task processor can process
             supported_commands: A list of supported commands that this task processor can process on matching tasks.
             logger: An implementation of the `LoggerWrapper` class
+            state_persistence: An instance of `StatePersistence` used to persist the data
         """
         self.logger = logger
         self.kind = kind
         self.versions = kind_versions
         self.supported_commands = supported_commands
-        self.process_task_functions = {'process_task': self.process_task}
-        self.map_task_processing_function_name_to_commands = {'process_task': ['*',]}
+        self.process_task_functions = {
+            'process_task_default': self.process_task,
+            'process_task_create': self.process_task_create,
+            'process_task_destroy': self.process_task_destroy,
+            'process_task_describe': self.process_task_describe,
+            'process_task_update': self.process_task_update,
+            'process_task_rollback': self.process_task_rollback,
+            'process_task_detect_drift': self.process_task_detect_drift,
+        }
+        self.map_task_processing_function_name_to_commands = {'process_task_default': ['*',]}
         self.spec = dict()
         self.metadata = dict()
+        self.state_persistence = state_persistence
 
     def format_log_header(self, task: Task, command: str, context: str='default')->str:
         try:
@@ -2574,7 +2596,7 @@ class TaskProcessor:
         call_process_task_if_check_pass: bool=False,
         state_persistence: StatePersistence=StatePersistence(),
         hooks: Hooks=Hooks(),
-        default_task_processing_function_name: str='process_task'
+        default_task_processing_function_name: str='process_task_default'
     )->KeyValueStore:
         """Checks if the task can be processed and then proceeds with the processing.
 
@@ -2708,8 +2730,7 @@ class TaskProcessor:
         self,
         task: Task,
         final_spec: dict,
-        current_resources_checksum: str,
-        state_persistence: StatePersistence=StatePersistence()
+        current_resources_checksum: str
     )->dict:
         """Updates the `Task` state based on the `TaskState` values.
 
@@ -2720,7 +2741,6 @@ class TaskProcessor:
             task: A `Task` instance
             final_spec: A dict with the final resolved spec (assuming all variables have been fully resolved)
             resources_checksum: A str with the applied resources checksum. 
-            state_persistence: An instance of `StatePersistence` used to persist the data
         
         Returns:
             A dict with the drift results, for example:
@@ -2740,7 +2760,7 @@ class TaskProcessor:
             }
             ```
         """
-        current_state = state_persistence.get_object_state(object_identifier=task.task_id)
+        current_state = self.state_persistence.get_object_state(object_identifier=task.task_id)
         task.task_state = TaskState(
             manifest_spec=copy.deepcopy(task.spec),
             applied_spec=copy.deepcopy(current_state['AppliedSpec']),
@@ -2768,8 +2788,7 @@ class TaskProcessor:
         self,
         task: Task,
         final_spec: dict,
-        resources_checksum: str,
-        state_persistence: StatePersistence=StatePersistence()
+        resources_checksum: str
     ):
         """Updates the `Task` state based on the `TaskState` values.
 
@@ -2793,8 +2812,7 @@ class TaskProcessor:
         Args:
             task: A `Task` instance
             final_spec: A dict with the final resolved spec (assuming all variables have been fully resolved)
-            resources_checksum: A str with the applied resources checksum. 
-            state_persistence: An instance of `StatePersistence` used to persist the data
+            resources_checksum: A str with the applied resources checksum.
         """
         task.task_state.applied_spec = copy.deepcopy(final_spec)
         task.task_state.applied_resources_checksum = copy.deepcopy(resources_checksum)
@@ -2808,7 +2826,7 @@ class TaskProcessor:
         task_data.pop('Label')
         task_data.pop('SpecDrifted')
         task_data.pop('ResourceDrifted')
-        state_persistence.save_object_state(object_identifier=task.task_id, data=copy.deepcopy(task_data))
+        self.state_persistence.save_object_state(object_identifier=task.task_id, data=copy.deepcopy(task_data))
 
     def process_task(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore(), state_persistence: StatePersistence=StatePersistence())->KeyValueStore:
         """Processes a `Task` with the given processing context.
@@ -2827,19 +2845,105 @@ class TaskProcessor:
         * Implement actions based on command and context
         * Call `update_task_state_persistence()` if any updates to the local spec and/or resources were done.
 
+        The `process_task` method is a default or catch all method. More specialized methods for tasks are also provided
+        but will not be mapped as the commands and other customizations are left to the client. The other methods
+        include:
+
+        * `process_task_create()`
+        * `process_task_destroy()`
+        * `process_task_describe()`
+        * `process_task_update()`
+        * `process_task_rollback()`
+        * `process_task_detect_drift()`
+
+        The client can override the default processing function mapping by using the `register_process_task_functions()`
+        method.
+
+        Without any client modification, all commands are mapped to the default function `process_task()`.
+
         Args:
             task: The `Task` to process
             command: The command to be applied in the processing context
             context: A string containing the processing context
-            key_value_store: An instance of the `KeyValueStore`. If none is supplied, a new instance will be created.
-            state_persistence: An implementation of `StatePersistence` that the task processor can use to retrieve previous copies of the `Task` manifest in order to determine the actions to be performed.
-
+            key_value_store: An instance of the `KeyValueStore`. If none is supplied, a new instance will be created
 
         Returns:
             An updated `KeyValueStore`.
 
         Raises:
             Exception: As determined by the processing logic.
+        """
+        raise Exception('Not implemented')  # pragma: no cover
+    
+    def process_task_create(
+        self,
+        task: Task,
+        command: str,
+        context: str='default',
+        key_value_store: KeyValueStore=KeyValueStore()
+    )->KeyValueStore:
+        """
+            See `process_task()` method
+        """
+        raise Exception('Not implemented')  # pragma: no cover
+    
+    def process_task_destroy(
+        self,
+        task: Task,
+        command: str,
+        context: str='default',
+        key_value_store: KeyValueStore=KeyValueStore()
+    )->KeyValueStore:
+        """
+            See `process_task()` method
+        """
+        raise Exception('Not implemented')  # pragma: no cover
+    
+    def process_task_describe(
+        self,
+        task: Task,
+        command: str,
+        context: str='default',
+        key_value_store: KeyValueStore=KeyValueStore()
+    )->KeyValueStore:
+        """
+            See `process_task()` method
+        """
+        raise Exception('Not implemented')  # pragma: no cover
+    
+    def process_task_update(
+        self,
+        task: Task,
+        command: str,
+        context: str='default',
+        key_value_store: KeyValueStore=KeyValueStore()
+    )->KeyValueStore:
+        """
+            See `process_task()` method
+        """
+        raise Exception('Not implemented')  # pragma: no cover
+    
+    def process_task_rollback(
+        self,
+        task: Task,
+        command: str,
+        context: str='default',
+        key_value_store: KeyValueStore=KeyValueStore()
+    )->KeyValueStore:
+        """
+            See `process_task()` method
+        """
+        raise Exception('Not implemented')  # pragma: no cover
+    
+    def process_task_detect_drift(
+        self,
+        task: Task,
+        command: str,
+        context: str='default',
+        key_value_store: KeyValueStore=KeyValueStore()
+    )->KeyValueStore:
+        """
+            See `process_task()` method
         """
         raise Exception('Not implemented')  # pragma: no cover
 
