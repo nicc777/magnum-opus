@@ -2695,8 +2695,7 @@ class TaskProcessor:
                                 task=task,
                                 command=command,
                                 context=context,
-                                key_value_store=copy.deepcopy(new_key_value_store),
-                                state_persistence=state_persistence
+                                key_value_store=copy.deepcopy(new_key_value_store)
                             )
                             
                         except:
@@ -2704,8 +2703,7 @@ class TaskProcessor:
                                 task=task,
                                 command=command,
                                 context=context,
-                                key_value_store=copy.deepcopy(new_key_value_store),
-                                state_persistence=state_persistence
+                                key_value_store=copy.deepcopy(new_key_value_store)
                             )
                         new_key_value_store.store[task_run_id] = 2
                         new_key_value_store =  hooks.process_hook(
@@ -2837,7 +2835,13 @@ class TaskProcessor:
         task_data.pop('ResourceDrifted')
         self.state_persistence.save_object_state(object_identifier=task.task_id, data=copy.deepcopy(task_data))
 
-    def process_task(self, task: Task, command: str, context: str='default', key_value_store: KeyValueStore=KeyValueStore(), state_persistence: StatePersistence=StatePersistence())->KeyValueStore:
+    def process_task(
+        self,
+        task: Task,
+        command: str,
+        context: str='default',
+        key_value_store: KeyValueStore=KeyValueStore()
+    )->KeyValueStore:
         """Processes a `Task` with the given processing context.
 
         The client must implement the logic and will primarily work of the `Task` "spec" values which serves as
