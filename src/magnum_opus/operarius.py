@@ -2112,6 +2112,7 @@ class Task:
         task_as_dict: Represents the entire `Task` definition as a dict
         task_checksum: A calculated value based mainly on the SHA256 value of the `task_as_dict`
         task_id: If the task name was defined in the metadata, the task_id will be the name, else it will be the value of `task_checksum`
+        task_state: An instance of `TaskState`
     """
 
     def __init__(self, kind: str, version: str, spec: dict, metadata: dict=dict(), logger: LoggerWrapper=LoggerWrapper()):
