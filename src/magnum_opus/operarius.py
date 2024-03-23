@@ -2597,7 +2597,7 @@ class TaskProcessor:
         call_process_task_if_check_pass: bool=False,
         state_persistence: StatePersistence=StatePersistence(),
         hooks: Hooks=Hooks(),
-        default_task_processing_function_name: str='process_task_default'
+        default_task_processing_function_name: str='process_task'
     )->KeyValueStore:
         """Checks if the task can be processed and then proceeds with the processing.
 
@@ -2630,6 +2630,12 @@ class TaskProcessor:
         if task_run_id not in key_value_store.store:
             new_key_value_store.save(key=task_run_id, value=1)
             new_key_value_store.save(key='{}:TASK_PROCESSING_FUNCTION_NAME'.format(task_run_id), value=default_task_processing_function_name)
+
+            for process_function_name, function_linked_commands in self.map_task_processing_function_name_to_commands.items():
+                if command in function_linked_commands:
+                    new_key_value_store.save(key='{}:TASK_PROCESSING_FUNCTION_NAME'.format(task_run_id), value=process_function_name)
+                    self.logger.info('Command "{}" was linked to function named "{}" in this TaskProcessor "{}"'.format(command, process_function_name, self.__class__.__name__))
+
             new_key_value_store = hooks.process_hook(
                 command=command,
                 context=context,
@@ -2665,52 +2671,54 @@ class TaskProcessor:
                         difference between creating a new stack, or just creating a change set for an existing stack.
                     """
                     if new_key_value_store.store[task_run_id] == 1:
+
                         final_task_processing_function_name = new_key_value_store.store.pop('{}:TASK_PROCESSING_FUNCTION_NAME'.format(task_run_id))
+                        self.logger.info('Final selected task processing function name: {}'.format(final_task_processing_function_name))
 
-                        function_supported_commands = list()
-                        final_function_call_check_pass = False
-                        if final_task_processing_function_name in self.map_task_processing_function_name_to_commands:
-                            function_supported_commands = self.map_task_processing_function_name_to_commands[final_task_processing_function_name]
-                            if len(function_supported_commands) == 1 and function_supported_commands[0] == '*':
-                                final_function_call_check_pass = True
-                                self.log(message='final_function_call_check_pass marked as True: : Command matches wildcard (all commands)', task=task, command=command, context=context, level='info')
-                            elif command in function_supported_commands:
-                                final_function_call_check_pass = True
-                                self.log(message='final_function_call_check_pass marked as True: : Command found in supported commands list', task=task, command=command, context=context, level='info')
+                        # function_supported_commands = list()
+                        # final_function_call_check_pass = False
+                        # if final_task_processing_function_name in self.map_task_processing_function_name_to_commands:
+                        #     function_supported_commands = self.map_task_processing_function_name_to_commands[final_task_processing_function_name]
+                        #     if len(function_supported_commands) == 1 and function_supported_commands[0] == '*':
+                        #         final_function_call_check_pass = True
+                        #         self.log(message='final_function_call_check_pass marked as True: : Command matches wildcard (all commands)', task=task, command=command, context=context, level='info')
+                        #     elif command in function_supported_commands:
+                        #         final_function_call_check_pass = True
+                        #         self.log(message='final_function_call_check_pass marked as True: : Command found in supported commands list', task=task, command=command, context=context, level='info')
 
-                        if final_function_call_check_pass is True:
-                            self.log(message='Final task processing function name: {}'.format(final_task_processing_function_name), task=task, command=command, context=context, level='info')
-                            try:
-                                # FIXME Sometimes I need to add "self" and sometimes not. The requirements is erratic, so for now I just handle the logic through exception...
-                                new_key_value_store = self.process_task_functions[final_task_processing_function_name](
-                                    self,
-                                    task=task,
-                                    command=command,
-                                    context=context,
-                                    key_value_store=copy.deepcopy(new_key_value_store),
-                                    state_persistence=state_persistence
-                                )
-                                
-                            except:
-                                new_key_value_store = self.process_task_functions[final_task_processing_function_name](
-                                    task=task,
-                                    command=command,
-                                    context=context,
-                                    key_value_store=copy.deepcopy(new_key_value_store),
-                                    state_persistence=state_persistence
-                                )
-                            new_key_value_store.store[task_run_id] = 2
-                            new_key_value_store =  hooks.process_hook(
+                        # if final_function_call_check_pass is True:
+                        self.log(message='Final task processing function name: {}'.format(final_task_processing_function_name), task=task, command=command, context=context, level='info')
+                        try:
+                            # FIXME Sometimes I need to add "self" and sometimes not. The requirements is erratic, so for now I just handle the logic through exception...
+                            new_key_value_store = self.process_task_functions[final_task_processing_function_name](
+                                self,
+                                task=task,
                                 command=command,
                                 context=context,
-                                task_life_cycle_stage=TaskLifecycleStage.TASK_PRE_PROCESSING_COMPLETED,
                                 key_value_store=copy.deepcopy(new_key_value_store),
-                                task=task,
-                                task_id=task.task_id,
-                                logger=self.logger
+                                state_persistence=state_persistence
                             )
-                        else:
-                            self.log(message='Task processing skipped as selected processing function "{}" was not linked to the supplied command "{}".'.format(final_task_processing_function_name, command), task=task, command=command, context=context, level='info')
+                            
+                        except:
+                            new_key_value_store = self.process_task_functions[final_task_processing_function_name](
+                                task=task,
+                                command=command,
+                                context=context,
+                                key_value_store=copy.deepcopy(new_key_value_store),
+                                state_persistence=state_persistence
+                            )
+                        new_key_value_store.store[task_run_id] = 2
+                        new_key_value_store =  hooks.process_hook(
+                            command=command,
+                            context=context,
+                            task_life_cycle_stage=TaskLifecycleStage.TASK_PRE_PROCESSING_COMPLETED,
+                            key_value_store=copy.deepcopy(new_key_value_store),
+                            task=task,
+                            task_id=task.task_id,
+                            logger=self.logger
+                        )
+                        # else:
+                        #     self.log(message='Task processing skipped as selected processing function "{}" was not linked to the supplied command "{}".'.format(final_task_processing_function_name, command), task=task, command=command, context=context, level='info')
             except: # pragma: no cover
                 traceback.print_exc()
                 new_key_value_store.store[task_run_id] = -1
@@ -3335,8 +3343,23 @@ class Tasks:
                     target_task_processor_executor_id = self.task_processor_register[target_task_processor_id]
                     if target_task_processor_executor_id in self.task_processors_executors:
                         target_task_processor_executor = self.task_processors_executors[target_task_processor_executor_id]
-                        if isinstance(target_task_processor_executor, TaskProcessor):                            
-                            self.key_value_store = target_task_processor_executor.task_pre_processing_check(task=copy.deepcopy(task), command=command, context=context, key_value_store=copy.deepcopy(self.key_value_store), call_process_task_if_check_pass=True, state_persistence=self.state_persistence, hooks=self.hooks)
+                        if isinstance(target_task_processor_executor, TaskProcessor):    
+
+                            default_task_processing_function_name = 'process_task'
+                            for function_name, commands in target_task_processor_executor.map_task_processing_function_name_to_commands.items():
+                                if '*' in commands:
+                                    default_task_processing_function_name = function_name
+                            self.logger.debug('    Default task processor function name: {}'.format(default_task_processing_function_name))
+                            self.key_value_store = target_task_processor_executor.task_pre_processing_check(
+                                task=copy.deepcopy(task),
+                                command=command,
+                                context=context,
+                                key_value_store=copy.deepcopy(self.key_value_store),
+                                call_process_task_if_check_pass=True,
+                                state_persistence=self.state_persistence,
+                                hooks=self.hooks,
+                                default_task_processing_function_name=default_task_processing_function_name
+                            )
                             
                             self.state_persistence.persist_all_state()
 
