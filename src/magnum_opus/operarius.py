@@ -1353,8 +1353,6 @@ class StatePersistence:
         The default action should the client not override this method is to loop through all items in the local cache
         and call `save_object_state()` on each one individually.
         """
-        for key, data in self.state_cache.items():
-            self.save_object_state(object_identifier=key, data=data)
         self.logger.warning(message='StatePersistence.persist_all_state() NOT IMPLEMENTED. Override this function in your own class for long term state storage.')
 
 
