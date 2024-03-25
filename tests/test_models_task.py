@@ -450,22 +450,27 @@ class Processor1(TaskProcessor):
         self.logger.info('[Processor1]: Processing Method  : "process_task()"')
         new_key_value_store = KeyValueStore()
         new_key_value_store.store = copy.deepcopy(key_value_store.store)
-        current_state = state_persistence.get_object_state(object_identifier=task.task_id)
+        current_state = self.state_persistence.get_object_state(object_identifier=task.task_id)
         can_process = True
         if task.kind != 'Processor1':
             self.logger.error('[Processor1]: Task kind "{}" mismatched and the task will NOT be processed'.format(task.kind))
             can_process = False
+            current_state = {'ResourcesCreated': False}
         if task.version not in self.versions:
             self.logger.error('[Processor1]: Task version "{}" is not supported and the task will NOT be processed'.format(task.version))
             can_process = False
+            current_state = {'ResourcesCreated': False}
         if len(current_state) > 0:
             self.logger.error('[Processor1]: Task version "{}" is already in the correct state'.format(task.version))
             can_process = False
+        else:
+            current_state = {'ResourcesCreated': False}
         self.logger.info('[Processor1]: can_process={}'.format(can_process))
         if can_process is True:
             # Emulate processing....
-            state_persistence.save_object_state(object_identifier=task.task_id, data={'ResourcesCreated': True})
-        new_key_value_store.save(key='Processor1:Processed:{}:Success'.format(task.task_id), value=can_process)
+            current_state = {'ResourcesCreated': True}
+            self.state_persistence.save_object_state(object_identifier=task.task_id, data={'ResourcesCreated': True})
+        new_key_value_store.save(key='Processor1:Processed:{}:Success'.format(task.task_id), value=current_state['ResourcesCreated'])
         self.logger.info('[Processor1]: {}'.format('='*80))
         return new_key_value_store
     
@@ -477,22 +482,27 @@ class Processor1(TaskProcessor):
         self.logger.info('[Processor1]: Processing Method  : "process_task_alternate_method()"')
         new_key_value_store = KeyValueStore()
         new_key_value_store.store = copy.deepcopy(key_value_store.store)
-        current_state = state_persistence.get_object_state(object_identifier=task.task_id)
+        current_state = self.state_persistence.get_object_state(object_identifier=task.task_id)
         can_process = True
         if task.kind != 'Processor1':
             self.logger.error('[Processor1]: Task kind "{}" mismatched and the task will NOT be processed'.format(task.kind))
             can_process = False
+            current_state = {'ResourcesCreated': False}
         if task.version not in self.versions:
             self.logger.error('[Processor1]: Task version "{}" is not supported and the task will NOT be processed'.format(task.version))
             can_process = False
+            current_state = {'ResourcesCreated': False}
         if len(current_state) > 0:
             self.logger.error('[Processor1]: Task version "{}" is already in the correct state'.format(task.version))
             can_process = False
+        else:
+            current_state = {'ResourcesCreated': False}
         self.logger.info('[Processor1]: can_process={}'.format(can_process))
         if can_process is True:
             # Emulate processing....
-            state_persistence.save_object_state(object_identifier=task.task_id, data={'ResourcesCreated': True})
-        new_key_value_store.save(key='Processor1:Processed:{}:Success'.format(task.task_id), value=can_process)
+            current_state = {'ResourcesCreated': True}
+            self.state_persistence.save_object_state(object_identifier=task.task_id, data={'ResourcesCreated': True})
+        new_key_value_store.save(key='Processor1:Processed:{}:Success'.format(task.task_id), value=current_state['ResourcesCreated'])
         self.logger.info('[Processor1]: {}'.format('='*80))
         return new_key_value_store
 
@@ -509,22 +519,27 @@ class Processor2(TaskProcessor):
         self.logger.info('[Processor2]: context="{}"'.format(context))
         new_key_value_store = KeyValueStore()
         new_key_value_store.store = copy.deepcopy(key_value_store.store)
-        current_state = state_persistence.get_object_state(object_identifier=task.task_id)
+        current_state = self.state_persistence.get_object_state(object_identifier=task.task_id)
         can_process = True
         if task.kind != 'Processor2':
             self.logger.error('[Processor2]: Task kind "{}" mismatched and the task will NOT be processed'.format(task.kind))
             can_process = False
+            current_state = {'ResourcesCreated': False}
         if task.version not in self.versions:
             self.logger.error('[Processor2]: Task version "{}" is not supported and the task will NOT be processed'.format(task.version))
             can_process = False
+            current_state = {'ResourcesCreated': False}
         if len(current_state) > 0:
             self.logger.error('[Processor2]: Task version "{}" is already in the correct state'.format(task.version))
             can_process = False
+        else:
+            current_state = {'ResourcesCreated': False}
         self.logger.info('[Processor2]: can_process={}'.format(can_process))
         if can_process is True:
             # Emulate processing....
-            state_persistence.save_object_state(object_identifier=task.task_id, data={'ResourcesCreated': True})
-        new_key_value_store.save(key='Processor2:Processed:{}:Success'.format(task.task_id), value=can_process)
+            current_state = {'ResourcesCreated': True}
+            self.state_persistence.save_object_state(object_identifier=task.task_id, data={'ResourcesCreated': True})
+        new_key_value_store.save(key='Processor2:Processed:{}:Success'.format(task.task_id), value=current_state['ResourcesCreated'])
         self.logger.info('[Processor2]: {}'.format('='*80))
         return new_key_value_store
     
@@ -536,22 +551,27 @@ class Processor2(TaskProcessor):
         self.logger.info('[Processor1]: Processing Method  : "process_task_alternate_method()"')
         new_key_value_store = KeyValueStore()
         new_key_value_store.store = copy.deepcopy(key_value_store.store)
-        current_state = state_persistence.get_object_state(object_identifier=task.task_id)
+        current_state = self.state_persistence.get_object_state(object_identifier=task.task_id)
         can_process = True
         if task.kind != 'Processor2':
             self.logger.error('[Processor2]: Task kind "{}" mismatched and the task will NOT be processed'.format(task.kind))
             can_process = False
+            current_state = {'ResourcesCreated': False}
         if task.version not in self.versions:
             self.logger.error('[Processor2]: Task version "{}" is not supported and the task will NOT be processed'.format(task.version))
             can_process = False
+            current_state = {'ResourcesCreated': False}
         if len(current_state) > 0:
             self.logger.error('[Processor2]: Task version "{}" is already in the correct state'.format(task.version))
             can_process = False
+        else:
+            current_state = {'ResourcesCreated': False}
         self.logger.info('[Processor2]: can_process={}'.format(can_process))
         if can_process is True:
             # Emulate processing....
-            state_persistence.save_object_state(object_identifier=task.task_id, data={'ResourcesCreated': True})
-        new_key_value_store.save(key='Processor2:Processed:{}:Success'.format(task.task_id), value=can_process)
+            current_state = {'ResourcesCreated': True} 
+            self.state_persistence.save_object_state(object_identifier=task.task_id, data={'ResourcesCreated': True})
+        new_key_value_store.save(key='Processor2:Processed:{}:Success'.format(task.task_id), value=current_state['ResourcesCreated'])
         self.logger.info('[Processor2]: {}'.format('='*80))
         return new_key_value_store
 
@@ -637,7 +657,7 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
             },
             logger=TestLogger()
         )
-        key_value_store = p1.process_task(task=t1, command='command1', context='c1', key_value_store=KeyValueStore(), state_persistence=StatePersistence())
+        key_value_store = p1.process_task(task=t1, command='command1', context='c1', key_value_store=KeyValueStore())
         self.assertIsNotNone(key_value_store)
         self.assertIsInstance(key_value_store, KeyValueStore)
         self.assertIsNotNone(key_value_store.store)
@@ -771,7 +791,7 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
         )
         key_value_store = KeyValueStore()
         expected_key = 'PROCESSING_TASK:{}:command1:c1'.format(t1.task_id)
-        key_value_store = p1.task_pre_processing_check(task=t1, command='command1', context='c1', key_value_store=key_value_store, call_process_task_if_check_pass=True, state_persistence=StatePersistence())
+        key_value_store = p1.task_pre_processing_check(task=t1, command='command1', context='c1', key_value_store=key_value_store, call_process_task_if_check_pass=True)
         self.assertIsNotNone(key_value_store)
         self.assertIsInstance(key_value_store, KeyValueStore)
         self.assertIsNotNone(key_value_store.store)
@@ -782,7 +802,7 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
         self.assertTrue('Processor1:Processed:{}:Success'.format(t1.task_id) in key_value_store.store)
         self.assertTrue(key_value_store.store['Processor1:Processed:{}:Success'.format(t1.task_id)], 'key_value_store={}'.format(key_value_store.store))
 
-        key_value_store = p1.process_task(task=t1, command='command1', context='c1', key_value_store=key_value_store, state_persistence=StatePersistence())
+        key_value_store = p1.process_task(task=t1, command='command1', context='c1', key_value_store=key_value_store)
         self.assertIsNotNone(key_value_store)
         self.assertIsInstance(key_value_store, KeyValueStore)
         self.assertIsNotNone(key_value_store.store)

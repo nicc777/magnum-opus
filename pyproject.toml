@@ -4,9 +4,9 @@ build-backend = "hatchling.build"
 
 [project]
 name = "magnum-opus"
-version = "2"
+version = "2.1"
 dependencies = []
-requires-python = ">= 3.8"
+requires-python = ">= 3.10"
 authors = [
   {name = "Nico Coetzee", email = "nicc777@gmail.com"}
 ]
@@ -31,11 +31,10 @@ classifiers = [
 
   # Specify the Python versions you support here.
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
 ]
 
 [project.urls]
@@ -45,10 +44,8 @@ Repository = "https://github.com/nicc777/magnum-opus"
 Issues = "https://github.com/nicc777/magnum-opus/issues"
 Changelog = "https://raw.githubusercontent.com/nicc777/magnum-opus/main/CHANGELOG.md"
 
-
-
-[project.scripts]
-spam-cli = "taskflow:app"
+# [project.scripts]
+# spam-cli = "taskflow:app"
 
 [tool.setuptools.dynamic]
 version = {attr = "package.__version__"}
