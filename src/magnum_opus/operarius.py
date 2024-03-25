@@ -2512,6 +2512,7 @@ class TaskProcessor:
         self.supported_commands = supported_commands
         self.process_task_functions = {
             'process_task_default': self.process_task,
+            'process_task': self.process_task,
             'process_task_create': self.process_task_create,
             'process_task_destroy': self.process_task_destroy,
             'process_task_describe': self.process_task_describe,
@@ -2630,9 +2631,10 @@ class TaskProcessor:
             new_key_value_store.save(key='{}:TASK_PROCESSING_FUNCTION_NAME'.format(task_run_id), value=default_task_processing_function_name)
 
             for process_function_name, function_linked_commands in self.map_task_processing_function_name_to_commands.items():
-                if command in function_linked_commands:
+                if command in function_linked_commands or '*' in function_linked_commands is True:
                     new_key_value_store.save(key='{}:TASK_PROCESSING_FUNCTION_NAME'.format(task_run_id), value=process_function_name)
                     self.logger.info('Command "{}" was linked to function named "{}" in this TaskProcessor "{}"'.format(command, process_function_name, self.__class__.__name__))
+                    break
 
             new_key_value_store = hooks.process_hook(
                 command=command,
