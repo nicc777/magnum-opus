@@ -198,6 +198,15 @@ class TaskState:
         self.applied_resources_checksum = applied_resources_checksum
         self.current_resource_checksum = current_resource_checksum
 
+    def update_applied_spec(self, new_applied_spec: dict, new_applied_resource_checksum: str, updated_timestamp: int):
+        self.applied_spec = copy.deepcopy(new_applied_spec)
+        self.applied_resources_checksum = copy.deepcopy(new_applied_resource_checksum)
+        self.created_timestamp = updated_timestamp
+        self.is_created = False
+        if new_applied_spec is not None:
+            if len(new_applied_spec) > 0 or updated_timestamp > 0:
+                self.is_created = True
+
     def calculate_manifest_state_checksum(self, spec: dict=dict(), metadata: dict=dict())->str:
         """Helper class to calculate the SHA256 checksum of the provided
         dictionaries
@@ -298,24 +307,36 @@ class TaskState:
         data['SpecDrifted'] = False
         if human_readable is True:
             data['SpecDrifted'] = 'No'
-        if self.current_resolved_spec is not None and self.applied_spec is not None:
-            if self.calculate_manifest_state_checksum(spec=self.applied_spec) != self.calculate_manifest_state_checksum(spec=self.current_resolved_spec):
-                data['SpecDrifted'] = True
-                if human_readable is True:
-                    data['SpecDrifted'] = 'Yes'
+        if self.is_created is True:
+            if self.current_resolved_spec is not None and self.applied_spec is not None:
+                if self.calculate_manifest_state_checksum(spec=self.applied_spec) != self.calculate_manifest_state_checksum(spec=self.current_resolved_spec):
+                    data['SpecDrifted'] = True
+                    if human_readable is True:
+                        data['SpecDrifted'] = 'Yes'
+        else:
+            if human_readable is True:
+                data['SpecDrifted'] = 'N/A'
+            else:
+                data['SpecDrifted'] = None
 
-        data['ResourceDrifted'] = None
+        data['ResourceDrifted'] = False
         if human_readable is True:
             data['ResourceDrifted'] = 'Unknown'
-        if self.applied_resources_checksum is not None:
-            data['ResourceDrifted'] = True
+        if self.is_created is True:
+            if self.applied_resources_checksum is not None:
+                data['ResourceDrifted'] = True
+                if human_readable is True:
+                    data['ResourceDrifted'] = 'Yes'
+                if self.current_resource_checksum is not None:
+                    if self.current_resource_checksum == self.applied_resources_checksum:
+                        data['ResourceDrifted'] = False
+                        if human_readable is True:
+                            data['ResourceDrifted'] = 'No'
+        else:
             if human_readable is True:
-                data['ResourceDrifted'] = 'Yes'
-            if self.current_resource_checksum is not None:
-                if self.current_resource_checksum == self.applied_resources_checksum:
-                    data['ResourceDrifted'] = False
-                    if human_readable is True:
-                        data['ResourceDrifted'] = 'No'
+                data['ResourceDrifted'] = 'N/A'
+            else:
+                data['ResourceDrifted'] = None
 
         if with_checksums is True:
             data['AppliedSpecChecksum'] = None
@@ -329,19 +350,19 @@ class TaskState:
                 data['CurrentResourceChecksum'] = 'unavailable'
 
             if self.applied_spec is not None:
-                if isinstance(self.applied_spec, dict) is True:
-                    data['AppliedSpecChecksum'] = self.calculate_manifest_state_checksum(spec=self.applied_spec)    
+                if isinstance(self.applied_spec, dict) is True and self.is_created is True:
+                    data['AppliedSpecChecksum'] = self.calculate_manifest_state_checksum(spec=self.applied_spec)
 
             if self.current_resolved_spec is not None:
                 if isinstance(self.current_resolved_spec, dict) is True:
                     data['CurrentResolvedSpecChecksum'] = self.calculate_manifest_state_checksum(spec=current_resolved_spec)
             
             if self.applied_resources_checksum is not None:
-                if isinstance(self.applied_resources_checksum, str) is True:
+                if isinstance(self.applied_resources_checksum, str) is True and self.is_created is True:
                     data['AppliedResourcesChecksum'] = self.applied_resources_checksum
 
             if self.current_resource_checksum is not None:
-                if isinstance(self.current_resource_checksum, str) is True:
+                if isinstance(self.current_resource_checksum, str) is True and self.is_created is True:
                     data['CurrentResourceChecksum'] = self.current_resource_checksum
             
         if include_applied_spec:
