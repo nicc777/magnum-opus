@@ -304,7 +304,6 @@ class TaskState:
             if isinstance(current_resource_checksum, str):
                 self.current_resource_checksum = current_resource_checksum
 
-        data['SpecDrifted'] = False
         if human_readable is True:
             data['SpecDrifted'] = 'No'
         if self.is_created is True:
@@ -319,7 +318,7 @@ class TaskState:
             else:
                 data['SpecDrifted'] = None
 
-        data['ResourceDrifted'] = False
+        data['ResourceDrifted'] = None
         if human_readable is True:
             data['ResourceDrifted'] = 'Unknown'
         if self.is_created is True:
