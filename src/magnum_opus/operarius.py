@@ -2614,7 +2614,6 @@ class TaskProcessor:
         context: str='default',
         key_value_store: KeyValueStore=KeyValueStore(),
         call_process_task_if_check_pass: bool=False,
-        state_persistence: StatePersistence=StatePersistence(),
         hooks: Hooks=Hooks(),
         default_task_processing_function_name: str='process_task'
     )->KeyValueStore:
@@ -3380,7 +3379,6 @@ class Tasks:
                                 context=context,
                                 key_value_store=copy.deepcopy(self.key_value_store),
                                 call_process_task_if_check_pass=True,
-                                state_persistence=self.state_persistence,
                                 hooks=self.hooks,
                                 default_task_processing_function_name=default_task_processing_function_name
                             )

@@ -702,7 +702,7 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
             logger=TestLogger()
         )
         expected_key = 'PROCESSING_TASK:{}:command1:c1'.format(t1.task_id)
-        key_value_store = p1.task_pre_processing_check(task=t1, command='command1', context='c1', key_value_store=KeyValueStore(), state_persistence=StatePersistence())
+        key_value_store = p1.task_pre_processing_check(task=t1, command='command1', context='c1', key_value_store=KeyValueStore())
         self.assertIsNotNone(key_value_store)
         self.assertIsInstance(key_value_store, KeyValueStore)
         self.assertIsNotNone(key_value_store.store)
@@ -748,7 +748,7 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
             logger=logger
         )
         expected_key = 'PROCESSING_TASK:{}:command1:c1'.format(t1.task_id)
-        key_value_store = p1.task_pre_processing_check(task=t1, command='command1', context='c1', key_value_store=KeyValueStore(), call_process_task_if_check_pass=True, state_persistence=StatePersistence(), default_task_processing_function_name='process_task_alternate_method')
+        key_value_store = p1.task_pre_processing_check(task=t1, command='command1', context='c1', key_value_store=KeyValueStore(), call_process_task_if_check_pass=True, default_task_processing_function_name='process_task_alternate_method')
         print_logger_lines(logger=logger)
         self.assertIsNotNone(key_value_store)
         self.assertIsInstance(key_value_store, KeyValueStore)
@@ -813,7 +813,7 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
         self.assertTrue('Processor1:Processed:{}:Success'.format(t1.task_id) in key_value_store.store)
         self.assertTrue(key_value_store.store['Processor1:Processed:{}:Success'.format(t1.task_id)], 'key_value_store={}'.format(key_value_store.store))
 
-        key_value_store = p1.task_pre_processing_check(task=t1, command='command1', context='c1', key_value_store=key_value_store, call_process_task_if_check_pass=True, state_persistence=StatePersistence())
+        key_value_store = p1.task_pre_processing_check(task=t1, command='command1', context='c1', key_value_store=key_value_store, call_process_task_if_check_pass=True)
         self.assertTrue('[LOG] WARNING: [Processor1:test1:command1:c1] Appears task was already previously validated and/or executed' in p1.logger.warn_lines, 'warn_lines={}'.format(p1.logger.warn_lines))
 
 
@@ -1942,7 +1942,6 @@ class TestClassHooks(unittest.TestCase):    # pragma: no cover
             logger=logger
         )
 
-        # FIXME
         t1 = Task(
             kind='Processor1',
             version='v1',
