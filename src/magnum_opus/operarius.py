@@ -1755,8 +1755,14 @@ class Hooks:
         hook_registrar: Dict containing hooks, index by hook name.
     """
     
-    def __init__(self):
+    def __init__(
+        self,
+        logger: LoggerWrapper=LoggerWrapper(),
+        state_persistence: StatePersistence=StatePersistence()
+    ):
         self.hook_registrar = dict()
+        self.logger = logger
+        self.state_persistence = state_persistence
 
     def register_hook(self, hook: Hook):
         """Adds a hook to the collection, provided the hook name is not already registered.
@@ -1798,9 +1804,7 @@ class Hooks:
         task_life_cycle_stage: TaskLifecycleStage,
         key_value_store: KeyValueStore,
         task: object=None,
-        task_id: str=None,
-        extra_parameters:dict=dict(),
-        logger: LoggerWrapper=LoggerWrapper()
+        task_id: str=None
     )->KeyValueStore:
         """Processes a hook on a task given the command, context and current life cycle event of the task.
 
@@ -1831,18 +1835,20 @@ class Hooks:
         hook: Hook
         hook_exception_raised = False
         for hook in self._get_hooks(command=command, context=context, task_life_cycle_stage=task_life_cycle_stage):
-            logger.debug('Processing hook named "{}" for task "{}" on life cycle stage "{}"'.format(hook.name, task_id, task_life_cycle_stage.name))
+            self.logger.debug('Processing hook named "{}" for task "{}" on life cycle stage "{}"'.format(hook.name, task_id, task_life_cycle_stage.name))
             try:
+                parameters = dict()
+                parameters['Command'] = command
+                parameters['Context'] = context
+                parameters['Task'] = task
+                parameters['TaskLifeCycleStage'] = task_life_cycle_stage
+                parameters['Traceback'] = None
+                parameters['ExceptionMessage'] = None
                 result: KeyValueStore
                 result = hook.process_hook(
-                    command=command,
-                    context=context,
-                    task_life_cycle_stage=task_life_cycle_stage,
-                    key_value_store=copy.deepcopy(key_value_store),
-                    task=task,
-                    task_id=task_id,
-                    extra_parameters=extra_parameters,
-                    logger=logger
+                    parameters=parameters,
+                    state_persistence=self.state_persistence,
+                    key_value_store=copy.deepcopy(key_value_store)
                 )
                 if result is not None:
                     if isinstance(result, KeyValueStore):
@@ -1856,22 +1862,24 @@ class Hooks:
                         context,
                         task_life_cycle_stage.name
                     )
-                    logger.error(exception_message)
+                    self.logger.error(exception_message)
+                    parameters = dict()
+                    parameters['Command'] = 'NOT_APPLICABLE'
+                    parameters['Context'] = 'ALL'
+                    parameters['Task'] = task
+                    parameters['TaskLifeCycleStage'] = get_task_lifecycle_error_stage(stage=task_life_cycle_stage)
+                    parameters['Traceback'] = e
+                    parameters['ExceptionMessage'] = exception_message
                     try:
                         self.key_value_store = self.process_hook(
-                            command='NOT_APPLICABLE',
-                            context='ALL',
-                            task_life_cycle_stage=get_task_lifecycle_error_stage(stage=task_life_cycle_stage),
-                            key_value_store=copy.deepcopy(key_value_store),
-                            task=task,
-                            task_id=task_id,
-                            extra_parameters={'Traceback': e, 'ExceptionMessage': exception_message},
-                            logger=logger
+                            parameters=parameters,
+                            state_persistence=self.state_persistence,
+                            key_value_store=copy.deepcopy(key_value_store)
                         )
                     except:
                         traceback.print_exc()
                 else:
-                    logger.error('While processing an ERROR event hook, another exception occurred: {}'.format(traceback.format_exc()))
+                    self.logger.error('While processing an ERROR event hook, another exception occurred: {}'.format(traceback.format_exc()))
             if hook_exception_raised is True:
                 raise Exception('Hook processing failed. Aborting.')
         return key_value_store
