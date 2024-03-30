@@ -1523,11 +1523,10 @@ class Hook:
 
     def __init__(
             self,
-            name: str,
             commands: list,
             contexts: list,
             task_life_cycle_stages: TaskLifecycleStages,
-            function_impl: object,  # callable object, like a function
+            name: str=None,
             logger: LoggerWrapper=LoggerWrapper()
         ):
         """Initializes a `Hook`
@@ -1540,12 +1539,14 @@ class Hook:
             function_impl: A callable object that implements the hook logic.
             logger: An implementation of the `LoggerWrapper` class
         """
-        self.name = name
+        self.name = self.__class__.__name__
+        if name is not None:
+            if isinstance(name. str) is True:
+                self.name = name
         self.logger = logger
         self.commands = commands
         self.contexts = contexts
         self.task_life_cycle_stages = task_life_cycle_stages
-        self.function_impl = function_impl
         if len(commands) == 0:
             self.commands.append('NOT_APPLICABLE')
         if len(contexts) == 0:
@@ -1557,7 +1558,11 @@ class Hook:
         self.commands = [x.lower() for x in self.commands]
         self.contexts = [x.lower() for x in self.contexts]
 
-    def _command_matches(self, command: str)->bool:
+    def _command_matches(self, parameters: dict)->bool:
+        if 'command' in parameters:
+            command = parameters['command']
+        else:
+            return False
         if command.lower() not in self.commands:
             if len(self.commands) == 1 and 'NOT_APPLICABLE'.lower() in self.commands:
                 return True
@@ -1567,7 +1572,11 @@ class Hook:
             return True
         return False
 
-    def _context_matches(self, context: str)->bool:
+    def _context_matches(self, parameters: dict)->bool:
+        if 'context' in parameters:
+            context = parameters['context']
+        else:
+            return False
         if context.lower() not in self.contexts:
             if len(self.contexts) == 1 and 'ALL'.lower() in self.contexts:
                 return True
@@ -1612,14 +1621,9 @@ class Hook:
 
     def process_hook(
         self,
-        command: str,
-        context: str,
-        task_life_cycle_stage: TaskLifecycleStage,
-        key_value_store: KeyValueStore,
-        task: object=None,
-        task_id: str=None,
-        extra_parameters:dict=dict(),
-        logger: LoggerWrapper=LoggerWrapper()
+        parameters:dict=dict(),
+        state_persistence: StatePersistence=StatePersistence(),
+        key_value_store: KeyValueStore=KeyValueStore()
     )->KeyValueStore:
         """Attempt to process the Hook within a certain lifecycle event
 
@@ -1644,50 +1648,96 @@ class Hook:
         """
         if len(self.task_life_cycle_stages.stages) > 12:
             raise Exception('To many life cycle stages registered for this hook')
-        final_logger = self.logger
         result = copy.deepcopy(key_value_store)
-        if logger is not None:
-            if isinstance(logger, LoggerWrapper):
-                final_logger = logger
-        if self._command_matches(command=command) is False or self._context_matches(context=context) is False:
+        if self._command_matches(parameters==parameters) is False:
+            self.logger.warning(message='Command matches check Failed!')
             return copy.deepcopy(key_value_store)
-        if self.task_life_cycle_stages.stage_registered(stage=task_life_cycle_stage) is False:
+        if self._context_matches(parameters==parameters) is False:
+            self.logger.warning(message='Context matches check Failed!')
             return copy.deepcopy(key_value_store)
+        if 'TaskLifeCycleStage' in parameters:
+            if self.task_life_cycle_stages.stage_registered(stage=parameters['TaskLifeCycleStage']) is False:
+                self.logger.warning(message='Lifecycle match check Failed!')
+                return copy.deepcopy(key_value_store)
+        else:
+            self.logger.warning(message='"TaskLifeCycleStage" key was not present in parameters.')
+            return copy.deepcopy(key_value_store)
+        if 'Command' not in parameters:
+            parameters['Command'] = None
+        if 'Context' not in parameters:
+            parameters['Context'] = None
+        parameters['StatePersistence'] = state_persistence
+        parameters['KeyValueStore'] = copy.deepcopy(key_value_store)
+        self.logger.info('StatePersistence and KeyValueStore variables added to hook parameters.')
+        self.logger.debug(message='Hook "{}" processing parameters: {}'.format(self.name, json.dumps(parameters, default=str)))
         try:
-            final_logger.debug(
-                'Hook "{}" executed on stage "{}" for task "{}" for command "{}" in context "{}"'.format(
-                    self.name,
-                    task_life_cycle_stage.name,
-                    task_id,
-                    command,
-                    context
-                )
-            )
-            result = self.function_impl(
-                hook_name=self.name,
-                task=task,
-                key_value_store=copy.deepcopy(key_value_store),
-                command=command,
-                context=context,
-                task_life_cycle_stage=task_life_cycle_stage,
-                extra_parameters=extra_parameters,
-                logger=logger
+            result = self.process_hook_client_impl(
+                parameters=parameters
             )
             if result is None:
+                self.logger.warning(message='Hook processing result returned NoneType - returning original KeyValueStore values')
                 result = copy.deepcopy(key_value_store)
             if isinstance(result, KeyValueStore) is False:
+                self.logger.warning(message='Hook processing result returned an non-compatible type "{}" - returning original KeyValueStore values'.format(type(result)))
                 result = copy.deepcopy(key_value_store)
         except Exception as e:
-            traceback.print_exc()
-            exception_message = 'Hook "{}" failed to execute during command "{}" in context "{}" in task life cycle stage "{}"'.format(
-                self.name,
-                command,
-                context,
-                task_life_cycle_stage
-            )
-            final_logger.error(exception_message)
+            exception_message = traceback.format_exc()
+            print(exception_message)
+            self.logger.error(exception_message)
             raise e
         return result
+    
+    def process_hook_client_impl(self, parameters:dict=dict())->KeyValueStore:
+        raise Exception('Must be implemented by client...')
+
+
+class HookAlwaysThrowException(Hook):
+
+    def __init__(self, name: str, commands: list, contexts: list, task_life_cycle_stages: TaskLifecycleStages, logger: LoggerWrapper = LoggerWrapper()):
+        super().__init__(name, commands, contexts, task_life_cycle_stages, logger)
+
+    def process_hook_client_impl(self, parameters:dict=dict())->KeyValueStore:
+        """A hook function
+
+        This particular function will always throw an exception and is intended as a default hook function to handle error
+        events.
+
+        Args:
+            parameters: A dict with parameters
+
+        Returns:
+            Normally a hook function will update `task_life_cycle_stage` and return a new copy of `TaskLifecycleStage`. 
+
+            This function will never return anything and will always throw an exception.
+
+        Raises:
+            Exception: An exception. This particular function will always throw an exception and is intended as a catchall
+            for error events/
+        """
+        task = None
+        command = parameters['Command']
+        context = parameters['Context']
+        task_life_cycle_stage = parameters['TaskLifeCycleStage']
+        if 'Task' in parameters:
+            task = parameters['Task']
+        task_id = 'unknown'
+        if task is not None:
+            if isinstance(task, Task):
+                task_id = task.task_id
+        exception_message = 'Hook "{}" forced exception on command "{}" in context "{}" for life stage "{}" in task "{}"'.format(
+            self.name,
+            command,
+            context,
+            task_life_cycle_stage.name,
+            task_id
+        )
+        if 'ExceptionMessage' in parameters:
+            self.logger.error(exception_message)
+            exception_message = parameters['ExceptionMessage']
+        if 'Traceback' in parameters:
+            if isinstance(parameters['Traceback'], Exception):
+                raise parameters['Traceback']
+        raise Exception(exception_message)
 
 
 class Hooks:
@@ -2980,60 +3030,6 @@ class TaskProcessor:
         raise Exception('Not implemented')  # pragma: no cover
 
 
-def hook_function_always_throw_exception(
-    hook_name:str,
-    task:Task,
-    key_value_store:KeyValueStore,
-    command:str,
-    context:str,
-    task_life_cycle_stage: TaskLifecycleStage,
-    extra_parameters:dict,
-    logger:LoggerWrapper
-)->KeyValueStore:
-    """A hook function
-
-    THis particular function will always throw an exception and is intended as a default hook function to handle error
-    events.
-
-    Args:
-        hook_name: The name of the hook
-        task: An instance of a `Task`
-        key_value_store: An instance of KeyValueStore,
-        command: The command being issued for task processing
-        context: The context of task processing
-        task_life_cycle_stage: The task life cycle stage as an instance of TaskLifecycleStage
-        extra_parameters: A dict with extra parameters
-        logger: An implementation of the `LoggerWrapper` class for logging
-
-    Returns:
-        Normally a hook function will update `task_life_cycle_stage` and return a new copy of `TaskLifecycleStage`. 
-
-        This function will never return anything and will always throw an exception.
-
-    Raises:
-        Exception: An exception. This particular function will always throw an exception and is intended as a catchall
-        for error events/
-    """
-    task_id = 'unknown'
-    if task is not None:
-        if isinstance(task, Task):
-            task_id = task.task_id
-    exception_message = 'Hook "{}" forced exception on command "{}" in context "{}" for life stage "{}" in task "{}"'.format(
-        hook_name,
-        command,
-        context,
-        task_life_cycle_stage.name,
-        task_id
-    )
-    if 'ExceptionMessage' in extra_parameters:
-        logger.error(exception_message)
-        exception_message = extra_parameters['ExceptionMessage']
-    if 'Traceback' in extra_parameters:
-        if isinstance(extra_parameters['Traceback'], Exception):
-            raise extra_parameters['Traceback']
-    raise Exception(exception_message)
-
-
 def build_command_identifier(command: str, context: str)->Identifier:
     """A helper function for creating an `Identifier` object for a given command and context processing run.
 
@@ -3130,12 +3126,11 @@ class Tasks:
             life_cycle_stages.register_lifecycle_stage(task_life_cycle_stage=error_event_life_cycle)
         if self.hooks.any_hook_exists(command='NOT_APPLICABLE', context='ALL', task_life_cycle_stage=error_event_life_cycle) is False:
             self.hooks.register_hook(
-                hook=Hook(
+                hook=HookAlwaysThrowException(
                     name='DEFAULT_{}_HOOK'.format(error_event_life_cycle.name),
                     commands=['NOT_APPLICABLE',],
                     contexts=['ALL',],
                     task_life_cycle_stages=life_cycle_stages,
-                    function_impl=hook_function_always_throw_exception,
                     logger=self.logger
                 )
             )
