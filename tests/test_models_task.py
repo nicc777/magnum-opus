@@ -4,6 +4,8 @@ from itertools import permutations
 import hashlib
 from datetime import datetime
 
+from magnum_opus.operarius import LoggerWrapper, TaskLifecycleStages
+
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/../src")
 print('sys.path={}'.format(sys.path))
 
@@ -63,11 +65,19 @@ class TestLogger(LoggerWrapper):
         )
 
     def reset(self):
+        self.info_lines = None
+        self.warn_lines = None
+        self.debug_lines = None
+        self.critical_lines = None
+        self.error_lines = None
+        self.all_lines_in_sequence = None
         self.info_lines = list()
         self.warn_lines = list()
         self.debug_lines = list()
         self.critical_lines = list()
         self.error_lines = list()
+        self.all_lines_in_sequence = list()
+        print('*** LOGGER RESET DONE ***')
 
 
 def print_logger_lines(logger:LoggerWrapper):
@@ -1478,18 +1488,32 @@ class TestClassHook(unittest.TestCase):    # pragma: no cover
     def setUp(self):
         print()
         print('-'*80)
+        class DummyHook(Hook):
+            def __init__(self, commands: list, contexts: list, task_life_cycle_stages: TaskLifecycleStages, name: str=None, logger: LoggerWrapper=LoggerWrapper()):
+                super().__init__(commands, contexts, task_life_cycle_stages, name, logger)
+            def process_hook_client_impl(self, parameters:dict=dict())->KeyValueStore:
+                self.logger.info(
+                    message='Hook named "{}" for task "{}" during task_lifecycle_stage "{}"'.format(
+                        self.name,
+                        parameters['Task'].task_id,
+                        parameters['TaskLifeCycleStage']
+                    )
+                )
+                return copy.deepcopy(parameters['KeyValueStore'])
+        self.hook = DummyHook(
+            name='test_hook_1',
+            commands=['command1',],
+            contexts=['c1',],
+            task_life_cycle_stages=TaskLifecycleStages(),
+            logger=TestLogger()
+        )
+
+    def tearDown(self) -> None:
+        self.hook = None
+        return super().tearDown()
 
     def test_exec_hook_on_every_lifecycle_stage_1(self):
         logger = TestLogger()
-
-        hook = Hook(
-            name='test_hook_1',
-            commands=['command1'],
-            contexts=['c1'],
-            task_life_cycle_stages=TaskLifecycleStages(),
-            function_impl=hook_function_test_1,
-            logger=logger
-        )
 
         t1 = Task(
             kind='Processor2',
@@ -1539,33 +1563,28 @@ class TestClassHook(unittest.TestCase):    # pragma: no cover
         )
 
         for lifecycle_stage in lifecycle_stages_to_test:
-            result = hook.process_hook(
-                command='command1',
-                context='c1',
-                task_life_cycle_stage=lifecycle_stage,
-                key_value_store=KeyValueStore(),
-                task=t1,
-                task_id=t1.task_id,
-                logger=logger
+            self.hook.logger.reset()
+            parameters = dict()
+            parameters['Command'] = 'command1'
+            parameters['Context'] = 'c1'
+            parameters['Task'] = t1
+            parameters['TaskLifeCycleStage'] = lifecycle_stage
+            parameters['Traceback'] = None
+            parameters['ExceptionMessage'] = None
+            result = self.hook.process_hook(
+                parameters=parameters
             )
-            expected_log_entry = '[LOG] INFO: Function "hook_function_test_1" called on hook_name "{}" for task "{}" during task_lifecycle_stage "{}"'.format(
-                hook.name,
+            expected_log_entry = '[LOG] INFO: Hook named "{}" for task "{}" during task_lifecycle_stage "{}"'.format(
+                self.hook.name,
                 t1.task_id,
                 lifecycle_stage
             )
-            self.assertTrue(expected_log_entry in logger.info_lines, 'FAILED on lifecycle_stage "{}":  info_lines={}'.format(lifecycle_stage, logger.info_lines))
+            print('*'*80)
+            print_logger_lines(logger=self.hook.logger)
+            self.assertTrue(expected_log_entry in self.hook.logger.info_lines, 'FAILED on lifecycle_stage "{}":\n\texpected:{}\n\tinfo_lines={}'.format(lifecycle_stage.name, expected_log_entry, self.hook.logger.info_lines))
 
             self.assertIsNotNone(result)
             self.assertIsInstance(result, KeyValueStore)
-            expected_key = '{}:{}:command1:c1:{}'.format(
-                hook.name,
-                t1.task_id,
-                lifecycle_stage
-            )
-            self.assertTrue(expected_key in result.store)
-            self.assertTrue(result.store[expected_key])
-
-        print_logger_lines(logger=logger)
 
     def test_exec_hook_skip_on_command_mismatch_1(self):
         logger = TestLogger()

@@ -1559,9 +1559,12 @@ class Hook:
         self.contexts = [x.lower() for x in self.contexts]
 
     def _command_matches(self, parameters: dict)->bool:
-        if 'command' in parameters:
-            command = parameters['command']
+        command = None
+        if 'Command' in parameters:
+            command = parameters['Command']
         else:
+            return False
+        if command is None:
             return False
         if command.lower() not in self.commands:
             if len(self.commands) == 1 and 'NOT_APPLICABLE'.lower() in self.commands:
@@ -1573,9 +1576,12 @@ class Hook:
         return False
 
     def _context_matches(self, parameters: dict)->bool:
-        if 'context' in parameters:
-            context = parameters['context']
+        context = None
+        if 'Context' in parameters:
+            context = parameters['Context']
         else:
+            return False
+        if context is None:
             return False
         if context.lower() not in self.contexts:
             if len(self.contexts) == 1 and 'ALL'.lower() in self.contexts:
@@ -1649,10 +1655,10 @@ class Hook:
         if len(self.task_life_cycle_stages.stages) > 12:
             raise Exception('To many life cycle stages registered for this hook')
         result = copy.deepcopy(key_value_store)
-        if self._command_matches(parameters==parameters) is False:
+        if self._command_matches(parameters=parameters) is False:
             self.logger.warning(message='Command matches check Failed!')
             return copy.deepcopy(key_value_store)
-        if self._context_matches(parameters==parameters) is False:
+        if self._context_matches(parameters=parameters) is False:
             self.logger.warning(message='Context matches check Failed!')
             return copy.deepcopy(key_value_store)
         if 'TaskLifeCycleStage' in parameters:
