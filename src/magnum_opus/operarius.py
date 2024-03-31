@@ -1541,7 +1541,7 @@ class Hook:
         """
         self.name = self.__class__.__name__
         if name is not None:
-            if isinstance(name. str) is True:
+            if isinstance(name, str) is True:
                 self.name = name
         self.logger = logger
         self.commands = commands
@@ -3089,8 +3089,8 @@ class Tasks:
     * Post processing, the `key_value_store` attribute will have the complete collection of all values defined during processing which the client can use for further processing decisions.
 
     During the `Tasks` instance initialization, at least one default hook to handle `ERROR` events will be handled. In
-    this case, it is the `hook_function_always_throw_exception` function that will be added for each error type event
-    hook. This guarantees that any error event will ultimately throw an exception that will be passed to the client.
+    this case, it is the `HookAlwaysThrowException` hook that will be added for each error type event hook. This
+    guarantees that any error event will ultimately throw an exception that will be passed to the client.
 
     Attributes:
         logger: An implementation of the `LoggerWrapper` class

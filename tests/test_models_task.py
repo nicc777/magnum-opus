@@ -2020,7 +2020,7 @@ class TestClassHooks(unittest.TestCase):    # pragma: no cover
         print_logger_lines(logger=logger)
 
 
-class TestFunctionHookFunctionAlwaysThrowException(unittest.TestCase):    # pragma: no cover
+class TestClassHookAlwaysThrowException(unittest.TestCase):    # pragma: no cover
 
     def setUp(self):
         print()
@@ -2067,21 +2067,27 @@ class TestFunctionHookFunctionAlwaysThrowException(unittest.TestCase):    # prag
             hook_name,
             command,
             context,
-            life_cycle_stage,
+            life_cycle_stage.value,
             t1.task_id
         )
 
+        h = HookAlwaysThrowException(
+            name=hook_name,
+            commands=[command,],
+            contexts=[context,],
+            task_life_cycle_stages=TaskLifecycleStages(),
+            logger=logger
+        )
+
         with self.assertRaises(Exception) as cm:
-            hook_function_always_throw_exception(
-                hook_name=hook_name,
-                task=t1,
-                key_value_store=KeyValueStore(),
-                command=command,
-                context=context,
-                task_life_cycle_stage=life_cycle_stage,
-                extra_parameters=dict(),
-                logger=logger
-            )
+            parameters = dict()
+            parameters['Command'] = command
+            parameters['Context'] = context
+            parameters['Task'] = t1
+            parameters['TaskLifeCycleStage'] = life_cycle_stage
+            parameters['Traceback'] = None
+            parameters['ExceptionMessage'] = None
+            h.process_hook(parameters=parameters)
 
             self.assertTrue(expected_error_message in cm.exception)
 
@@ -2124,19 +2130,23 @@ class TestFunctionHookFunctionAlwaysThrowException(unittest.TestCase):    # prag
 
         expected_error_message = 'This is a custom message'
 
+        h = HookAlwaysThrowException(
+            name=hook_name,
+            commands=[command,],
+            contexts=[context,],
+            task_life_cycle_stages=TaskLifecycleStages(),
+            logger=logger
+        )
+
         with self.assertRaises(Exception) as cm:
-            hook_function_always_throw_exception(
-                hook_name=hook_name,
-                task=t1,
-                key_value_store=KeyValueStore(),
-                command=command,
-                context=context,
-                task_life_cycle_stage=life_cycle_stage,
-                extra_parameters={
-                    'ExceptionMessage': expected_error_message
-                },
-                logger=logger
-            )
+            parameters = dict()
+            parameters['Command'] = command
+            parameters['Context'] = context
+            parameters['Task'] = t1
+            parameters['TaskLifeCycleStage'] = life_cycle_stage
+            parameters['Traceback'] = None
+            parameters['ExceptionMessage'] = expected_error_message
+            h.process_hook(parameters=parameters)
 
             self.assertTrue(expected_error_message in cm.exception)
 
