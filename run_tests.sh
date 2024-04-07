@@ -13,7 +13,7 @@ coverage run -a tests/test_models_task.py
 
 echo ; echo ; echo "########################################################################################################################"
 
-coverage run -a tests/test_hello_world.py
+coverage run -a tests/test_operarius.py
 
 
 echo ; echo ; echo "########################################################################################################################"
