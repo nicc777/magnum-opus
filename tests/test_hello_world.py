@@ -274,7 +274,8 @@ class HelloWorldTaskProcessor(TaskProcessor):
         backup_path = '{}.backup'.format(output_path)
 
         self._create_backup(output_path=output_path, backup_path=backup_path)
-        os.unlink(output_path)
+        if os.path.exists(output_path) is True:
+            os.unlink(output_path)
         self._delete_backup(backup_path=backup_path)
 
         return updated_variable_store
