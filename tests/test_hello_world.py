@@ -442,7 +442,7 @@ class TestHelloWorldScenario(unittest.TestCase):    # pragma: no cover
         if os.path.exists(self.output_path) is True:
             os.unlink(self.output_path)
 
-    def test_scenario_create_state_basic_test_1(self):
+    def test_scenario_create_resource_basic_1(self):
         variable_store: VariableStore
         variable_store = self.hello_world_processor.process_task(
             task=copy.deepcopy(self.hello_world_task),
@@ -469,6 +469,50 @@ class TestHelloWorldScenario(unittest.TestCase):    # pragma: no cover
         with open(self.output_path, 'r') as f:
             data = f.read()
         self.assertEqual(data, self.hello_world_task.spec['content'])
+
+    def test_scenario_create_resource_and_delete_resource_1(self):
+        variable_store: VariableStore
+        variable_store = self.hello_world_processor.process_task(
+            task=copy.deepcopy(self.hello_world_task),
+            action='CreateAction',
+            task_resolved_spec=copy.deepcopy(self.hello_world_task.spec)
+        )
+
+        print_logger_lines(logger=logger)
+        dump_key_value_store(
+            test_class_name=self.__class__.__name__,
+            test_method_name=stack()[0][3],
+            variable_store=copy.deepcopy(variable_store)
+        )
+        dump_events(
+            task_id=self.hello_world_task.task_id,
+            variable_store=copy.deepcopy(variable_store)
+        )
+
+        self.assertIsNotNone(variable_store)
+        self.assertIsInstance(variable_store, VariableStore)
+        self.assertTrue(os.path.exists(self.output_path))
+
+        variable_store = self.hello_world_processor.process_task(
+            task=copy.deepcopy(self.hello_world_task),
+            action='DeleteAction',
+            task_resolved_spec=copy.deepcopy(self.hello_world_task.spec)
+        )
+
+        print_logger_lines(logger=logger)
+        dump_key_value_store(
+            test_class_name=self.__class__.__name__,
+            test_method_name=stack()[0][3],
+            variable_store=copy.deepcopy(variable_store)
+        )
+        dump_events(
+            task_id=self.hello_world_task.task_id,
+            variable_store=copy.deepcopy(variable_store)
+        )
+
+        self.assertIsNotNone(variable_store)
+        self.assertIsInstance(variable_store, VariableStore)
+        self.assertFalse(os.path.exists(self.output_path))
 
 
 if __name__ == '__main__':
