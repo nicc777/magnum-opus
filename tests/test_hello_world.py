@@ -1,3 +1,11 @@
+"""
+Running only a single test method (example):
+
+```shell
+cd tests && python3 -m unittest -k "test_hello_world.TestHelloWorldScenario.test_scenario_create_resource_and_delete_resource_1" && cd ..
+```
+
+"""
 import copy
 import string
 import random
