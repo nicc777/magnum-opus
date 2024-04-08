@@ -197,7 +197,8 @@ class HelloWorldTaskProcessor(TaskProcessor):
         if self.create_identifier(task=task, variable_name='PREVIOUS_CONTENT') in updated_variable_store.variable_store:
             if updated_variable_store.variable_store[self.create_identifier(task=task, variable_name='PREVIOUS_CONTENT')] != content:
                 logger.warning('File already exists, but content differs. Old file fill be backed up to "{}"'.format(backup_path))
-                os.rename(output_path, backup_path)
+                if os.path.exists(output_path) is True:
+                    os.rename(output_path, backup_path)
             updated_variable_store.variable_store.pop(self.create_identifier(task=task, variable_name='PREVIOUS_CONTENT'))
 
         with open(output_path, 'w') as f:
@@ -437,7 +438,11 @@ class TestHelloWorldScenario(unittest.TestCase):    # pragma: no cover
             }
         )
 
-    def test_scenario_create_state_1(self):
+    def tearDown(self):
+        if os.path.exists(self.output_path) is True:
+            os.unlink(self.output_path)
+
+    def test_scenario_create_state_basic_test_1(self):
         variable_store: VariableStore
         variable_store = self.hello_world_processor.process_task(
             task=copy.deepcopy(self.hello_world_task),
@@ -459,6 +464,11 @@ class TestHelloWorldScenario(unittest.TestCase):    # pragma: no cover
         self.assertIsNotNone(variable_store)
         self.assertIsInstance(variable_store, VariableStore)
         self.assertTrue(os.path.exists(self.output_path))
+
+        data = ''
+        with open(self.output_path, 'r') as f:
+            data = f.read()
+        self.assertEqual(data, self.hello_world_task.spec['content'])
 
 
 if __name__ == '__main__':
