@@ -172,6 +172,25 @@ class HelloWorldTaskProcessor(TaskProcessor):
             except:
                 logger.error('EXCEPTION: {}'.format(traceback.format_exc()))
 
+    def _unittest_exception_check(self, task: Task, variable_store: VariableStore):
+        force_exception = False
+        key = self.create_identifier(task=task, variable_name='FORCE_UNITTEST_EXCEPTION')
+        if key in variable_store.variable_store:
+            logger.info('Found FORCE_UNITTEST_EXCEPTION configuration')
+            value = variable_store.variable_store[key]
+            if value is not None:
+                if isinstance(value, bool):
+                    logger.info('Using FORCE_UNITTEST_EXCEPTION configuration')
+                    force_exception = value
+                else:
+                    logger.warning('NOT using FORCE_UNITTEST_EXCEPTION configuration - value is not a Python boolean type')
+            else:
+                logger.warning('NOT using FORCE_UNITTEST_EXCEPTION configuration - value is NoneType')
+        if force_exception is True:
+            logger.info('FORCE_UNITTEST_EXCEPTION has True value - forcing Exception')
+            raise Exception('Operation Failed - Failure Forced by Unit Test Configuration')
+        logger.info('FORCE_UNITTEST_EXCEPTION has False value - Normal operation continues')
+
     def create_action(
         self,
         task: Task,
@@ -214,6 +233,7 @@ class HelloWorldTaskProcessor(TaskProcessor):
                     os.rename(output_path, backup_path)
             updated_variable_store.variable_store.pop(self.create_identifier(task=task, variable_name='PREVIOUS_CONTENT'))
 
+        self._unittest_exception_check(task=task, variable_store=variable_store)
         with open(output_path, 'w') as f:
             f.write(content)
 
@@ -274,6 +294,7 @@ class HelloWorldTaskProcessor(TaskProcessor):
         backup_path = '{}.backup'.format(output_path)
 
         self._create_backup(output_path=output_path, backup_path=backup_path)
+        self._unittest_exception_check(task=task, variable_store=variable_store)
         if os.path.exists(output_path) is True:
             os.unlink(output_path)
         self._delete_backup(backup_path=backup_path)
@@ -310,6 +331,7 @@ class HelloWorldTaskProcessor(TaskProcessor):
         else:
             os.rename(output_path, backup_path)
 
+        self._unittest_exception_check(task=task, variable_store=variable_store)
         with open(output_path, 'w') as f:
             f.write(content)
 
@@ -455,12 +477,18 @@ class TestHelloWorldScenario(unittest.TestCase):    # pragma: no cover
     def tearDown(self):
         if os.path.exists(self.output_path) is True:
             os.unlink(self.output_path)
+        logger.reset()
 
     def test_scenario_create_resource_basic_1(self):
-        variable_store: VariableStore
+        variable_store = VariableStore()
+        variable_store.add_variable(
+            variable_name='hello-world:FORCE_UNITTEST_EXCEPTION',
+            value=False
+        )
         variable_store = self.hello_world_processor.process_task(
             task=copy.deepcopy(self.hello_world_task),
             action='CreateAction',
+            variable_store=copy.deepcopy(variable_store),
             task_resolved_spec=copy.deepcopy(self.hello_world_task.spec)
         )
 
@@ -485,10 +513,16 @@ class TestHelloWorldScenario(unittest.TestCase):    # pragma: no cover
         self.assertEqual(data, self.hello_world_task.spec['content'])
 
     def test_scenario_create_resource_and_delete_resource_1(self):
-        variable_store: VariableStore
+        # Phase 1 Test - Create Resource
+        variable_store = VariableStore()
+        variable_store.add_variable(
+            variable_name='hello-world:FORCE_UNITTEST_EXCEPTION',
+            value=False
+        )
         variable_store = self.hello_world_processor.process_task(
             task=copy.deepcopy(self.hello_world_task),
             action='CreateAction',
+            variable_store=copy.deepcopy(variable_store),
             task_resolved_spec=copy.deepcopy(self.hello_world_task.spec)
         )
 
@@ -507,9 +541,17 @@ class TestHelloWorldScenario(unittest.TestCase):    # pragma: no cover
         self.assertIsInstance(variable_store, VariableStore)
         self.assertTrue(os.path.exists(self.output_path))
 
+        # Phase 2 Test - Delete Resource
+
+        variable_store = VariableStore()
+        variable_store.add_variable(
+            variable_name='hello-world:FORCE_UNITTEST_EXCEPTION',
+            value=False
+        )
         variable_store = self.hello_world_processor.process_task(
             task=copy.deepcopy(self.hello_world_task),
             action='DeleteAction',
+            variable_store=copy.deepcopy(variable_store),
             task_resolved_spec=copy.deepcopy(self.hello_world_task.spec)
         )
 
