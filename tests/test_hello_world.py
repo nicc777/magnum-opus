@@ -82,16 +82,22 @@ class TestLogger:   # pragma: no cover
 
 
 def print_logger_lines(logger:TestLogger):  # pragma: no cover
+    print('\n\n-------------------------------------------------------------------------------')
+    print('\t\tLOG DUMP')
+    print('\t\t-------------------')
     for line in logger.all_lines_in_sequence:
         print(line)
+    print('\n_______________________________________________________________________________')
 
 
-def dump_key_value_store(test_class_name: str, test_method_name: str, variable_store: VariableStore):
+def dump_variable_store(test_class_name: str, test_method_name: str, variable_store: VariableStore):
     try:
         print('\n\n-------------------------------------------------------------------------------')
+        print('\t\tVARIABLE STORE DUMP')
+        print('\t\t-------------------')
         print('\t\tTest Class  : {}'.format(test_class_name))
         print('\t\tTest Method : {}'.format(test_method_name))
-        print('\n-------------------------------------------------------------------------------')
+        print()
 
         # First get the max key length:
         max_key_len = 0
@@ -114,7 +120,7 @@ def dump_key_value_store(test_class_name: str, test_method_name: str, variable_s
 def dump_events(task_id: str, variable_store: VariableStore):   # pragma: no cover
     print('\n\n-------------------------------------------------------------------------------')
     print('\t\tEVENTS for task  : {}'.format(task_id))
-    print('\n-------------------------------------------------------------------------------')
+    print()
     event_key = '{}:PROCESSING_EVENTS'.format(task_id)
     if event_key in variable_store.variable_store:
         if variable_store.variable_store[event_key] is not None:
@@ -145,17 +151,24 @@ class HelloWorldTaskProcessor(TaskProcessor):
             os.unlink(backup_path)
         if os.path.exists(output_path) is True:
             shutil.copy2(output_path, backup_path)
+            logger.info('Backup created of file "{}" to "{}"'.format(output_path, backup_path))
+        else:
+            logger.warning('File "{}" does not exist and therefore no backup can be made.'.format(output_path))
         
     def _restore_backup(self, output_path: str, backup_path: str):
         if os.path.exists(output_path) is True:
             os.unlink(output_path)
         if os.path.exists(backup_path) is True:
             shutil.copy2(backup_path, output_path)
+            logger.info('Backup restored from file "{}" to "{}"'.format(backup_path, output_path))
+        else:
+            logger.warning('File "{}" does not exist and therefore no backup can be restored.'.format(backup_path))
         
     def _delete_backup(self, backup_path: str):
         if os.path.exists(backup_path):
             try:
                 os.unlink(backup_path)
+                logger.info('Backup file "{}" deleted'.format(backup_path))
             except:
                 logger.error('EXCEPTION: {}'.format(traceback.format_exc()))
 
@@ -451,7 +464,7 @@ class TestHelloWorldScenario(unittest.TestCase):    # pragma: no cover
         )
 
         print_logger_lines(logger=logger)
-        dump_key_value_store(
+        dump_variable_store(
             test_class_name=self.__class__.__name__,
             test_method_name=stack()[0][3],
             variable_store=copy.deepcopy(variable_store)
@@ -479,7 +492,7 @@ class TestHelloWorldScenario(unittest.TestCase):    # pragma: no cover
         )
 
         print_logger_lines(logger=logger)
-        dump_key_value_store(
+        dump_variable_store(
             test_class_name=self.__class__.__name__,
             test_method_name=stack()[0][3],
             variable_store=copy.deepcopy(variable_store)
@@ -500,7 +513,7 @@ class TestHelloWorldScenario(unittest.TestCase):    # pragma: no cover
         )
 
         print_logger_lines(logger=logger)
-        dump_key_value_store(
+        dump_variable_store(
             test_class_name=self.__class__.__name__,
             test_method_name=stack()[0][3],
             variable_store=copy.deepcopy(variable_store)
