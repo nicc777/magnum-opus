@@ -332,16 +332,13 @@ class HelloWorldTaskProcessor(TaskProcessor):
 
         backup_path = '{}.backup'.format(output_path)
 
-        self._create_backup(output_path=output_path, backup_path=backup_path)
-
         if os.path.exists(output_path) is False:
             raise Exception('File does not exists')
-        else:
-            os.rename(output_path, backup_path)
+        self._create_backup(output_path=output_path, backup_path=backup_path)
 
-        self._unittest_exception_check(task=task, variable_store=variable_store)
         with open(output_path, 'w') as f:
             f.write(content)
+        self._unittest_exception_check(task=task, variable_store=variable_store)
 
         self._delete_backup(backup_path=backup_path)
 
