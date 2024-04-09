@@ -588,12 +588,13 @@ class TestHelloWorldScenario(unittest.TestCase):    # pragma: no cover
             value=True
         )
         self.hello_world_task.metadata['autoRollback'] = True
-        variable_store = self.hello_world_processor.process_task(
-            task=copy.deepcopy(self.hello_world_task),
-            action='CreateAction',
-            variable_store=copy.deepcopy(variable_store),
-            task_resolved_spec=copy.deepcopy(self.hello_world_task.spec)
-        )
+        with self.assertRaises(Exception):
+            variable_store = self.hello_world_processor.process_task(
+                task=copy.deepcopy(self.hello_world_task),
+                action='CreateAction',
+                variable_store=copy.deepcopy(variable_store),
+                task_resolved_spec=copy.deepcopy(self.hello_world_task.spec)
+            )
 
         print_logger_lines(logger=logger)
         dump_variable_store(
