@@ -482,6 +482,9 @@ class TestHelloWorldScenario(unittest.TestCase):    # pragma: no cover
     def tearDown(self):
         if os.path.exists(self.output_path) is True:
             os.unlink(self.output_path)
+        self.output_path = None
+        self.hello_world_task = None
+        self.hello_world_processor = None
         logger.reset()
 
     def test_scenario_create_resource_basic_1(self):
@@ -556,6 +559,36 @@ class TestHelloWorldScenario(unittest.TestCase):    # pragma: no cover
         variable_store = self.hello_world_processor.process_task(
             task=copy.deepcopy(self.hello_world_task),
             action='DeleteAction',
+            variable_store=copy.deepcopy(variable_store),
+            task_resolved_spec=copy.deepcopy(self.hello_world_task.spec)
+        )
+
+        print_logger_lines(logger=logger)
+        dump_variable_store(
+            test_class_name=self.__class__.__name__,
+            test_method_name=stack()[0][3],
+            variable_store=copy.deepcopy(variable_store)
+        )
+        dump_events(
+            task_id=self.hello_world_task.task_id,
+            variable_store=copy.deepcopy(variable_store)
+        )
+
+        self.assertIsNotNone(variable_store)
+        self.assertIsInstance(variable_store, VariableStore)
+        self.assertFalse(os.path.exists(self.output_path))
+
+
+    def test_scenario_create_resource_and_force_rollback_via_exception_1(self):
+        variable_store = VariableStore()
+        variable_store.add_variable(
+            variable_name='hello-world:FORCE_UNITTEST_EXCEPTION',
+            value=True
+        )
+        self.hello_world_task.metadata['autoRollback'] = True
+        variable_store = self.hello_world_processor.process_task(
+            task=copy.deepcopy(self.hello_world_task),
+            action='CreateAction',
             variable_store=copy.deepcopy(variable_store),
             task_resolved_spec=copy.deepcopy(self.hello_world_task.spec)
         )

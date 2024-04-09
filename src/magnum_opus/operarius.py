@@ -906,6 +906,7 @@ class TaskProcessor:
     )->VariableStore:
         variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='PROCESS_TASK_CALLED', event_description='Ready For Processing')
         auto_rollback = task.auto_rollback_enabled()
+        exception_raised = False
         if action == 'CreateAction':
             variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='CREATE_ACTION_START', event_description='Start of processing')
             try:
@@ -916,15 +917,7 @@ class TaskProcessor:
                 exception_text = traceback.format_exc()
                 logger.error('EXCEPTION: {}'.format(exception_text))
                 variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='CREATE_ACTION_ERROR', event_description='EXCEPTION: {}'.format(exception_text))
-                if auto_rollback is True:
-                    variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='CREATE_ACTION_ERROR', event_description='Auto rollback enabled - calling rollback action')
-                    variable_store = variable_store.add_variable(variable_name='{}:RollbackFrom'.format(task.task_id), value='CreateAction')
-                    return self.rollback_action(task=task, persistence=persistence, variable_store=copy.deepcopy(variable_store), task_resolved_spec=task_resolved_spec)
-        elif action == 'RollbackAction':
-            variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='ROLLBACK_ACTION_START', event_description='Start of processing')
-            variable_store = self.rollback_action(task=task, persistence=persistence, variable_store=variable_store, task_resolved_spec=task_resolved_spec)
-            variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='ROLLBACK_ACTION_DONE', event_description='End of processing')
-            return variable_store
+                exception_raised = True
         elif action == 'DeleteAction':
             variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DELETE_ACTION_START', event_description='Start of processing')
             try:
@@ -935,10 +928,7 @@ class TaskProcessor:
                 exception_text = traceback.format_exc()
                 logger.error('EXCEPTION: {}'.format(exception_text))
                 variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DELETE_ACTION_ERROR', event_description='EXCEPTION: {}'.format(exception_text))
-                if auto_rollback is True:
-                    variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DELETE_ACTION_ERROR', event_description='Auto rollback enabled - calling rollback action')
-                    variable_store = variable_store.add_variable(variable_name='{}:RollbackFrom'.format(task.task_id), value='DeleteAction')
-                    return self.rollback_action(task=task, persistence=persistence, variable_store=copy.deepcopy(variable_store), task_resolved_spec=task_resolved_spec)
+                exception_raised = True
         elif action == 'UpdateAction':
             variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='UPDATE_ACTION_START', event_description='Start of processing')
             try:
@@ -949,10 +939,7 @@ class TaskProcessor:
                 exception_text = traceback.format_exc()
                 logger.error('EXCEPTION: {}'.format(exception_text))
                 variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='UPDATE_ACTION_ERROR', event_description='EXCEPTION: {}'.format(exception_text))
-                if auto_rollback is True:
-                    variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='UPDATE_ACTION_ERROR', event_description='Auto rollback enabled - calling rollback action')
-                    variable_store = variable_store.add_variable(variable_name='{}:RollbackFrom'.format(task.task_id), value='UpdateAction')
-                    return self.rollback_action(task=task, persistence=persistence, variable_store=copy.deepcopy(variable_store), task_resolved_spec=task_resolved_spec)
+                exception_raised = True
         elif action == 'DescribeAction':
             variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DESCRIBE_ACTION_START', event_description='Start of processing')
             variable_store = self.describe_action(task=task, persistence=persistence, variable_store=variable_store, task_resolved_spec=task_resolved_spec)
@@ -963,6 +950,19 @@ class TaskProcessor:
             variable_store = self.detect_drift_action(task=task, persistence=persistence, variable_store=variable_store, task_resolved_spec=task_resolved_spec)
             variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DETECT_DRIFT_ACTION_DONE', event_description='End of processing')
             return variable_store
+        
+        if action == 'RollbackAction' and exception_raised is False:
+            variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='ROLLBACK_ACTION_START', event_description='Start of processing')
+            variable_store = self.rollback_action(task=task, persistence=persistence, variable_store=variable_store, task_resolved_spec=task_resolved_spec)
+            variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='ROLLBACK_ACTION_DONE', event_description='End of processing')
+            return variable_store
+        elif auto_rollback is True and action != 'RollbackAction' and exception_raised is True:
+            variable_store = variable_store.add_variable(variable_name='{}:RollbackFrom'.format(task.task_id), value=action)
+            variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='ROLLBACK_ACTION_START', event_description='Start of processing')
+            variable_store = self.rollback_action(task=task, persistence=persistence, variable_store=variable_store, task_resolved_spec=task_resolved_spec)
+            variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='ROLLBACK_ACTION_DONE', event_description='End of processing')
+            return variable_store
+
         raise Exception('Unrecognized action "{}" provided'.format(action))
     
     def create_action(
