@@ -7,7 +7,24 @@ import hashlib
 from datetime import datetime, timezone
 
 
-logger = logging.getLogger(__name__)
+class LocalLogger:
+
+    def __init__(self, logger):
+        self.logger = logger
+
+    def get_logger(self):
+        return self.logger
+
+
+local_logger = LocalLogger(logger=logging.getLogger(__name__))
+logger = local_logger.get_logger()
+
+
+def override_logger(logger_class: object):
+    global logger
+    local_logger = LocalLogger(logger=logger_class)
+    logger = None
+    logger = local_logger.get_logger()
 
 
 def produce_column_headers(with_checksums: bool=False, space_len: int=2)->str:

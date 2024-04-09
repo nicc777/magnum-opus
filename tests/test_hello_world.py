@@ -138,7 +138,9 @@ def dump_events(task_id: str, variable_store: VariableStore):   # pragma: no cov
     print('\n_______________________________________________________________________________')
 
 
-logger = TestLogger()
+test_logger = TestLogger()
+logger = test_logger
+override_logger(logger_class=test_logger)
 
 
 def random_string(string_length: int=16)->str:
