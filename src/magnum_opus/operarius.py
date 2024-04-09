@@ -5,6 +5,7 @@ import traceback
 import json
 import hashlib
 from datetime import datetime, timezone
+import re
 
 
 class LocalLogger:
@@ -1084,6 +1085,23 @@ class Hook:
         if name is not None:
             self.name = name
 
+    def _log(self, message: str, task: Task=None, level: str='info'):
+        task_id = 'unknown'
+        if task is not None:
+            if isinstance(task, Task):
+                task_id = task.task_id
+        final_message = 'HOOK [{}] TASK [{}] : {}'.format(self.name, task_id, message)
+        if level.lower().startswith('i'):
+            logger.info(final_message)
+        elif level.lower().startswith('d'):
+            logger.debug(final_message)
+        elif level.lower().startswith('e'):
+            logger.error(final_message)
+        elif level.lower().startswith('c'):
+            logger.critical(final_message)
+        else:
+            logger.warning(final_message)
+
     def run(
         self,
         task: Task=None,
@@ -1114,6 +1132,7 @@ class TaskProcessingHook(Hook):
         task_resolved_spec = copy.deepcopy(task.spec)
         if 'ResolvedSpec:{}'.format(task.task_id) in variable_store.variable_store:
             task_resolved_spec = copy.deepcopy(variable_store.variable_store['ResolvedSpec'])
+        self._log(message='task_resolved_spec: {}'.format(json.dumps(task_resolved_spec, default=str)), task=task, level='debug')
         if parameter_validator.validation_passed(parameters=parameters) is True:
             variable_store = task_processor.process_task(
                 task=task,
@@ -1130,6 +1149,82 @@ class ResolveTaskSpecVariablesHook(Hook):
     def __init__(self, name: str='ResolveTaskSpecVariablesHook'):
         super().__init__(name)
 
+    def _is_iterable(self, data: object, exclude_dict: bool=True, exclude_string: bool=True)->bool:
+        if data is None:
+            return False
+        if exclude_dict is True and isinstance(data, dict):
+            return False
+        if exclude_string is True and isinstance(data, str):
+            return False
+        try:
+            iter(data)
+        except TypeError as te:
+            return False
+        return True
+    
+    def _lookup_value(self, raw_key: str, command:str, context:str, variable_store: VariableStore, task: Task=None)->object:
+        # Typical key in key_value_store     : MyId:a_command:a_context:SubKey1:SubKey2 (SubKey1 is required, but anything afterwards is optional)
+        # Expected raw_key is something like : ${VAR:MyId:SubKey1:SubKey2}  
+        result = ''
+        self._log(message='       raw_key: {}'.format(raw_key), task=task, level='debug')
+        if raw_key.startswith('${VAR:'):                # ${VAR:MyId:SubKey1:SubKey2}        
+            key_parts = raw_key.split(':')              # ['${VAR', 'MyId', 'SubKey1', 'SubKey2}']
+            target_task_id = key_parts[1]               # MyId
+            target_index = ':'.join(key_parts[2:])      # SubKey1:SubKey2
+            target_index = target_index.replace('}', '')
+            lookup_key_base = '{}:{}:{}:{}'.format(     # MyId:a_command:a_context:SubKey1:SubKey2
+                target_task_id,
+                command,
+                context,
+                target_index
+            )
+            self._log(message='         Looking for a key that looks like "{}" in key_value_store'.format(lookup_key_base), task=task, level='debug')
+            #self._log(message='           Potential keys: {}'.format(hook_name, list(variable_store.variable_store.keys())), task=task, level='debug')
+            for key in list(variable_store.variable_store.keys()):
+                self._log(message='           Looking for key "{}" in "{}"'.format(lookup_key_base, key), task=task, level='debug')
+                if lookup_key_base in key:
+                    self._log(message='             Resolved key "{}" to swap out for reference variable "{}"'.format(key, raw_key), task=task, level='info')
+                    result = copy.deepcopy(variable_store.store[key])
+        else:
+            raise Exception('Oops - the raw key is not what we expected: raw_key: "{}"'.format(raw_key))
+        self._log(message='         Returning final result: "{}"'.format(result), task=task, level='debug')
+        return result
+
+    def _analyse_data(self, task: Task, data: object, variable_store:VariableStore, command:str, context:str)->dict:
+        self._log(message='   Analyzing data', task=task, level='info')
+        self._log(message='   Inspecting object: {}'.format(data), task=task, level='debug')
+        if data is None:
+            return data
+        modified_data = None
+        if isinstance(data, str) is True:
+            modified_data: str = copy.deepcopy(data)
+            # matches = re.findall('(\$\{VAR:[\w|\-|\s|:|.|;|_]+\})', 'wc -l ${VAR:prompt_output_path:RESULT} > ${VAR:prompt_output_path:RESULT}_STATS && rm -vf ${VAR:prompt_output_2_path:RESULT}')
+            # ['${VAR:prompt_output_path:RESULT}', '${VAR:prompt_output_path:RESULT}', '${VAR:prompt_output_2_path:RESULT}']
+            matches = re.findall('(\$\{VAR:[\w|\-|\s|:|.|;|_]+\})', data)
+            self._log(message='       matches: {}'.format(matches), task=task, level='debug')
+            for match in matches:
+                self._log(message='     Looking up value for variable placeholder "{}"'.format(match), task=task, level='debug')
+                final_value = self._lookup_value(
+                    raw_key=match,
+                    command=command,
+                    context=context,
+                    variable_store=variable_store,
+                    task=task
+                )
+                modified_data = modified_data.replace(match, final_value)
+        elif isinstance(data, dict) is True:
+            modified_data: dict = dict()
+            for key, val in data.items():
+                modified_data[key] = self._analyse_data(task=task, data=val, variable_store=variable_store, command=command, context=context)
+        elif self._is_iterable(data=data) is True:
+            modified_data: list = list()
+            for val in data:
+                modified_data.append(self._analyse_data(task=task, data=val, variable_store=variable_store, command=command, context=context))
+        else:
+            modified_data = copy.deepcopy(data)
+
+        return modified_data
+
     def run(
         self,
         task: Task=None,
@@ -1139,10 +1234,34 @@ class ResolveTaskSpecVariablesHook(Hook):
         variable_store: VariableStore=VariableStore(),
         task_process_store: TaskProcessStore=TaskProcessStore()
     )->VariableStore:
-        # TODO - replace variable place holders in the spec dict with values from the VariableStore
         updated_variable_store = VariableStore()
         updated_variable_store.variable_store = copy.deepcopy(variable_store.variable_store)
-        updated_variable_store.add_variable(variable_name='ResolvedSpec:{}'.format(task.task_id), value=dict()) # FIXME
+
+        command = 'none'
+        context = 'none'
+
+        if 'Command' in parameters:
+            if parameters['Command'] is not None:
+                if isinstance(parameters['Command'], str) is True:
+                    if len(parameters['Command']) > 0:
+                        command = parameters['Command']
+        if 'Context' in parameters:
+            if parameters['Context'] is not None:
+                if isinstance(parameters['Context'], str) is True:
+                    if len(parameters['Context']) > 0:
+                        context = parameters['Context']
+
+        updated_variable_store.add_variable(
+            variable_name='ResolvedSpec:{}'.format(task.task_id),
+            value=self._analyse_data(
+                task=task,
+                data=copy.deepcopy(task.spec),
+                variable_store=variable_store,
+                command=command,
+                context=context
+            )
+        ) 
+        return updated_variable_store
 
 
 class GeneralErrorHook(Hook):
