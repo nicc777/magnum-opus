@@ -893,7 +893,8 @@ class TaskProcessor:
         event_data = {
             'EventTimestamp': datetime.now(timezone.utc),
             'EventLabel': event_label,
-            'EventDescription': event_description
+            'EventDescription': event_description,
+            'TaskId': task.task_id,
         }
         events.append(event_data)
         logger.info('EVENT: {}'.format(json.dumps(event_data, default=str)))
