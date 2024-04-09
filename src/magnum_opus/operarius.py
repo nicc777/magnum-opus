@@ -1386,6 +1386,7 @@ class WorkflowExecutor:
 
         parameters = dict()
         parameters['Action'] = self.command_to_action_map[command]
+        parameters['Command'] = command
         parameters['Context'] = context
 
         all_events = list()
