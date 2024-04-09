@@ -907,6 +907,7 @@ class TaskProcessor:
         variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='PROCESS_TASK_CALLED', event_description='Ready For Processing')
         auto_rollback = task.auto_rollback_enabled()
         exception_raised = False
+        final_exception_message = 'Unrecognized action "{}" provided'.format(action)
         if action == 'CreateAction':
             variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='CREATE_ACTION_START', event_description='Start of processing')
             try:
@@ -918,6 +919,7 @@ class TaskProcessor:
                 logger.error('EXCEPTION: {}'.format(exception_text))
                 variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='CREATE_ACTION_ERROR', event_description='EXCEPTION: {}'.format(exception_text))
                 exception_raised = True
+                final_exception_message = 'Action "CreateAction" failed with exception - please see logs for details.'
         elif action == 'DeleteAction':
             variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DELETE_ACTION_START', event_description='Start of processing')
             try:
@@ -929,6 +931,7 @@ class TaskProcessor:
                 logger.error('EXCEPTION: {}'.format(exception_text))
                 variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DELETE_ACTION_ERROR', event_description='EXCEPTION: {}'.format(exception_text))
                 exception_raised = True
+                final_exception_message = 'Action "DeleteAction" failed with exception - please see logs for details.'
         elif action == 'UpdateAction':
             variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='UPDATE_ACTION_START', event_description='Start of processing')
             try:
@@ -940,16 +943,23 @@ class TaskProcessor:
                 logger.error('EXCEPTION: {}'.format(exception_text))
                 variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='UPDATE_ACTION_ERROR', event_description='EXCEPTION: {}'.format(exception_text))
                 exception_raised = True
+                final_exception_message = 'Action "UpdateAction" failed with exception - please see logs for details.'
         elif action == 'DescribeAction':
-            variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DESCRIBE_ACTION_START', event_description='Start of processing')
-            variable_store = self.describe_action(task=task, persistence=persistence, variable_store=variable_store, task_resolved_spec=task_resolved_spec)
-            variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DESCRIBE_ACTION_DONE', event_description='End of processing')
-            return variable_store
+            try:
+                variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DESCRIBE_ACTION_START', event_description='Start of processing')
+                variable_store = self.describe_action(task=task, persistence=persistence, variable_store=variable_store, task_resolved_spec=task_resolved_spec)
+                variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DESCRIBE_ACTION_DONE', event_description='End of processing')
+                return variable_store
+            except:
+                final_exception_message = 'Action "DescribeAction" failed with exception - please see logs for details. Even if configured, no Auto Rollback was performed on this action.'
         elif action == 'DetectDriftAction':
-            variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DETECT_DRIFT_ACTION_START', event_description='Start of processing')
-            variable_store = self.detect_drift_action(task=task, persistence=persistence, variable_store=variable_store, task_resolved_spec=task_resolved_spec)
-            variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DETECT_DRIFT_ACTION_DONE', event_description='End of processing')
-            return variable_store
+            try:
+                variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DETECT_DRIFT_ACTION_START', event_description='Start of processing')
+                variable_store = self.detect_drift_action(task=task, persistence=persistence, variable_store=variable_store, task_resolved_spec=task_resolved_spec)
+                variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DETECT_DRIFT_ACTION_DONE', event_description='End of processing')
+                return variable_store
+            except:
+                final_exception_message = 'Action "DetectDriftAction" failed with exception - please see logs for details. Even if configured, no Auto Rollback was performed on this action.'
         
         if action == 'RollbackAction' and exception_raised is False:
             variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='ROLLBACK_ACTION_START', event_description='Start of processing')
@@ -963,7 +973,7 @@ class TaskProcessor:
             variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='ROLLBACK_ACTION_DONE', event_description='End of processing')
             return variable_store
 
-        raise Exception('Unrecognized action "{}" provided'.format(action))
+        raise Exception(final_exception_message)
     
     def create_action(
         self,
