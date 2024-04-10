@@ -1264,6 +1264,104 @@ class ResolveTaskSpecVariablesHook(Hook):
         return updated_variable_store
 
 
+class TaskPostProcessingStateUpdateHook(Hook):
+
+    def __init__(self, name: str='TaskPostProcessingStateUpdateHook'):
+        super().__init__(name)
+
+    def _validate_data(self, data: dict)->bool:
+        expected_data = {
+            'resource_checksum': {
+                'can_be_none': True,
+                'type': str,
+            },
+            'resolved_spec_applied': {
+                'can_be_none': True,
+                'type': dict,
+            },
+            'state_changed': {
+                'can_be_none': False,
+                'type': bool,
+            },
+            'is_created': {
+                'can_be_none': True,
+                'type': bool,
+            },
+            'create_timestamp': {
+                'can_be_none': True,
+                'type': datetime,
+            },
+            'raw_spec': {
+                'can_be_none': True,
+                'type': dict,
+            },
+            'metadata': {
+                'can_be_none': True,
+                'type': dict,
+            },
+        }
+        for field_key in list(expected_data.keys()):
+            field_validation_rules = expected_data[field_key]
+            if field_key not in data:
+                logger.warning('Expected field key "{}", but it was not present'.format(field_key))
+                return False
+            if field_validation_rules['can_be_none'] is False and data[field_key] is None:
+                logger.warning('Field key "{}" can not have a NoneType value'.format(field_key))
+                return False
+            if isinstance(data[field_key], field_validation_rules['type']) is False:
+                logger.warning('Field key "{}" expected to be of type "{}" but found to be of type "{}"'.format(field_key, field_validation_rules['type'], type(data[field_key])))
+                return False
+        return True
+
+    def run(
+        self,
+        task: Task=None,
+        parameters: dict=dict(),
+        parameter_validator: ParameterValidation=TaskProcessingActionParameterValidation(constraints=None),
+        persistence: StatePersistence=StatePersistence(),
+        variable_store: VariableStore=VariableStore(),
+        task_process_store: TaskProcessStore=TaskProcessStore()
+    )->VariableStore:
+        updated_variable_store = VariableStore()
+        updated_variable_store.variable_store = copy.deepcopy(variable_store.variable_store)
+
+        vs_key = '{}:TASK_STATE_UPDATES'.format(task.task_id)
+        if vs_key not in updated_variable_store.variable_store:
+            logger.warning('No TASK_STATE_UPDATES variable detected - state will NOT be updated and persisted')
+            return updated_variable_store
+        
+        data = updated_variable_store.variable_store.pop(vs_key)
+        if self._validate_data(data=data) is False:
+            logger.warning('TASK_STATE_UPDATES data validation FAILED - state will NOT be updated and persisted')
+            return updated_variable_store
+        
+        if data['state_changed'] is False:
+            logger.warning('No task state changed detected - state will NOT be updated and persisted')
+            return updated_variable_store
+        
+        task.state = TaskState(
+            manifest_spec=data['raw_spec'],
+            applied_spec=data['resolved_spec_applied'],
+            resolved_spec=data['resolved_spec_applied'],
+            manifest_metadata=data['metadata'],
+            report_label=task.task_id,
+            created_timestamp=data['create_timestamp'],
+            applied_resources_checksum=data['resource_checksum'],
+            current_resource_checksum=data['resource_checksum']
+        )
+
+        persistence.update_object_state(
+            object_identifier='{}:TASK_STATE'.format(task.task_id),
+            data=task.state.to_dict(
+                with_checksums=True,
+                include_applied_spec=True
+            )
+        )
+        persistence.commit()
+
+        return updated_variable_store
+
+
 class GeneralErrorHook(Hook):
 
     def __init__(self, name: str='GeneralErrorHook') -> None:
