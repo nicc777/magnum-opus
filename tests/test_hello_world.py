@@ -14,6 +14,7 @@ import os
 import tempfile
 import shutil
 from inspect import stack
+from datetime import datetime, timezone
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/../src")
 print('sys.path={}'.format(sys.path))
@@ -182,6 +183,14 @@ class HelloWorldTaskProcessor(TaskProcessor):
             except:
                 logger.error('EXCEPTION: {}'.format(traceback.format_exc()))
 
+    def _get_resource_checksum(self, file_path: str):
+        if not os.path.exists(file_path):
+            raise Exception('File not found: {}'.format(file_path))
+        data = ''
+        with open(file_path, 'r') as f:
+            data = f.read()
+        return hashlib.sha256(data.encode('utf-8')).hexdigest()
+
     def _unittest_exception_check(self, task: Task, variable_store: VariableStore):
         force_exception = False
         key = self.create_identifier(task=task, variable_name='FORCE_UNITTEST_EXCEPTION')
@@ -247,6 +256,19 @@ class HelloWorldTaskProcessor(TaskProcessor):
         with open(output_path, 'w') as f:
             f.write(content)
 
+        updated_variable_store.add_variable(
+            variable_name=self.create_identifier(task=task, variable_name='TASK_STATE_UPDATES'),
+            value={
+                'resource_checksum': self._get_resource_checksum(file_path=output_path),
+                'resolved_spec_applied': copy.deepcopy(task_resolved_spec),
+                'state_changed': True,
+                'is_created': True,
+                'create_timestamp': datetime.now(timezone.utc),
+                'raw_spec': copy.deepcopy(task.spec),
+                'metadata': copy.deepcopy(task.metadata),
+            }
+        )
+
         self._delete_backup(backup_path=backup_path)
 
         return updated_variable_store
@@ -280,6 +302,19 @@ class HelloWorldTaskProcessor(TaskProcessor):
                     logger.error('Failed to roll back from previous "{}"'.format(rollback_from))
                     raise Exception('Failed to roll back from previous "{}"'.format(rollback_from))
 
+        updated_variable_store.add_variable(
+            variable_name=self.create_identifier(task=task, variable_name='TASK_STATE_UPDATES'),
+            value={
+                'resource_checksum': None,
+                'resolved_spec_applied': None,
+                'state_changed': False,
+                'is_created': None,
+                'create_timestamp': None,
+                'raw_spec': None,
+                'metadata': None,
+            }
+        )
+
         self._delete_backup(backup_path=backup_path)
 
         return updated_variable_store
@@ -307,6 +342,20 @@ class HelloWorldTaskProcessor(TaskProcessor):
         self._unittest_exception_check(task=task, variable_store=variable_store)
         if os.path.exists(output_path) is True:
             os.unlink(output_path)
+
+        updated_variable_store.add_variable(
+            variable_name=self.create_identifier(task=task, variable_name='TASK_STATE_UPDATES'),
+            value={
+                'resource_checksum': None,
+                'resolved_spec_applied': copy.deepcopy(task_resolved_spec),
+                'state_changed': True,
+                'is_created': False,
+                'create_timestamp': 0,
+                'raw_spec': copy.deepcopy(task.spec),
+                'metadata': copy.deepcopy(task.metadata),
+            }
+        )
+
         self._delete_backup(backup_path=backup_path)
 
         return updated_variable_store
@@ -337,10 +386,24 @@ class HelloWorldTaskProcessor(TaskProcessor):
         if os.path.exists(output_path) is False:
             raise Exception('File does not exists')
         self._create_backup(output_path=output_path, backup_path=backup_path)
-
+        
+        os.unlink(output_path)
         with open(output_path, 'w') as f:
             f.write(content)
         self._unittest_exception_check(task=task, variable_store=variable_store)
+
+        updated_variable_store.add_variable(
+            variable_name=self.create_identifier(task=task, variable_name='TASK_STATE_UPDATES'),
+            value={
+                'resource_checksum': self._get_resource_checksum(file_path=output_path),
+                'resolved_spec_applied': copy.deepcopy(task_resolved_spec),
+                'state_changed': True,
+                'is_created': True,
+                'create_timestamp': datetime.now(timezone.utc),
+                'raw_spec': copy.deepcopy(task.spec),
+                'metadata': copy.deepcopy(task.metadata),
+            }
+        )
 
         self._delete_backup(backup_path=backup_path)
 
