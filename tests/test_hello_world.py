@@ -527,7 +527,7 @@ class HelloWorldTaskProcessor(TaskProcessor):
         return updated_variable_store
     
 
-class TestHelloWorldScenario(unittest.TestCase):    # pragma: no cover
+class TestBasicHelloWorldScenario(unittest.TestCase):    # pragma: no cover
 
     def setUp(self):
         print()
@@ -709,6 +709,61 @@ class TestHelloWorldScenario(unittest.TestCase):    # pragma: no cover
         with open(self.output_path, 'r') as f:
             data = f.read()
         self.assertEqual(data, self.hello_world_task.spec['content'])
+
+        print_logger_lines(logger=logger)
+        dump_variable_store(
+            test_class_name=self.__class__.__name__,
+            test_method_name=stack()[0][3],
+            variable_store=copy.deepcopy(variable_store)
+        )
+        dump_events(
+            task_id=self.hello_world_task.task_id,
+            variable_store=copy.deepcopy(variable_store)
+        )
+
+
+class TestHelloWorldWithResolveTaskSpecVariablesHookScenario(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+        self.output_path = '{}{}hello-world.txt'.format(tempfile.gettempdir(), os.sep)
+        self.hello_world_processor = HelloWorldTaskProcessor()
+        self.hello_world_task = Task(
+            api_version='hello-world/v1',
+            kind='HelloWorldV3',
+            metadata={'name': 'hello-world'},
+            spec={
+                'outputPath': '{}{}hello-world.txt'.format(tempfile.gettempdir(), os.sep),
+                'content': '${}VAR:some-other-task:::OUTPUT{}'.format('{', '}')
+            }
+        )
+
+    def tearDown(self):
+        if os.path.exists(self.output_path) is True:
+            os.unlink(self.output_path)
+        self.output_path = None
+        self.hello_world_task = None
+        self.hello_world_processor = None
+        logger.reset()
+
+    def test_hook_functionality_resolving_a_known_variable_1(self):
+        variable_store = VariableStore()
+        variable_store.add_variable(
+            variable_name='some-other-task:::OUTPUT',
+            value='Resolved Value for Unit Testing'
+        )
+        hook = ResolveTaskSpecVariablesHook()
+        result = hook.run(
+            task=self.hello_world_task,
+            parameters={
+                'Command': 'apply',
+                'Context': 'unittest'
+            },
+            variable_store=variable_store
+        )
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, VariableStore)
 
         print_logger_lines(logger=logger)
         dump_variable_store(
