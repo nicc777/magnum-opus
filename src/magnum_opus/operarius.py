@@ -1169,22 +1169,53 @@ class ResolveTaskSpecVariablesHook(Hook):
         self._log(message='       raw_key: {}'.format(raw_key), task=task, level='debug')
         if raw_key.startswith('${VAR:'):                # ${VAR:MyId:SubKey1:SubKey2}        
             key_parts = raw_key.split(':')              # ['${VAR', 'MyId', 'SubKey1', 'SubKey2}']
+            self._log(message='         key_parts      : {}'.format(key_parts), task=task, level='debug')
             target_task_id = key_parts[1]               # MyId
             target_index = ':'.join(key_parts[2:])      # SubKey1:SubKey2
             target_index = target_index.replace('}', '')
-            lookup_key_base = '{}:{}:{}:{}'.format(     # MyId:a_command:a_context:SubKey1:SubKey2
-                target_task_id,
-                command,
-                context,
-                target_index
+            self._log(message='         target_task_id : {}'.format(target_task_id), task=task, level='debug')
+            self._log(message='         target_index   : {}'.format(target_index), task=task, level='debug')
+            potential_keys = list()
+            potential_keys.append(
+                '{}:{}:{}:{}'.format(       # MyId:a_command:a_context:SubKey1:SubKey2 - variable bound to command and context
+                    target_task_id,
+                    command,
+                    context,
+                    target_index
+                )
             )
-            self._log(message='         Looking for a key that looks like "{}" in key_value_store'.format(lookup_key_base), task=task, level='debug')
-            #self._log(message='           Potential keys: {}'.format(hook_name, list(variable_store.variable_store.keys())), task=task, level='debug')
-            for key in list(variable_store.variable_store.keys()):
-                self._log(message='           Looking for key "{}" in "{}"'.format(lookup_key_base, key), task=task, level='debug')
-                if lookup_key_base in key:
-                    self._log(message='             Resolved key "{}" to swap out for reference variable "{}"'.format(key, raw_key), task=task, level='info')
-                    result = copy.deepcopy(variable_store.store[key])
+            potential_keys.append(
+                '{}:{}::{}'.format(       # MyId:a_command:a_context:SubKey1:SubKey2 - variable bound to command bot not context
+                    target_task_id,
+                    command,
+                    target_index
+                )
+            )
+            potential_keys.append(
+                '{}::{}:{}'.format(       # MyId:a_command:a_context:SubKey1:SubKey2 - variable bound to context bot not command
+                    target_task_id,
+                    context,
+                    target_index
+                )
+            )
+            potential_keys.append(
+                '{}:{}'.format(             # MyId:SubKey1:SubKey2 - variable not bound to any command or context
+                    target_task_id,
+                    target_index
+                )
+            )
+
+            for lookup_key_base in potential_keys:
+
+                self._log(message='         Looking for a key that looks like "{}" in key_value_store'.format(lookup_key_base), task=task, level='debug')
+                #self._log(message='           Potential keys: {}'.format(hook_name, list(variable_store.variable_store.keys())), task=task, level='debug')
+                for key in list(variable_store.variable_store.keys()):
+                    self._log(message='           Looking for key "{}" in "{}"'.format(lookup_key_base, key), task=task, level='debug')
+                    if lookup_key_base in key:
+                        self._log(message='              Resolved key "{}" to swap out for reference variable "{}"'.format(key, raw_key), task=task, level='info')
+                        result = copy.deepcopy(variable_store.variable_store[key])
+                    else:
+                        self._log(message='              Key "{}" Not Found'.format(lookup_key_base), task=task, level='info')
         else:
             raise Exception('Oops - the raw key is not what we expected: raw_key: "{}"'.format(raw_key))
         self._log(message='         Returning final result: "{}"'.format(result), task=task, level='debug')

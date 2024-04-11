@@ -735,7 +735,7 @@ class TestHelloWorldWithResolveTaskSpecVariablesHookScenario(unittest.TestCase):
             metadata={'name': 'hello-world'},
             spec={
                 'outputPath': '{}{}hello-world.txt'.format(tempfile.gettempdir(), os.sep),
-                'content': '${}VAR:some-other-task:::OUTPUT{}'.format('{', '}')
+                'content': '${}VAR:some-other-task:OUTPUT{}'.format('{', '}')
             }
         )
 
@@ -750,7 +750,7 @@ class TestHelloWorldWithResolveTaskSpecVariablesHookScenario(unittest.TestCase):
     def test_hook_functionality_resolving_a_known_variable_1(self):
         variable_store = VariableStore()
         variable_store.add_variable(
-            variable_name='some-other-task:::OUTPUT',
+            variable_name='some-other-task:OUTPUT',
             value='Resolved Value for Unit Testing'
         )
         hook = ResolveTaskSpecVariablesHook()
@@ -769,12 +769,23 @@ class TestHelloWorldWithResolveTaskSpecVariablesHookScenario(unittest.TestCase):
         dump_variable_store(
             test_class_name=self.__class__.__name__,
             test_method_name=stack()[0][3],
-            variable_store=copy.deepcopy(variable_store)
+            variable_store=copy.deepcopy(result)
         )
         dump_events(
             task_id=self.hello_world_task.task_id,
-            variable_store=copy.deepcopy(variable_store)
+            variable_store=copy.deepcopy(result)
         )
+
+        expected_resolved_spec_key = 'ResolvedSpec:{}'.format(self.hello_world_task.task_id)
+        self.assertTrue(expected_resolved_spec_key in result.variable_store)
+        data = result.variable_store[expected_resolved_spec_key]
+        self.assertIsNotNone(data)
+        self.assertIsInstance(data, dict)
+        self.assertTrue('outputPath' in data)
+        self.assertTrue('content' in data)
+        self.assertEqual(data['outputPath'], self.hello_world_task.spec['outputPath'])
+        self.assertNotEqual(data['content'], self.hello_world_task.spec['content'])
+        self.assertEqual(data['content'], 'Resolved Value for Unit Testing')
 
 
 if __name__ == '__main__':
