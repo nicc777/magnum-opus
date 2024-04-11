@@ -221,12 +221,25 @@ class HelloWorldTaskProcessor(TaskProcessor):
         updated_variable_store.variable_store = copy.deepcopy(variable_store.variable_store)
 
         output_path = None
+        new_variable_value = None
         content = ''
 
         if 'outputPath' in task_resolved_spec:
             if task_resolved_spec['outputPath'] is not None:
                 if isinstance(task_resolved_spec['outputPath'], str):
                     output_path = task_resolved_spec['outputPath']
+
+        if output_path is None:
+            raise Exception('The parameter "outputPath" can not be a NoneType value')
+        
+        elements_of_output_path = output_path.split(os.sep)
+        output_filename = elements_of_output_path[-1]
+        if output_filename.startswith('new_') is False:
+            new_output_filename = 'new_{}'.format(output_filename)
+            new_variable_value = output_path.replace(output_filename, new_output_filename)
+        else:
+            new_variable_value = copy.deepcopy(output_path)
+
 
         if 'content' in task_resolved_spec:
             content = '{}'.format(task_resolved_spec['content'])
@@ -267,6 +280,10 @@ class HelloWorldTaskProcessor(TaskProcessor):
                 'raw_spec': copy.deepcopy(task.spec),
                 'metadata': copy.deepcopy(task.metadata),
             }
+        )
+        updated_variable_store.add_variable(
+            variable_name=self.create_identifier(task=task, variable_name='OUTPUT'),
+            value=new_variable_value
         )
 
         self._delete_backup(backup_path=backup_path)
@@ -729,12 +746,21 @@ class TestHelloWorldWithResolveTaskSpecVariablesHookScenario(unittest.TestCase):
         print('-'*80)
         self.output_path = '{}{}hello-world.txt'.format(tempfile.gettempdir(), os.sep)
         self.hello_world_processor = HelloWorldTaskProcessor()
-        self.hello_world_task = Task(
+        self.hello_world_task_nr_1 = Task(
             api_version='hello-world/v1',
             kind='HelloWorldV3',
-            metadata={'name': 'hello-world'},
+            metadata={'name': 'hello-world-1'},
             spec={
                 'outputPath': '{}{}hello-world.txt'.format(tempfile.gettempdir(), os.sep),
+                'content': random_string(string_length=256)
+            }
+        )
+        self.hello_world_task_nr_2 = Task(
+            api_version='hello-world/v1',
+            kind='HelloWorldV3',
+            metadata={'name': 'hello-world-2'},
+            spec={
+                'outputPath': '${}VAR:hello-world-1:OUTPUT{}'.format('{', '}'),
                 'content': '${}VAR:some-other-task:OUTPUT{}'.format('{', '}')
             }
         )
@@ -743,7 +769,8 @@ class TestHelloWorldWithResolveTaskSpecVariablesHookScenario(unittest.TestCase):
         if os.path.exists(self.output_path) is True:
             os.unlink(self.output_path)
         self.output_path = None
-        self.hello_world_task = None
+        self.hello_world_task_nr_1 = None
+        self.hello_world_task_nr_2 = None
         self.hello_world_processor = None
         logger.reset()
 
@@ -753,9 +780,13 @@ class TestHelloWorldWithResolveTaskSpecVariablesHookScenario(unittest.TestCase):
             variable_name='some-other-task:OUTPUT',
             value='Resolved Value for Unit Testing'
         )
+        variable_store.add_variable(
+            variable_name='hello-world-1:OUTPUT',
+            value='{}{}test_hello-world.txt'.format(tempfile.gettempdir(), os.sep)
+        )
         hook = ResolveTaskSpecVariablesHook()
         result = hook.run(
-            task=self.hello_world_task,
+            task=self.hello_world_task_nr_2,
             parameters={
                 'Command': 'apply',
                 'Context': 'unittest'
@@ -772,19 +803,20 @@ class TestHelloWorldWithResolveTaskSpecVariablesHookScenario(unittest.TestCase):
             variable_store=copy.deepcopy(result)
         )
         dump_events(
-            task_id=self.hello_world_task.task_id,
+            task_id=self.hello_world_task_nr_2.task_id,
             variable_store=copy.deepcopy(result)
         )
 
-        expected_resolved_spec_key = 'ResolvedSpec:{}'.format(self.hello_world_task.task_id)
+        expected_resolved_spec_key = 'ResolvedSpec:{}'.format(self.hello_world_task_nr_2.task_id)
         self.assertTrue(expected_resolved_spec_key in result.variable_store)
         data = result.variable_store[expected_resolved_spec_key]
         self.assertIsNotNone(data)
         self.assertIsInstance(data, dict)
         self.assertTrue('outputPath' in data)
         self.assertTrue('content' in data)
-        self.assertEqual(data['outputPath'], self.hello_world_task.spec['outputPath'])
-        self.assertNotEqual(data['content'], self.hello_world_task.spec['content'])
+        self.assertNotEqual(data['outputPath'], self.hello_world_task_nr_2.spec['outputPath'])
+        self.assertEqual(data['outputPath'], '{}{}test_hello-world.txt'.format(tempfile.gettempdir(), os.sep))
+        self.assertNotEqual(data['content'], self.hello_world_task_nr_2.spec['content'])
         self.assertEqual(data['content'], 'Resolved Value for Unit Testing')
 
 
