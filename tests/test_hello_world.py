@@ -819,6 +819,64 @@ class TestHelloWorldWithResolveTaskSpecVariablesHookScenario(unittest.TestCase):
         self.assertNotEqual(data['content'], self.hello_world_task_nr_2.spec['content'])
         self.assertEqual(data['content'], 'Resolved Value for Unit Testing')
 
+    def test_hook_functionality_resolving_combined_scenario_variables_1(self):
+        variable_store = VariableStore()
+        variable_store.add_variable(
+            variable_name='some-other-task:OUTPUT',
+            value='Resolved Value for Unit Testing'
+        )
+        variable_store = self.hello_world_processor.process_task(
+            task=copy.deepcopy(self.hello_world_task_nr_1),
+            action='CreateAction',
+            variable_store=copy.deepcopy(variable_store),
+            task_resolved_spec=copy.deepcopy(self.hello_world_task_nr_1.spec)
+        )
+        hook = ResolveTaskSpecVariablesHook()
+        result = hook.run(
+            task=self.hello_world_task_nr_2,
+            parameters={
+                'Command': 'apply',
+                'Context': 'unittest'
+            },
+            variable_store=copy.deepcopy(variable_store)
+        )
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, VariableStore)
+
+        expected_resolved_spec_key = 'ResolvedSpec:{}'.format(self.hello_world_task_nr_2.task_id)
+        self.assertTrue(expected_resolved_spec_key in result.variable_store)
+        data = result.variable_store[expected_resolved_spec_key]
+        self.assertIsNotNone(data)
+        self.assertIsInstance(data, dict)
+        self.assertTrue('outputPath' in data)
+        self.assertTrue('content' in data)
+        self.assertNotEqual(data['outputPath'], self.hello_world_task_nr_2.spec['outputPath'])
+        self.assertEqual(data['outputPath'], '{}{}new_hello-world.txt'.format(tempfile.gettempdir(), os.sep))
+        self.assertNotEqual(data['content'], self.hello_world_task_nr_2.spec['content'])
+        self.assertEqual(data['content'], 'Resolved Value for Unit Testing')
+
+        variable_store = self.hello_world_processor.process_task(
+            task=copy.deepcopy(self.hello_world_task_nr_2),
+            action='CreateAction',
+            variable_store=copy.deepcopy(variable_store),
+            task_resolved_spec=copy.deepcopy(data)
+        )
+
+        print_logger_lines(logger=logger)
+        dump_variable_store(
+            test_class_name=self.__class__.__name__,
+            test_method_name=stack()[0][3],
+            variable_store=copy.deepcopy(variable_store)
+        )
+        dump_events(
+            task_id=self.hello_world_task_nr_1.task_id,
+            variable_store=copy.deepcopy(variable_store)
+        )
+        dump_events(
+            task_id=self.hello_world_task_nr_2.task_id,
+            variable_store=copy.deepcopy(variable_store)
+        )
+
 
 if __name__ == '__main__':
     unittest.main()
