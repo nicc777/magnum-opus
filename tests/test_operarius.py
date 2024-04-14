@@ -78,16 +78,22 @@ class TestLogger:   # pragma: no cover
 
 
 def print_logger_lines(logger:TestLogger):  # pragma: no cover
+    print('\n\n-------------------------------------------------------------------------------')
+    print('\t\tLOG DUMP')
+    print('\t\t-------------------')
     for line in logger.all_lines_in_sequence:
         print(line)
+    print('\n_______________________________________________________________________________')
 
 
-def dump_key_value_store(test_class_name: str, test_method_name: str, variable_store: VariableStore):
+def dump_variable_store(test_class_name: str, test_method_name: str, variable_store: VariableStore):
     try:
         print('\n\n-------------------------------------------------------------------------------')
+        print('\t\tVARIABLE STORE DUMP')
+        print('\t\t-------------------')
         print('\t\tTest Class  : {}'.format(test_class_name))
         print('\t\tTest Method : {}'.format(test_method_name))
-        print('\n-------------------------------------------------------------------------------')
+        print()
 
         # First get the max key length:
         max_key_len = 0
@@ -110,7 +116,7 @@ def dump_key_value_store(test_class_name: str, test_method_name: str, variable_s
 def dump_events(task_id: str, variable_store: VariableStore):   # pragma: no cover
     print('\n\n-------------------------------------------------------------------------------')
     print('\t\tEVENTS for task  : {}'.format(task_id))
-    print('\n-------------------------------------------------------------------------------')
+    print()
     event_key = '{}:PROCESSING_EVENTS'.format(task_id)
     if event_key in variable_store.variable_store:
         if variable_store.variable_store[event_key] is not None:
@@ -120,7 +126,9 @@ def dump_events(task_id: str, variable_store: VariableStore):   # pragma: no cov
     print('\n_______________________________________________________________________________')
 
 
-logger = TestLogger()
+test_logger = TestLogger()
+logger = test_logger
+override_logger(logger_class=test_logger)
 
 
 class DummyTaskProcessor1(TaskProcessor):
@@ -331,7 +339,7 @@ class TestDummyTaskProcessor1(unittest.TestCase):    # pragma: no cover
         )
 
         print_logger_lines(logger=logger)
-        dump_key_value_store(
+        dump_variable_store(
             test_class_name=self.__class__.__name__,
             test_method_name=stack()[0][3],
             variable_store=copy.deepcopy(variable_store)
@@ -365,7 +373,7 @@ class TestDummyTaskProcessor1(unittest.TestCase):    # pragma: no cover
         )
 
         print_logger_lines(logger=logger)
-        dump_key_value_store(
+        dump_variable_store(
             test_class_name=self.__class__.__name__,
             test_method_name=stack()[0][3],
             variable_store=variable_store
@@ -410,7 +418,7 @@ class TestDummyTaskProcessor1(unittest.TestCase):    # pragma: no cover
         )
 
         print_logger_lines(logger=logger)
-        dump_key_value_store(
+        dump_variable_store(
             test_class_name=self.__class__.__name__,
             test_method_name=stack()[0][3],
             variable_store=variable_store
@@ -459,7 +467,7 @@ class TestDummyTaskProcessor1(unittest.TestCase):    # pragma: no cover
         )
 
         print_logger_lines(logger=logger)
-        dump_key_value_store(
+        dump_variable_store(
             test_class_name=self.__class__.__name__,
             test_method_name=stack()[0][3],
             variable_store=variable_store
@@ -507,7 +515,7 @@ class TestDummyTaskProcessor1(unittest.TestCase):    # pragma: no cover
         )
 
         print_logger_lines(logger=logger)
-        dump_key_value_store(
+        dump_variable_store(
             test_class_name=self.__class__.__name__,
             test_method_name=stack()[0][3],
             variable_store=variable_store
@@ -555,7 +563,7 @@ class TestDummyTaskProcessor1(unittest.TestCase):    # pragma: no cover
         )
 
         print_logger_lines(logger=logger)
-        dump_key_value_store(
+        dump_variable_store(
             test_class_name=self.__class__.__name__,
             test_method_name=stack()[0][3],
             variable_store=variable_store
