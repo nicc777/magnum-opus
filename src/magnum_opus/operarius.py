@@ -857,12 +857,13 @@ class Tasks(Sequence):
     def get_task_names_in_order(self, command: str, context: str)->list:
         task_names_in_preferred_processing_order = list()
         for task_name in list(self.tasks.keys()):
-            task_names_in_preferred_processing_order = self._task_ordering(
-                current_processing_order=copy.deepcopy(task_names_in_preferred_processing_order),
-                candidate_task_name=task_name,
-                command=command,
-                context=context
-            )
+            if task_name not in task_names_in_preferred_processing_order:
+                task_names_in_preferred_processing_order = self._task_ordering(
+                    current_processing_order=copy.deepcopy(task_names_in_preferred_processing_order),
+                    candidate_task_name=task_name,
+                    command=command,
+                    context=context
+                )
                 
         return task_names_in_preferred_processing_order
     

@@ -615,16 +615,41 @@ class TestTasks(unittest.TestCase):    # pragma: no cover
     def setUp(self):
         print()
         print('-'*80)
-        self.task01 = Task(
+        self.task_01 = Task(
             api_version='DummyTaskProcessor1/v1',
             kind='DummyTaskProcessor1',
-            metadata={'name': 'test-task'},
+            metadata={'name': 'test-task-01'},
+            spec={'testField': 'testValue'}
+        )
+        self.task_02 = Task(
+            api_version='DummyTaskProcessor1/v1',
+            kind='DummyTaskProcessor1',
+            metadata={'name': 'test-task-02'},
             spec={'testField': 'testValue'}
         )
 
+    def tearDown(self):
+        self.task_01 = None
+        self.task_02 = None
+        return super().tearDown()
+
     def test_basic_01(self):
-        pass
-    
+        # setup most basic dependency
+        self.task_02.metadata['dependencies'] = [
+            {
+                'tasks': ['test-task-01',],
+            }
+        ]
+        tasks = Tasks()
+        tasks.add_task(task=copy.deepcopy(self.task_02))
+        tasks.add_task(task=copy.deepcopy(self.task_01))
+        result = tasks.get_task_names_in_order(command='command1', context='context1')
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0], 'test-task-01')
+        self.assertEqual(result[1], 'test-task-02')
+
 
 if __name__ == '__main__':
     unittest.main()
