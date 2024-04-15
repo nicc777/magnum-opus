@@ -803,6 +803,35 @@ class TestTasks(unittest.TestCase):    # pragma: no cover
 
         self.assertIsNone(result)
 
+    def test_task_ordering_in_multiple_daisy_chained_dependencies_01(self):
+        # setup most basic dependency
+        self.task_02.metadata['dependencies'] = [
+            {
+                'tasks': ['test-task-01','test-task-03',],
+            }
+        ]
+        self.task_04.metadata['dependencies'] = [
+            {
+                'tasks': ['test-task-01','test-task-02',],
+            }
+        ]
+        tasks = Tasks()
+        tasks.add_task(task=copy.deepcopy(self.task_02))
+        tasks.add_task(task=copy.deepcopy(self.task_04))
+        tasks.add_task(task=copy.deepcopy(self.task_01))
+        tasks.add_task(task=copy.deepcopy(self.task_03))
+        result = tasks.get_task_names_in_order(command='command1', context='con1')
+
+        print_logger_lines(logger=logger)
+
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), 4)
+        self.assertEqual(result[0], 'test-task-01')
+        self.assertEqual(result[1], 'test-task-03')
+        self.assertEqual(result[2], 'test-task-02')
+        self.assertEqual(result[3], 'test-task-04')
+
 
 if __name__ == '__main__':
     unittest.main()
