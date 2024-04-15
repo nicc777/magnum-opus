@@ -627,13 +627,25 @@ class TestTasks(unittest.TestCase):    # pragma: no cover
             metadata={'name': 'test-task-02'},
             spec={'testField': 'testValue'}
         )
+        self.task_03 = Task(
+            api_version='DummyTaskProcessor1/v1',
+            kind='DummyTaskProcessor1',
+            metadata={'name': 'test-task-03'},
+            spec={'testField': 'testValue'}
+        )
+        self.task_04 = Task(
+            api_version='DummyTaskProcessor1/v1',
+            kind='DummyTaskProcessor1',
+            metadata={'name': 'test-task-04'},
+            spec={'testField': 'testValue'}
+        )
 
     def tearDown(self):
         self.task_01 = None
         self.task_02 = None
         return super().tearDown()
 
-    def test_basic_01(self):
+    def test_basic_task_dependency_01(self):
         # setup most basic dependency
         self.task_02.metadata['dependencies'] = [
             {
@@ -649,6 +661,34 @@ class TestTasks(unittest.TestCase):    # pragma: no cover
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0], 'test-task-01')
         self.assertEqual(result[1], 'test-task-02')
+
+    def test_basic_task_dependency_with_command_and_context_01(self):
+        # setup most basic dependency
+        self.task_02.metadata['dependencies'] = [
+            {
+                'tasks': ['test-task-01',],
+                'commands': ['command1', 'command2',],
+                'contexts': ['con1','con2',],
+            }
+        ]
+        self.task_03.metadata['dependencies'] = [
+            {
+                'tasks': ['test-task-01',],
+                'commands': ['command2', 'command3',],
+                'contexts': ['con2','con3'],
+            }
+        ]
+        tasks = Tasks()
+        tasks.add_task(task=copy.deepcopy(self.task_02))
+        tasks.add_task(task=copy.deepcopy(self.task_03))
+        tasks.add_task(task=copy.deepcopy(self.task_01))
+        result = tasks.get_task_names_in_order(command='command2', context='con2')
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0], 'test-task-01')
+        self.assertTrue('test-task-02' in result)
+        self.assertTrue('test-task-03' in result)
 
 
 if __name__ == '__main__':

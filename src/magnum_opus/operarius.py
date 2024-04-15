@@ -840,12 +840,13 @@ class Tasks(Sequence):
         if self.task_scoped_for_processing(task_name=candidate_task_name, command=command, context=context) is True:
             for dependant_task_name in self.get_task_dependencies_as_list_of_task_names(task_name=candidate_task_name, command=command, context=context):
                 if self.task_scoped_for_processing(task_name=dependant_task_name, command=command, context=context) is True:
-                    task_names_in_preferred_processing_order += self._task_ordering(
-                        current_processing_order=copy.deepcopy(task_names_in_preferred_processing_order),
-                        candidate_task_name=dependant_task_name,
-                        command=command,
-                        context=context
-                    )
+                    if dependant_task_name not in task_names_in_preferred_processing_order:
+                        task_names_in_preferred_processing_order += self._task_ordering(
+                            current_processing_order=copy.deepcopy(task_names_in_preferred_processing_order),
+                            candidate_task_name=dependant_task_name,
+                            command=command,
+                            context=context
+                        )
                 else:
                     logger.critical('Task named "{}" has a dependant task named "{}" which is NOT in scope for processing.'.format(candidate_task_name, dependant_task_name))
                     raise Exception('Dependant task "{}" not in scope for task processing for task "{}" - cannot continue.'.format(dependant_task_name, candidate_task_name))
