@@ -639,6 +639,7 @@ class TestTasks(unittest.TestCase):    # pragma: no cover
             metadata={'name': 'test-task-04'},
             spec={'testField': 'testValue'}
         )
+        logger.reset()
 
     def tearDown(self):
         self.task_01 = None
@@ -647,6 +648,12 @@ class TestTasks(unittest.TestCase):    # pragma: no cover
 
     def test_basic_task_dependency_01(self):
         # setup most basic dependency
+        self.task_01.metadata['processingScope'] = [
+            {
+                'commands': ['command1', 'command2',],
+                'contexts': ['con1','con2'],
+            },
+        ]
         self.task_02.metadata['dependencies'] = [
             {
                 'tasks': ['test-task-01',],
@@ -655,7 +662,10 @@ class TestTasks(unittest.TestCase):    # pragma: no cover
         tasks = Tasks()
         tasks.add_task(task=copy.deepcopy(self.task_02))
         tasks.add_task(task=copy.deepcopy(self.task_01))
-        result = tasks.get_task_names_in_order(command='command1', context='context1')
+        result = tasks.get_task_names_in_order(command='command1', context='con1')
+
+        print_logger_lines(logger=logger)
+
         self.assertIsNotNone(result)
         self.assertIsInstance(result, list)
         self.assertEqual(len(result), 2)
@@ -664,6 +674,12 @@ class TestTasks(unittest.TestCase):    # pragma: no cover
 
     def test_basic_task_dependency_with_command_and_context_01(self):
         # setup most basic dependency
+        self.task_01.metadata['processingScope'] = [
+            {
+                'commands': ['command1', 'command2',],
+                'contexts': ['con1','con2'],
+            },
+        ]
         self.task_02.metadata['dependencies'] = [
             {
                 'tasks': ['test-task-01',],
@@ -689,6 +705,9 @@ class TestTasks(unittest.TestCase):    # pragma: no cover
         tasks.add_task(task=copy.deepcopy(self.task_03))
         tasks.add_task(task=copy.deepcopy(self.task_01))
         result = tasks.get_task_names_in_order(command='command2', context='con2')
+
+        print_logger_lines(logger=logger)
+
         self.assertIsNotNone(result)
         self.assertIsInstance(result, list)
         self.assertEqual(len(result), 3)
@@ -698,6 +717,12 @@ class TestTasks(unittest.TestCase):    # pragma: no cover
 
     def test_basic_task_dependency_with_command_and_context_02(self):
         # setup most basic dependency
+        self.task_01.metadata['processingScope'] = [
+            {
+                'commands': ['command1', 'command2',],
+                'contexts': ['con1','con2'],
+            },
+        ]
         self.task_02.metadata['dependencies'] = [
             {
                 'tasks': ['test-task-01',],
@@ -723,12 +748,60 @@ class TestTasks(unittest.TestCase):    # pragma: no cover
         tasks.add_task(task=copy.deepcopy(self.task_03))
         tasks.add_task(task=copy.deepcopy(self.task_01))
         result = tasks.get_task_names_in_order(command='command1', context='con1')
+
+        print_logger_lines(logger=logger)
+
         self.assertIsNotNone(result)
         self.assertIsInstance(result, list)
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0], 'test-task-01')
         self.assertTrue('test-task-02' in result)
         self.assertFalse('test-task-03' in result)
+
+    def test_basic_task_dependency_with_command_and_context_03(self):
+        """
+            setup most basic dependencies and processing scopes.
+
+            This test assumes the processing will be aborted because task named "test-task-01" is a dependency of 
+            "test-task-02", but the dependant task is NOT scoped for processing in this command and context
+        """
+        self.task_01.metadata['processingScope'] = [
+            {
+                'commands': ['command1', 'command2',],
+                'contexts': ['con1','con2'],
+            },
+        ]
+        self.task_02.metadata['dependencies'] = [
+            {
+                'tasks': ['test-task-01',],
+                'commands': ['command1', 'command2',],
+                'contexts': ['con1','con2',],
+            },
+        ]
+        self.task_03.metadata['dependencies'] = [
+            {
+                'tasks': ['test-task-01',],
+                'commands': ['command2', 'command3',],
+                'contexts': ['con2','con3'],
+            },
+        ]
+        self.task_03.metadata['processingScope'] = [
+            {
+                'commands': ['command2', 'command3',],
+                'contexts': ['con2','con3'],
+            },
+        ]
+        tasks = Tasks()
+        tasks.add_task(task=copy.deepcopy(self.task_02))
+        tasks.add_task(task=copy.deepcopy(self.task_03))
+        tasks.add_task(task=copy.deepcopy(self.task_01))
+        result = None
+        with self.assertRaises(Exception):
+            result = tasks.get_task_names_in_order(command='command3', context='con3')
+
+        print_logger_lines(logger=logger)
+
+        self.assertIsNone(result)
 
 
 if __name__ == '__main__':

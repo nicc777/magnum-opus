@@ -701,6 +701,12 @@ class Tasks(Sequence):
             task_defined_dependency: dict
             for task_defined_dependency in task_defined_dependencies:
                 if 'tasks' in task_defined_dependency:
+
+                    for dependant_task_name in task_defined_dependency['tasks']:
+                        if self.task_scoped_for_processing(task_name=dependant_task_name, command=command, context=context) is False:
+                            logger.critical('Task "{}" depends on task "{}", but th dependant task is NOT scoped for this command and/or context. Unable to determine how to proceed - please resolve dependencies and scopes.'.format(task_name, dependant_task_name))
+                            raise Exception('Task "{}" depends on task "{}", but th dependant task is NOT scoped for this command and/or context. Unable to determine how to proceed - please resolve dependencies and scopes.'.format(task_name, dependant_task_name))
+
                     if 'commands' not in task_defined_dependency and 'contexts' not in task_defined_dependency:
                         dependencies += task_defined_dependency['tasks']
                     elif 'commands' not in task_defined_dependency and 'contexts' in task_defined_dependency:
