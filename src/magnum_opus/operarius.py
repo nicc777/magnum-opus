@@ -678,11 +678,30 @@ class Task:
     
 
 class Tasks(Sequence):
+    """Holds a collection of `Task` instances
+
+    Add each `Task` with the `add_task()` method. Failing to do so may result in errors.
+
+    Attributes:
+        tasks: A dictionary containing the collection of `Task` instances
+    """
 
     def __init__(self):
+        """Initializes `Tasks`
+        """
         self.tasks = dict()
 
     def add_task(self, task: Task):
+        """Adds a valid `Task` instance to the collection of tasks.
+
+        WARNING: Invalid tasks will be silently ignored.
+
+        Args:
+            task: An instance of a `Task` object
+
+        Returns:
+            None
+        """
         if task is not None:
             if isinstance(task, Task):
                 self.tasks[task.task_id] = dict()
@@ -691,8 +710,16 @@ class Tasks(Sequence):
                 self.tasks[task.task_id]['TaskProcessingScopes'] = self._extract_task_processing_scopes(metadata=task.metadata)
 
     def get_task_instance_by_name(self, task_name: str)->Task:
+        """Returns a `Task` instance matching the `task_name`
+
+        Args:
+            task_name: A string with the task name to lookup and return
+
+        Returns:
+            A true copy of the found tasks. If the task is not found, a NoneType will be returned.
+        """
         if task_name in self.tasks:
-            return self.tasks[task_name]['TaskInstance']
+            return copy.deepcopy(self.tasks[task_name]['TaskInstance'])
         
     def get_task_dependencies_as_list_of_task_names(self, task_name: str, command: str, context: str)->list:
         dependencies = list()
