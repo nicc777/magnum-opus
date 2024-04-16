@@ -722,6 +722,20 @@ class Tasks(Sequence):
             return copy.deepcopy(self.tasks[task_name]['TaskInstance'])
         
     def get_task_dependencies_as_list_of_task_names(self, task_name: str, command: str, context: str)->list:
+        """Determine the dependant tasks of the given task within a certain processing scope (command and context
+        combination)
+
+        Args:
+            task_name: A string with the task name to lookup and return
+            command: A string with the command of the execution scope
+            context: A string with the context of the execution scope
+
+        Returns:
+            A list of strings, where each string is the task name of a dependent task given the current execution scope.
+
+        Raises:
+            Exception: In scenarios where a dependant task may specifically excluded from the given scope (command and context combination)
+        """
         dependencies = list()
         if task_name in self.tasks:
             task_defined_dependencies = self.tasks[task_name]['TaskDependencies']
@@ -804,23 +818,57 @@ class Tasks(Sequence):
         return list()
     
     def task_scoped_for_processing(self, task_name: str, command: str, context: str)->bool:
-        """
-            metadata:
-              processingScope:
-              - commands:
-                - command1
-                - command2
-                contexts:
-                - context1
-                - context2
-              - commands:
-                - command3
-                contexts:
-                - context1
-                - context2
-                - context3
-              - contexts:
-                - context4
+        """Determine if a task is in scope for processing given the execution scope (command and context)
+
+        Some examples of valid configurations:
+
+        ```yaml
+        metadata:
+          processingScope:
+          - commands:
+            - command1
+            - command2
+            contexts:
+            - context1
+            - context2
+          - commands:
+            - command3
+            contexts:
+            - context1
+            - context2
+            - context3
+          - contexts:
+            - context4
+        ```
+
+        An example:
+
+        ```python
+        tasks = Tasks()
+        tasks.add_task(
+            task=Task(
+                api_version='...',
+                kind='...',
+                metadata={
+                    'processingScope': {
+                        'commands': [...],
+                        'contexts': [...],
+                    }
+                },
+                spec={...}
+            )
+        )
+        if tasks.task_scoped_for_processing(task_name='...', command='...', context='...'):
+            ... # Process if true...
+        ```
+
+        Args:
+            task_name: A string with the task name to lookup and return
+            command: A string with the command of the execution scope
+            context: A string with the context of the execution scope
+
+        Returns:
+            Boolean `True` if the given task is in scope for processing.
         """
         task = self.get_task_instance_by_name(task_name=task_name)
         if 'processingScope' not in task.metadata:
