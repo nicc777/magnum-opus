@@ -990,6 +990,53 @@ class TestTasks(unittest.TestCase):    # pragma: no cover
         self.assertTrue(tasks.task_scoped_for_processing(task_name='test-task-01', command='command2', context='con1'))
         self.assertTrue(tasks.task_scoped_for_processing(task_name='test-task-01', command='command1', context='con2'))
 
+    def test_task_processing_scope_scenarios_06(self):
+        self.task_01.metadata['processingScope'] = [
+            None,
+            {
+                'commands': ['command2',],
+                'contexts': ['con2',],
+            }
+        ]
+        tasks = Tasks()
+        tasks.add_task(task=copy.deepcopy(self.task_01))
+        self.assertFalse(tasks.task_scoped_for_processing(task_name='test-task-01', command='command1', context='con1'))
+        self.assertFalse(tasks.task_scoped_for_processing(task_name='test-task-01', command='command2', context='con1'))
+        self.assertFalse(tasks.task_scoped_for_processing(task_name='test-task-01', command='command1', context='con2'))
+        self.assertTrue(tasks.task_scoped_for_processing(task_name='test-task-01', command='command2', context='con2'))
+
+    def test_task_processing_scope_scenarios_07(self):
+        self.task_01.metadata['processingScope'] = [
+            'Invalid Type',
+            {
+                'commands': ['command2',],
+                'contexts': ['con2',],
+            }
+        ]
+        tasks = Tasks()
+        tasks.add_task(task=copy.deepcopy(self.task_01))
+        self.assertFalse(tasks.task_scoped_for_processing(task_name='test-task-01', command='command1', context='con1'))
+        self.assertFalse(tasks.task_scoped_for_processing(task_name='test-task-01', command='command2', context='con1'))
+        self.assertFalse(tasks.task_scoped_for_processing(task_name='test-task-01', command='command1', context='con2'))
+        self.assertTrue(tasks.task_scoped_for_processing(task_name='test-task-01', command='command2', context='con2'))
+
+    def test_task_processing_scope_scenarios_08(self):
+        self.task_01.metadata['processingScope'] = [
+            {
+                'what?': 'This will produce a TRUE result',
+            },
+            {
+                'commands': ['command2',],
+                'contexts': ['con2',],
+            }
+        ]
+        tasks = Tasks()
+        tasks.add_task(task=copy.deepcopy(self.task_01))
+        self.assertTrue(tasks.task_scoped_for_processing(task_name='test-task-01', command='command1', context='con1'))
+        self.assertTrue(tasks.task_scoped_for_processing(task_name='test-task-01', command='command2', context='con1'))
+        self.assertTrue(tasks.task_scoped_for_processing(task_name='test-task-01', command='command1', context='con2'))
+        self.assertTrue(tasks.task_scoped_for_processing(task_name='test-task-01', command='command2', context='con2'))
+
 
 if __name__ == '__main__':
     unittest.main()
