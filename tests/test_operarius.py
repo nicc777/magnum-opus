@@ -1050,6 +1050,71 @@ class TestTasks(unittest.TestCase):    # pragma: no cover
             self.assertIsInstance(task, Task)
             self.assertTrue(task.task_id.startswith('test-task-0'))
 
+    def test_task_ordering_dependency_raises_exception_01(self):
+        # setup most basic dependency
+        self.task_01.metadata['processingScope'] = [
+            {
+                'commands': ['command1', 'command2',],
+                'contexts': ['con1','con2'],
+            },
+        ]
+        self.task_02.metadata['dependencies'] = [
+            {
+                'tasks': ['test-task-01',],
+            }
+        ]
+        tasks = Tasks()
+        tasks.add_task(task=copy.deepcopy(self.task_02))
+        tasks.add_task(task=copy.deepcopy(self.task_01))
+        combinations = (
+            {
+                'command': 'command1',
+                'context': 'con1',
+                'expectException': False
+            },
+            {
+                'command': 'command2',
+                'context': 'con1',
+                'expectException': False
+            },
+            {
+                'command': 'command1',
+                'context': 'con2',
+                'expectException': False
+            },
+            {
+                'command': 'command2',
+                'context': 'con2',
+                'expectException': False
+            },
+            {
+                'command': 'command3',
+                'context': 'con1',
+                'expectException': True
+            },
+            {
+                'command': 'command1',
+                'context': 'con3',
+                'expectException': True
+            },
+            {
+                'command': 'command3',
+                'context': 'con3',
+                'expectException': True
+            },
+        )
+        for scenario in combinations:
+            if scenario['expectException'] is False:
+                result = tasks._task_ordering(current_processing_order=[], candidate_task_name='test-task-02',command=scenario['command'], context=scenario['context'])
+                self.assertIsNotNone(result)
+                self.assertIsInstance(result, list)
+                self.assertEqual(len(result), 2)
+                self.assertTrue('test-task-01' in result)
+                self.assertTrue('test-task-02' in result)
+            else:
+                with self.assertRaises(Exception):
+                    tasks._task_ordering(current_processing_order=[], candidate_task_name='test-task-02',command=scenario['command'], context=scenario['context'])
+
 
 if __name__ == '__main__':
     unittest.main()
