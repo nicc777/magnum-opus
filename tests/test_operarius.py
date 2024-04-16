@@ -1114,6 +1114,8 @@ class TestTasks(unittest.TestCase):    # pragma: no cover
             else:
                 with self.assertRaises(Exception):
                     tasks._task_ordering(current_processing_order=[], candidate_task_name='test-task-02',command=scenario['command'], context=scenario['context'])
+            print_logger_lines(logger=logger)
+            logger.reset()
 
 
 if __name__ == '__main__':

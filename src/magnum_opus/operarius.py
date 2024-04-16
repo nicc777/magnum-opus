@@ -853,10 +853,6 @@ class Tasks(Sequence):
                             command=command,
                             context=context
                         )
-                else:
-                    logger.critical('Task named "{}" has a dependant task named "{}" which is NOT in scope for processing.'.format(candidate_task_name, dependant_task_name))
-                    raise Exception('Dependant task "{}" not in scope for task processing for task "{}" - cannot continue.'.format(dependant_task_name, candidate_task_name))
-
             if candidate_task_name not in task_names_in_preferred_processing_order:
                 task_names_in_preferred_processing_order.append(candidate_task_name)
 
