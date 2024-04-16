@@ -1037,6 +1037,19 @@ class TestTasks(unittest.TestCase):    # pragma: no cover
         self.assertTrue(tasks.task_scoped_for_processing(task_name='test-task-01', command='command1', context='con2'))
         self.assertTrue(tasks.task_scoped_for_processing(task_name='test-task-01', command='command2', context='con2'))
 
+    def test_loop_through_tasks_01(self):
+        tasks = Tasks()
+        tasks.add_task(task=copy.deepcopy(self.task_01))
+        tasks.add_task(task=copy.deepcopy(self.task_02))
+        tasks.add_task(task=copy.deepcopy(self.task_03))
+        tasks.add_task(task=copy.deepcopy(self.task_04))
+        self.assertEqual(len(tasks), 4)
+        task: Task
+        for task in tasks:
+            self.assertIsNotNone(task)
+            self.assertIsInstance(task, Task)
+            self.assertTrue(task.task_id.startswith('test-task-0'))
+
 
 if __name__ == '__main__':
     unittest.main()

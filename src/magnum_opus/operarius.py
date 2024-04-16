@@ -878,12 +878,12 @@ class Tasks(Sequence):
         return task_names_in_preferred_processing_order
     
     def __getitem__(self, index):
-        keys = list(self.tasks.keys()).sort()
-        return self.tasks[keys[index]]
+        keys = list(self.tasks.keys())
+        keys.sort()
+        return copy.deepcopy(self.get_task_instance_by_name(task_name=keys[index]))
     
     def __len__(self) -> int:
-        keys = list(self.tasks.keys()).sort()
-        return len(keys)
+        return len(self.tasks)
 
 
 class TaskProcessor:
