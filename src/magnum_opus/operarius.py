@@ -682,6 +682,11 @@ class Tasks(Sequence):
 
     Add each `Task` with the `add_task()` method. Failing to do so may result in errors.
 
+    Once tasks are added, the `Tasks` instance can be treated as a list:
+
+    * `len(tasks)` will give the number of tasks
+    * `for task in tasks` will loop through each task as an instance of `Task`, which will be a true copy of the actual `Task` instance
+
     Attributes:
         tasks: A dictionary containing the collection of `Task` instances
     """
@@ -934,6 +939,18 @@ class Tasks(Sequence):
         return task_names_in_preferred_processing_order
 
     def get_task_names_in_order(self, command: str, context: str)->list:
+        """Determines the correct order of task processing given an execution scope (command and context)
+
+        Args:
+            command: A string with the command of the execution scope
+            context: A string with the context of the execution scope
+
+        Returns:
+            A list of strings, where each string is the task name. The order of the list is important as it is determined by task dependencies such that the dependant tasks are listed first.
+
+        Raises:
+            Exception: In scenarios where a dependant task may specifically excluded from the given scope (command and context combination)
+        """
         task_names_in_preferred_processing_order = list()
         for task_name in list(self.tasks.keys()):
             if task_name not in task_names_in_preferred_processing_order:
