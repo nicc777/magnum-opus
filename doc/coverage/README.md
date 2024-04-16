@@ -1,5 +1,5 @@
 | Name                             |    Stmts |     Miss |   Cover |
 |--------------------------------- | -------: | -------: | ------: |
 | src/magnum\_opus/\_\_init\_\_.py |        0 |        0 |    100% |
-| src/magnum\_opus/operarius.py    |      830 |      353 |     57% |
-|                        **TOTAL** |  **830** |  **353** | **57%** |
+| src/magnum\_opus/operarius.py    |      830 |      349 |     58% |
+|                        **TOTAL** |  **830** |  **349** | **58%** |
