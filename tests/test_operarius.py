@@ -866,6 +866,76 @@ class TestTasks(unittest.TestCase):    # pragma: no cover
         self.assertEqual(result[2], 'test-task-01')
         self.assertEqual(result[3], 'test-task-02')
 
+    def test_task_multiple_dependency_scenarios_01(self):
+        self.task_02.metadata['dependencies'] = [
+            {
+                'tasks': ['test-task-01',],
+                'commands': ['command1',],
+                'contexts': ['con1',],
+            }
+        ]
+        tasks = Tasks()
+        tasks.add_task(task=copy.deepcopy(self.task_02))
+        tasks.add_task(task=copy.deepcopy(self.task_01))
+        dependent_task_names_1 = tasks.get_task_dependencies_as_list_of_task_names(task_name='test-task-02', command='command1', context='con1')
+        dependent_task_names_2 = tasks.get_task_dependencies_as_list_of_task_names(task_name='test-task-02', command='command2', context='con1')
+        dependent_task_names_3 = tasks.get_task_dependencies_as_list_of_task_names(task_name='test-task-02', command='command1', context='con2')
+        for result in (dependent_task_names_1, dependent_task_names_2, dependent_task_names_3,):
+            self.assertIsNotNone(result)
+            self.assertIsInstance(result, list)
+        self.assertEqual(len(dependent_task_names_1), 1)
+        self.assertEqual(len(dependent_task_names_2), 0)
+        self.assertEqual(len(dependent_task_names_3), 0)
+        self.assertTrue('test-task-01' in dependent_task_names_1)
+        self.assertFalse('test-task-01' in dependent_task_names_2)
+        self.assertFalse('test-task-01' in dependent_task_names_3)
+
+    def test_task_multiple_dependency_scenarios_02(self):
+        self.task_02.metadata['dependencies'] = [
+            {
+                'tasks': ['test-task-01',],
+                'commands': ['command1',],
+            }
+        ]
+        tasks = Tasks()
+        tasks.add_task(task=copy.deepcopy(self.task_02))
+        tasks.add_task(task=copy.deepcopy(self.task_01))
+        dependent_task_names_1 = tasks.get_task_dependencies_as_list_of_task_names(task_name='test-task-02', command='command1', context='con1')
+        dependent_task_names_2 = tasks.get_task_dependencies_as_list_of_task_names(task_name='test-task-02', command='command2', context='con1')
+        dependent_task_names_3 = tasks.get_task_dependencies_as_list_of_task_names(task_name='test-task-02', command='command1', context='con2')
+        for result in (dependent_task_names_1, dependent_task_names_2, dependent_task_names_3,):
+            self.assertIsNotNone(result)
+            self.assertIsInstance(result, list)
+        self.assertEqual(len(dependent_task_names_1), 1)
+        self.assertEqual(len(dependent_task_names_2), 0)
+        self.assertEqual(len(dependent_task_names_3), 1)
+        self.assertTrue('test-task-01' in dependent_task_names_1)
+        self.assertFalse('test-task-01' in dependent_task_names_2)
+        self.assertTrue('test-task-01' in dependent_task_names_3)
+
+    def test_task_multiple_dependency_scenarios_03(self):
+        self.task_02.metadata['dependencies'] = [
+            {
+                'tasks': ['test-task-01',],
+                'contexts': ['con1',],
+            }
+        ]
+        tasks = Tasks()
+        tasks.add_task(task=copy.deepcopy(self.task_02))
+        tasks.add_task(task=copy.deepcopy(self.task_01))
+        dependent_task_names_1 = tasks.get_task_dependencies_as_list_of_task_names(task_name='test-task-02', command='command1', context='con1')
+        dependent_task_names_2 = tasks.get_task_dependencies_as_list_of_task_names(task_name='test-task-02', command='command2', context='con1')
+        dependent_task_names_3 = tasks.get_task_dependencies_as_list_of_task_names(task_name='test-task-02', command='command1', context='con2')
+        for result in (dependent_task_names_1, dependent_task_names_2, dependent_task_names_3,):
+            self.assertIsNotNone(result)
+            self.assertIsInstance(result, list)
+        self.assertEqual(len(dependent_task_names_1), 1)
+        self.assertEqual(len(dependent_task_names_2), 1)
+        self.assertEqual(len(dependent_task_names_3), 0)
+        self.assertTrue('test-task-01' in dependent_task_names_1)
+        self.assertTrue('test-task-01' in dependent_task_names_2)
+        self.assertFalse('test-task-01' in dependent_task_names_3)
+
 
 if __name__ == '__main__':
     unittest.main()
