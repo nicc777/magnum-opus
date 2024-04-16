@@ -936,6 +936,43 @@ class TestTasks(unittest.TestCase):    # pragma: no cover
         self.assertTrue('test-task-01' in dependent_task_names_2)
         self.assertFalse('test-task-01' in dependent_task_names_3)
 
+    def test_task_processing_scope_scenarios_01(self):
+        self.task_01.metadata['processingScope'] = [
+            {
+                'commands': ['command1',],
+                'contexts': ['con1',],
+            }
+        ]
+        tasks = Tasks()
+        tasks.add_task(task=copy.deepcopy(self.task_01))
+        self.assertTrue(tasks.task_scoped_for_processing(task_name='test-task-01', command='command1', context='con1'))
+        self.assertFalse(tasks.task_scoped_for_processing(task_name='test-task-01', command='command2', context='con1'))
+        self.assertFalse(tasks.task_scoped_for_processing(task_name='test-task-01', command='command1', context='con2'))
+
+    def test_task_processing_scope_scenarios_02(self):
+        self.task_01.metadata['processingScope'] = [
+            {
+                'commands': ['command1',],
+            }
+        ]
+        tasks = Tasks()
+        tasks.add_task(task=copy.deepcopy(self.task_01))
+        self.assertTrue(tasks.task_scoped_for_processing(task_name='test-task-01', command='command1', context='con1'))
+        self.assertFalse(tasks.task_scoped_for_processing(task_name='test-task-01', command='command2', context='con1'))
+        self.assertTrue(tasks.task_scoped_for_processing(task_name='test-task-01', command='command1', context='con2'))
+
+    def test_task_processing_scope_scenarios_03(self):
+        self.task_01.metadata['processingScope'] = [
+            {
+                'contexts': ['con1',],
+            }
+        ]
+        tasks = Tasks()
+        tasks.add_task(task=copy.deepcopy(self.task_01))
+        self.assertTrue(tasks.task_scoped_for_processing(task_name='test-task-01', command='command1', context='con1'))
+        self.assertTrue(tasks.task_scoped_for_processing(task_name='test-task-01', command='command2', context='con1'))
+        self.assertFalse(tasks.task_scoped_for_processing(task_name='test-task-01', command='command1', context='con2'))
+
 
 if __name__ == '__main__':
     unittest.main()
