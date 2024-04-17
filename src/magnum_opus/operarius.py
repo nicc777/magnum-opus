@@ -975,6 +975,30 @@ class Tasks(Sequence):
 
 
 class TaskProcessor:
+    """The `TaskProcessor` is a type of base class that must implement common functions to be performed on a `Task`.
+
+    The default `TaskProcessor` must implement the following functions for each `Task`:
+
+    | Function           | Class Method            | Description                                                                                                                                                                |
+    |--------------------|-------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+    | Create resources   | `create_action()`       | Creates new resources as defined in the `spec` of a `Task`                                                                                                                 |
+    | Delete resources   | `delete_action()`       | Deletes resources as was defined in the `spec` of a `Task`                                                                                                                 |
+    | Update resources   | `update_action()`       | Updates resources, typically after a previous "create" action but with an updated `spec` of a `Task`                                                                       |
+    | Rollback           | `rollback_action()`     | Should be called after an exception in one of the prior actions in an attempt to get resources back to the prior state.                                                    |
+    | Drift Detection    | `detect_drift_action()` | Compares the `Task` specification against the current resources associated with the task to determine if there are any deviations that may require using the update action |
+    | Describe resources | `describe_action()`     | Describes resources that was created by a `Task`                                                                                                                           |
+
+    The various function described above must by implemented by the client. When the `TaskProcessor` implementation is
+    initiated, an `api_version` is supplied. And `Task` targeting this API version must be able to be processed by the
+    `TaskProcessor` implementation.
+
+    Also, the functions defined above can be directly called, but typically the `process_task()` method already contain
+    the required logic to coordinate the execution of the functions and automatically call the rollback function when
+    required.
+
+    Attributes:
+        api_version: A string defining the implementation's API version.
+    """
 
     def __init__(self, api_version: str) -> None:
         self.api_version = api_version
