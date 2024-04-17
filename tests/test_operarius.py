@@ -615,6 +615,21 @@ class TestTaskProcessStore(unittest.TestCase):    # pragma: no cover
         with self.assertRaises(Exception):
             task_processor_store.get_task_processor(api_version='NoneExisting')
 
+    def test_basic_04(self):
+        task_processor_store = TaskProcessStore()
+        task_processor_store.register_task_processor(task_processor=DummyTaskProcessor1())
+        with self.assertRaises(Exception):
+            task_processor_store.get_task_processor_for_task(
+                task=Task(
+                    api_version='NoneExisting',
+                    kind='DummyKind',
+                    metadata=dict(),
+                    spec={
+                        'key': 'value'
+                    }
+                )
+            )
+
 
 class TestTasks(unittest.TestCase):    # pragma: no cover
 
