@@ -1023,6 +1023,9 @@ class TaskProcessor:
 
         In addition to the updated `VariableStore`, log entries of the event will also be generated.
 
+        If the `TaskProcessor` is invoked by the `process_task()` method, some standards events will already be added
+        as a `Task` is processed.
+
         Args:
             variable_store: An instance of `VariableStore` to which the new event will be added
             task: A `Task` being processed
