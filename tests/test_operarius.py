@@ -609,6 +609,12 @@ class TestTaskProcessStore(unittest.TestCase):    # pragma: no cover
         self.assertIsNotNone(p)
         self.assertIsInstance(p, DummyTaskProcessor1)
 
+    def test_basic_03(self):
+        task_processor_store = TaskProcessStore()
+        task_processor_store.register_task_processor(task_processor=DummyTaskProcessor1())
+        with self.assertRaises(Exception):
+            task_processor_store.get_task_processor(api_version='NoneExisting')
+
 
 class TestTasks(unittest.TestCase):    # pragma: no cover
 
