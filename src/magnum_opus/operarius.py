@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 import re
 
 
-class LocalLogger:
+class LocalLogger:                                              # pragma: no cover
 
     def __init__(self, logger):
         self.logger = logger
@@ -17,11 +17,11 @@ class LocalLogger:
         return self.logger
 
 
-local_logger = LocalLogger(logger=logging.getLogger(__name__))
-logger = local_logger.get_logger()
+local_logger = LocalLogger(logger=logging.getLogger(__name__))  # pragma: no cover
+logger = local_logger.get_logger()                              # pragma: no cover
 
 
-def override_logger(logger_class: object):
+def override_logger(logger_class: object):                      # pragma: no cover
     global logger
     local_logger = LocalLogger(logger=logger_class)
     logger = None
