@@ -1090,6 +1090,41 @@ class TaskProcessor:
         action: str='CreateAction',
         task_resolved_spec: dict=dict()
     )->VariableStore:
+        """When any action needs to be performed on a `Task`, the action is typically invoked by calling this method.
+
+        This method handles the logic to coordinate the processing, which is especially important for invoking a 
+        rollback action when an exception was caught during some of the other actions that performed an operation on 
+        resources.
+
+        All processing actions and their associated methods are also linked to action descriptor strings. The following
+        actions are mapped:
+
+        | Action descriptor string | Mapped Logic Method     |
+        |--------------------------|-------------------------|
+        | CreateAction             | `create_action()`       |
+        | DeleteAction             | `delete_action()`       |
+        | UpdateAction             | `update_action()`       |
+        | DescribeAction           | `describe_action()`     |
+        | DetectDriftAction        | `detect_drift_action()` |
+        | RollbackAction           | `rollback_action()`     |
+
+        Typically, a client will never have to invoke a `RollbackAction` as the logic for this already resides in this 
+        method.
+
+        Args:
+            task: A `Task` being processed
+            persistence: An instance of `StatePersistence`. The implementation is passed on to the various methods implementation functional logic for `Task` processing.
+            variable_store: An instance of `VariableStore` to which the new event will be added
+            action: A string defining the action to be performed.
+            task_resolved_spec: A dict containing the fully resolved `spec` of a `Task` to be processed.
+
+        Returns:
+            An updated `VariableStore` with `Task` processing event entries and variables created during the processing
+            of the `Task`
+
+        Raises:
+            Exception: Any exceptions raised in processing will be passed back to the client.
+        """
         variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='PROCESS_TASK_CALLED', event_description='Ready For Processing')
         auto_rollback = task.auto_rollback_enabled()
         exception_raised = False
