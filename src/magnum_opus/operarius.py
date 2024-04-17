@@ -1004,6 +1004,15 @@ class TaskProcessor:
         self.api_version = api_version
 
     def create_identifier(self, task: Task, variable_name: str)->str:
+        """Helper method to create a variable identifier.
+
+        Args:
+            task: A `Task` being processed
+            variable_name: The variable name to use in the final identifier string
+
+        Returns:
+            A string with the identifier.
+        """
         return '{}:{}'.format(task.task_id, variable_name)
 
     def add_event(self, variable_store: VariableStore, task: Task, event_label: str='INFO_EVENT', event_description: str='No Details Provided')->VariableStore:
