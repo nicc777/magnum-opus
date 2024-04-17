@@ -1061,6 +1061,18 @@ class TaskProcessor:
         return updated_variable_store
 
     def init_event_variable(self, variable_store: VariableStore, task: Task)->VariableStore:
+        """Initializes the `VariableStore` for accepting new events for `Task` processing.
+
+        Normally this method does not have to be called directly. When a new event is generated via a call to the 
+        `add_event()` method, logic in that method will already handle the timely calling of this method. 
+
+        Args:
+            variable_store: An instance of `VariableStore` to which the new event will be added
+            task: A `Task` being processed
+
+        Returns:
+            The updated `VariableStore` is returned.
+        """
         updated_variable_store = VariableStore()
         updated_variable_store.variable_store = copy.deepcopy(variable_store.variable_store)
         if self.create_identifier(task=task, variable_name='PROCESSING_EVENTS') not in updated_variable_store.variable_store:
