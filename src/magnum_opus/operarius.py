@@ -1260,21 +1260,63 @@ class TaskProcessor:
 
 
 class TaskProcessStore:
+    """A class that retains a collection of `TaskProcessor` instances with methods for quickly retrieving an appropriate
+    `TaskProcessor` instance for processing a given `Task`
+
+    Attributes:
+        task_processor_register: A dict that holds `TaskProcessor` instances
+    """
 
     def __init__(self) -> None:
+        """Initializes the class. Clients should ensure that only one `TaskProcessStore` instance is used (normally), 
+        but since client implementation may be very different from one client to another, this class implementation
+        will not enforce a singleton pattern. It is therefore technically possible for a client to have multiple 
+        instances of this class.
+        """
         self.task_processor_register = dict()
 
     def register_task_processor(self, task_processor: TaskProcessor):
+        """Method to add a `TaskProcessor` instance to the collection
+
+        Args:
+            task_processor: a `TaskProcessor` instance
+
+        Returns:
+            An updated instance of self
+        """
+
         if task_processor.api_version not in self.task_processor_register:
             self.task_processor_register[task_processor.api_version] = copy.deepcopy(task_processor)
         return self
     
     def get_task_processor(self, api_version: str)->TaskProcessor:
+        """Method to get a `TaskProcessor` instance from the collection
+
+        Args:
+            api_version: a string containing the desired API version
+
+        Returns:
+            An instance of the `TaskProcessor` matching the API version string
+
+        Raises:
+            Exception: Should no suitable `TaskProcessor` matching the API version string be found
+        """
         if api_version not in self.task_processor_register:
             raise Exception('No processor found for API "{}"'.format(api_version))
         return copy.deepcopy(self.task_processor_register[api_version])
     
     def get_task_processor_for_task(self, task: Task)->TaskProcessor:
+        """Method to get a `TaskProcessor` instance from the collection
+
+        Args:
+            task: An instance of a `Task`
+
+        Returns:
+            An instance of the `TaskProcessor` matching the API version string from the `Task`
+
+        Raises:
+            Exception: Should no suitable `TaskProcessor` matching the API version be found
+        """
         if task.api_version not in self.task_processor_register:
             raise Exception('No processor found for API "{}"'.format(task.api_version))
         return copy.deepcopy(self.task_processor_register[task.api_version])
