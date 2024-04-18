@@ -1139,6 +1139,42 @@ class TestTasks(unittest.TestCase):    # pragma: no cover
             logger.reset()
 
 
+class TestVariousFunctions(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+        logger.reset()
+
+    def tearDown(self):
+        return super().tearDown()
+
+    def test_function_produce_column_headers_normal_01(self):
+        result = produce_column_headers()
+        print('RESULT:\n\n{}\n\n'.format(result))
+        self.assertTrue('Manifest          Created  Created Timestamp          Spec Drifted       Resources Drifted' in result)
+
+    def test_function_produce_column_headers_with_checksums_01(self):
+        result = produce_column_headers(with_checksums=True)
+        print('RESULT:\n\n{}\n\n'.format(result))
+        self.assertTrue('Manifest          Created  Created Timestamp          Spec Drifted       Resources Drifted  Applied Spec CHecksum             Current Spec Checksum             Applied Resource Checksum         Current Resource Checksum' in result)
+
+    def test_produce_column_header_horizontal_line_basic_01(self):
+        result = produce_column_header_horizontal_line()
+        print('RESULT:\n\n{}\n\n'.format(result))
+        self.assertTrue('------------------------------------------------------------------------------------------' in result)
+
+    def test_produce_column_header_horizontal_line_basic_02(self):
+        result = produce_column_header_horizontal_line(line_char='=')
+        print('RESULT:\n\n{}\n\n'.format(result))
+        self.assertTrue('==========================================================================================' in result)
+
+    def test_produce_column_header_horizontal_line_with_checksums_01(self):
+        result = produce_column_header_horizontal_line(with_checksums=True)
+        print('RESULT:\n\n{}\n\n'.format(result))
+        self.assertTrue('----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------' in result)
+
+
 if __name__ == '__main__':
     unittest.main()
 
