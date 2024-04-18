@@ -1175,6 +1175,53 @@ class TestVariousFunctions(unittest.TestCase):    # pragma: no cover
         self.assertTrue('----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------' in result)
 
 
+class TestClassTaskState(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+        logger.reset()
+
+    def tearDown(self):
+        self.task_01 = None
+        self.task_02 = None
+        return super().tearDown()
+    
+    def test_basic_init_01(self):
+        task_state = TaskState()
+        self.assertIsNotNone(task_state)
+        self.assertIsInstance(task_state, TaskState)
+        self.assertFalse(task_state.is_created)
+
+    def test_method_update_applied_spec_basic_01(self):
+        # update_applied_spec
+        task_state = TaskState(
+            manifest_spec={'field_value': 2},
+            applied_spec={'field_value': 1},
+            resolved_spec={'field_value': 2},
+            manifest_metadata={'name': 'test-task-01'},
+            report_label='test-task-01',
+            created_timestamp=1000,
+            applied_resources_checksum='a',
+            current_resource_checksum='a'
+        )
+        print(str(task_state))
+        drift_results_1 = task_state.to_dict(with_checksums=True)
+        print('\nDRIFT DATA: {}\n\n'.format(json.dumps(drift_results_1, default=str)))
+        self.assertTrue(drift_results_1['SpecDrifted'])
+        self.assertEqual(drift_results_1['CreatedTimestamp'], 1000)
+        self.assertEqual(drift_results_1['AppliedResourcesChecksum'], 'a')
+        self.assertEqual(drift_results_1['CurrentResourceChecksum'], 'a')
+
+        task_state.update_applied_spec(new_applied_spec={}, new_applied_resource_checksum='b', updated_timestamp=2000)
+        drift_results_2 = task_state.to_dict(with_checksums=True)
+        print('\nDRIFT DATA: {}\n\n'.format(json.dumps(drift_results_2, default=str)))
+        self.assertTrue(drift_results_2['SpecDrifted'])
+        self.assertEqual(drift_results_2['CreatedTimestamp'], 2000)
+        self.assertEqual(drift_results_2['AppliedResourcesChecksum'], 'b')
+        self.assertEqual(drift_results_2['CurrentResourceChecksum'], 'b')
+
+
 if __name__ == '__main__':
     unittest.main()
 

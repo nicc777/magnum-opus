@@ -107,6 +107,9 @@ class TaskState:
         applied_spec: The `Task` spec, with all variables resolved, that was applied previously (if applicable).
         current_resolved_spec: The current `Task` spec with all variables resolved.
         is_created: A boolean flag to indicate if the current `Task` is currently in a "created" state given the current context.
+        applied_spec: A dict with the spec values when the manifest was processed and resources created/updated/deleted
+        current_resolved_spec: A dict with the current spec values with all variables fully resolved.
+        is_created: Boolean value to indicate if the spec is currently considered in a created/updated state
         applied_resources_checksum: A SHA256 checksum of the last known applied `applied_spec` dict.
         current_resource_checksum: A SHA256 string of the calculated deployed/created resource state after he previous applied spec. Future resource checksum calculation should yield the same result and any change in the calculated value typically translates to some drift detection.
     """
@@ -150,6 +153,7 @@ class TaskState:
     def update_applied_spec(self, new_applied_spec: dict, new_applied_resource_checksum: str, updated_timestamp: int):
         self.applied_spec = copy.deepcopy(new_applied_spec)
         self.applied_resources_checksum = copy.deepcopy(new_applied_resource_checksum)
+        self.current_resource_checksum = copy.deepcopy(new_applied_resource_checksum)
         self.created_timestamp = updated_timestamp
         self.is_created = False
         if new_applied_spec is not None:
