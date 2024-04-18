@@ -1254,6 +1254,128 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
         self.assertEqual(drift_results_2['CurrentResourceChecksum'], None)
         self.assertFalse(task_state.is_created)
 
+    def test_method_column_str_basic_01(self):
+        task_state = TaskState(
+            manifest_spec={'field_value': 1},
+            applied_spec={'field_value': 1},
+            resolved_spec={'field_value': 1},
+            manifest_metadata={'name': 'test-task-01'},
+            report_label='test-task-01',
+            created_timestamp=1000,
+            applied_resources_checksum='a',
+            current_resource_checksum='a'
+        )
+        result = task_state.column_str(
+            human_readable=True,
+            current_resolved_spec={'field_value': 1},
+            current_resource_checksum='a'
+        )
+        print(produce_column_headers())
+        print(produce_column_header_horizontal_line())
+        print('{}'.format(result))
+        self.assertTrue('test-task-01      Yes      1970-01-01 01:16:40        No                 No' in result)
+
+    def test_method_column_str_resource_drifted_01(self):
+        task_state = TaskState(
+            manifest_spec={'field_value': 1},
+            applied_spec={'field_value': 1},
+            resolved_spec={'field_value': 1},
+            manifest_metadata={'name': 'test-task-01'},
+            report_label='test-task-01',
+            created_timestamp=1000,
+            applied_resources_checksum='a',
+            current_resource_checksum='a'
+        )
+        result = task_state.column_str(
+            human_readable=True,
+            current_resolved_spec={'field_value': 1},
+            current_resource_checksum='b'
+        )
+        print(produce_column_headers())
+        print(produce_column_header_horizontal_line())
+        print('{}'.format(result))
+        self.assertTrue('test-task-01      Yes      1970-01-01 01:16:40        No                 Yes' in result)
+
+    def test_method_column_str_spec_drifted_01(self):
+        task_state = TaskState(
+            manifest_spec={'field_value': 1},
+            applied_spec={'field_value': 1},
+            resolved_spec={'field_value': 1},
+            manifest_metadata={'name': 'test-task-01'},
+            report_label='test-task-01',
+            created_timestamp=1000,
+            applied_resources_checksum='a',
+            current_resource_checksum='a'
+        )
+        result = task_state.column_str(
+            human_readable=True,
+            current_resolved_spec={'field_value': 2},
+            current_resource_checksum='a'
+        )
+        print(produce_column_headers())
+        print(produce_column_header_horizontal_line())
+        print('{}'.format(result))
+        self.assertTrue('test-task-01      Yes      1970-01-01 01:16:40        Yes                No' in result)
+
+    def test_method_column_str_spec_and_resource_drifted_01(self):
+        task_state = TaskState(
+            manifest_spec={'field_value': 1},
+            applied_spec={'field_value': 1},
+            resolved_spec={'field_value': 1},
+            manifest_metadata={'name': 'test-task-01'},
+            report_label='test-task-01',
+            created_timestamp=1000,
+            applied_resources_checksum='a',
+            current_resource_checksum='a'
+        )
+        result = task_state.column_str(
+            human_readable=True,
+            current_resolved_spec={'field_value': 2},
+            current_resource_checksum='b'
+        )
+        print(produce_column_headers())
+        print(produce_column_header_horizontal_line())
+        print('{}'.format(result))
+        self.assertTrue('test-task-01      Yes      1970-01-01 01:16:40        Yes                Yes' in result)
+
+    def test_method_column_str_spec_and_resource_drifted_with_checksums_01(self):
+        task_state = TaskState(
+            manifest_spec={'field_value': 1},
+            applied_spec={'field_value': 1},
+            resolved_spec={'field_value': 1},
+            manifest_metadata={'name': 'test-task-01'},
+            report_label='test-task-01',
+            created_timestamp=1000,
+            applied_resources_checksum='a',
+            current_resource_checksum='a'
+        )
+        result = task_state.column_str(
+            human_readable=True,
+            current_resolved_spec={'field_value': 2},
+            current_resource_checksum='b',
+            with_checksums=True
+        )
+        print(produce_column_headers())
+        print(produce_column_header_horizontal_line())
+        print('{}'.format(result))
+        self.assertTrue('test-task-01      Yes      1970-01-01 01:16:40        Yes                Yes                38320c1e644eb074b24bb343e131e420  fcacd5b851d3ef945b3b11bf07ad1e17  a                                 b' in result)
+
+    def test_method_repr(self):
+        task_state = TaskState(
+            manifest_spec={'field_value': 1},
+            applied_spec={'field_value': 1},
+            resolved_spec={'field_value': 1},
+            manifest_metadata={'name': 'test-task-01'},
+            report_label='test-task-01',
+            created_timestamp=1000,
+            applied_resources_checksum='a',
+            current_resource_checksum='a'
+        )
+        result = repr(task_state)
+        print(result)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, str)
+
 
 if __name__ == '__main__':
     unittest.main()
