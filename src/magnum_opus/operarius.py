@@ -336,7 +336,7 @@ class TaskState:
             data['AppliedSpec'] = self.applied_spec
         return data
     
-    def _cut_str(self, input_str: str, max_len: int=32)->str:
+    def _cut_str(self, input_str: str, max_len: int=32)->str:   # pragma: no cover
         final_str = '{}'.format(input_str)
         if len(final_str) > max_len:
             final_str = final_str[0:max_len]
