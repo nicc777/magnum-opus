@@ -438,11 +438,12 @@ class StatePersistence:
         configuration: A dict holding configuration data, intended for use for client implementations of this class, for example DB credentials.
     """
 
-    def __init__(self, configuration: dict=dict()):
+    def __init__(self, configuration: dict=dict(), load_on_init: bool=True):
         self.logger = logger
         self.state_cache = dict()
         self.configuration = configuration
-        self.load()
+        if load_on_init is True:
+            self.load()
 
     def load(self, on_failure: object=False)->bool:
         """This method must return all long term persisted state from some backend storage service, or local disc drive.

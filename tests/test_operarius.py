@@ -1183,8 +1183,6 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
         logger.reset()
 
     def tearDown(self):
-        self.task_01 = None
-        self.task_02 = None
         return super().tearDown()
     
     def test_basic_init_01(self):
@@ -1375,6 +1373,68 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
         print(result)
         self.assertIsNotNone(result)
         self.assertIsInstance(result, str)
+
+
+class TestClassStatePersistence(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+        logger.reset()
+
+    def tearDown(self):
+        return super().tearDown()
+    
+    def test_load_without_exception_01(self):
+        p = StatePersistence()
+        self.assertFalse(p.load())
+
+    def test_load_with_exception_01(self):
+        p = StatePersistence()
+        with self.assertRaises(Exception):
+            p.load(on_failure=Exception('TEST FAILURE'))
+
+    def test_update_and_get_01(self):
+        p = StatePersistence()
+        p.update_object_state(object_identifier='a', data={'result': 'it worked!'})
+        result = p.get(object_identifier='a')
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result['result'], 'it worked!')
+
+    def test_get_with_refresh_returns_empty_dict_01(self):
+        p = StatePersistence()
+        result = p.get(object_identifier='a')
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, dict)
+        self.assertEqual(len(result), 0)
+
+    def test_get_without_refresh_returns_empty_dict_01(self):
+        p = StatePersistence()
+        result = p.get(object_identifier='a', refresh_cache_if_identifier_not_found=False)
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, dict)
+        self.assertEqual(len(result), 0)
+
+    def test_get_with_refresh_returns_valid_dict_01(self):
+        class MyStatePersistence(StatePersistence):
+            def load(self, on_failure: object=False)->bool:
+                self.state_cache['a'] = {'value': 1}
+                return True
+        
+        p = MyStatePersistence(load_on_init=False)
+        result = p.get(object_identifier='a')
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, dict)
+        self.assertEqual(len(result), 1)
+
+    def test_update_and_commit_01(self):
+        p = StatePersistence()
+        p.update_object_state(object_identifier='a', data={'result': 'it worked!'})
+        p.commit()
+        self.assertIsNotNone(p.state_cache)
+        self.assertIsInstance(p.state_cache, dict)
+        self.assertEqual(len(p.state_cache), 1)
 
 
 if __name__ == '__main__':
