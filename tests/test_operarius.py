@@ -1193,8 +1193,8 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
         self.assertIsInstance(task_state, TaskState)
         self.assertFalse(task_state.is_created)
 
-    def test_method_update_applied_spec_basic_01(self):
-        # update_applied_spec
+    def test_method_update_applied_spec_existing_resource_updated_01(self):
+        # Initial state of a previously created resource
         task_state = TaskState(
             manifest_spec={'field_value': 2},
             applied_spec={'field_value': 1},
@@ -1212,14 +1212,47 @@ class TestClassTaskState(unittest.TestCase):    # pragma: no cover
         self.assertEqual(drift_results_1['CreatedTimestamp'], 1000)
         self.assertEqual(drift_results_1['AppliedResourcesChecksum'], 'a')
         self.assertEqual(drift_results_1['CurrentResourceChecksum'], 'a')
+        self.assertTrue(task_state.is_created)
 
-        task_state.update_applied_spec(new_applied_spec={}, new_applied_resource_checksum='b', updated_timestamp=2000)
+        # Simulate a resource update
+        task_state.update_applied_spec(new_applied_spec={'field_value': 2}, new_applied_resource_checksum='b', updated_timestamp=2000)
         drift_results_2 = task_state.to_dict(with_checksums=True)
         print('\nDRIFT DATA: {}\n\n'.format(json.dumps(drift_results_2, default=str)))
-        self.assertTrue(drift_results_2['SpecDrifted'])
+        self.assertFalse(drift_results_2['SpecDrifted'])
         self.assertEqual(drift_results_2['CreatedTimestamp'], 2000)
         self.assertEqual(drift_results_2['AppliedResourcesChecksum'], 'b')
         self.assertEqual(drift_results_2['CurrentResourceChecksum'], 'b')
+        self.assertTrue(task_state.is_created)
+
+    def test_method_update_applied_spec_existing_resource_deleted_01(self):
+        # Initial state of a previously created resource
+        task_state = TaskState(
+            manifest_spec={'field_value': 1},
+            applied_spec={'field_value': 1},
+            resolved_spec={'field_value': 1},
+            manifest_metadata={'name': 'test-task-01'},
+            report_label='test-task-01',
+            created_timestamp=1000,
+            applied_resources_checksum='a',
+            current_resource_checksum='a'
+        )
+        print(str(task_state))
+        drift_results_1 = task_state.to_dict(with_checksums=True)
+        print('\nDRIFT DATA: {}\n\n'.format(json.dumps(drift_results_1, default=str)))
+        self.assertIsNone(drift_results_1['SpecDrifted'])
+        self.assertEqual(drift_results_1['CreatedTimestamp'], 1000)
+        self.assertEqual(drift_results_1['AppliedResourcesChecksum'], 'a')
+        self.assertEqual(drift_results_1['CurrentResourceChecksum'], 'a')
+
+        # Simulate a resource being deleted
+        task_state.update_applied_spec(new_applied_spec={'field_value': 1}, new_applied_resource_checksum=None, updated_timestamp=0)
+        drift_results_2 = task_state.to_dict(with_checksums=True)
+        print('\nDRIFT DATA: {}\n\n'.format(json.dumps(drift_results_2, default=str)))
+        self.assertFalse(drift_results_2['SpecDrifted'])
+        self.assertEqual(drift_results_2['CreatedTimestamp'], None)
+        self.assertEqual(drift_results_2['AppliedResourcesChecksum'], None)
+        self.assertEqual(drift_results_2['CurrentResourceChecksum'], None)
+        self.assertFalse(task_state.is_created)
 
 
 if __name__ == '__main__':

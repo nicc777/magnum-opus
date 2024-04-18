@@ -144,20 +144,35 @@ class TaskState:
         self.applied_spec = applied_spec
         self.current_resolved_spec = resolved_spec
         self.is_created = False
-        if applied_spec is not None:
-            if len(applied_spec) > 0 or created_timestamp > 0:
+        if self.applied_spec is not None:
+            if len(self.applied_spec) > 0 or created_timestamp > 0:
                 self.is_created = True
         self.applied_resources_checksum = applied_resources_checksum
         self.current_resource_checksum = current_resource_checksum
 
     def update_applied_spec(self, new_applied_spec: dict, new_applied_resource_checksum: str, updated_timestamp: int):
+        """Updates state variables after a resources were created/updated/deleted.
+
+        NOTE: If the resources were deleted successfully, the `updated_timestamp` value must be 0 and the 
+        `new_applied_resource_checksum` must be of NoneType
+
+        Args:
+            new_applied_spec: Dict with the spec with fully resolved values as they were applied
+            new_applied_resource_checksum: The newly calculated resource checksum value as a string
+            updated_timestamp: The Unix timestamp of when the resources were created/updated/deleted
+        """
         self.applied_spec = copy.deepcopy(new_applied_spec)
-        self.applied_resources_checksum = copy.deepcopy(new_applied_resource_checksum)
-        self.current_resource_checksum = copy.deepcopy(new_applied_resource_checksum)
+        if new_applied_resource_checksum is not None:
+            self.applied_resources_checksum = copy.deepcopy(new_applied_resource_checksum)
+            self.current_resource_checksum = copy.deepcopy(new_applied_resource_checksum)
+        else:
+            self.applied_resources_checksum = None
+            self.current_resource_checksum = None
+            self.applied_spec = None
         self.created_timestamp = updated_timestamp
         self.is_created = False
-        if new_applied_spec is not None:
-            if len(new_applied_spec) > 0 or updated_timestamp > 0:
+        if self.applied_spec is not None:
+            if len(self.applied_spec) > 0 or updated_timestamp > 0:
                 self.is_created = True
 
     def calculate_manifest_state_checksum(self, spec: dict=dict(), metadata: dict=dict())->str:
