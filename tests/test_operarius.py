@@ -1436,6 +1436,21 @@ class TestClassStatePersistence(unittest.TestCase):    # pragma: no cover
         self.assertIsInstance(p.state_cache, dict)
         self.assertEqual(len(p.state_cache), 1)
 
+class TestClassParameterValidation(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+        logger.reset()
+
+    def tearDown(self):
+        return super().tearDown()
+    
+    def test_basic_01(self):
+        pv = ParameterValidation(constraints=None)
+        result = pv.validation_passed(parameters=dict())
+        self.assertTrue(result)
+
 
 if __name__ == '__main__':
     unittest.main()

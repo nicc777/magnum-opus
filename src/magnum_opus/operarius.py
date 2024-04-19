@@ -522,15 +522,44 @@ class StatePersistence:
 
 
 class ParameterValidation:
+    """A base class that can be extended to validate parameters
+
+    Attributes:
+        constraints: An object describing constraints (implementation determined by client)
+    """
 
     def __init__(self, constraints: object):
+        """Initializes the instance
+
+        Args:
+            constraints: An object describing constraints (implementation determined by client)
+        """
         self.constraints = constraints
 
     def validation_passed(self, parameters: dict=dict())->bool:
+        """Called by processes that received parameters as a dict to ensure that basic validation passes before 
+        consuming the parmeters.
+
+        Args:
+            parameters: A dict containing key/value pair data
+
+        Returns:
+            Boolean `True` if validation passes
+
+        
+        Raises:
+            Exception: As determined by the client implementation. Ideally if validation fails, only a `False` needs to
+            be returned, but exceptions could be a good idea in certain cases, for example when the `parameters` is not
+            of a dict type.
+        """
         return True
 
 
 class TaskProcessingActionParameterValidation(ParameterValidation):
+    """
+    A specific implementation to validate parameters that describe actions at
+    runtime. Used internally by various built-in hooks.
+    """
 
     def __init__(self, constraints: object):
         final_constraints = dict()
