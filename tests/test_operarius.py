@@ -1452,6 +1452,27 @@ class TestClassParameterValidation(unittest.TestCase):    # pragma: no cover
         self.assertTrue(result)
 
 
+class TestClassTaskProcessingActionParameterValidation(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+        logger.reset()
+
+    def tearDown(self):
+        return super().tearDown()
+    
+    def test_most_basic_01(self):
+        pv = TaskProcessingActionParameterValidation(constraints=None)
+        result = pv.validation_passed(
+            parameters={
+                'Action': 'CreateAction'
+            }
+        )
+        print_logger_lines(logger=logger)
+        self.assertTrue(result)
+
+
 if __name__ == '__main__':
     unittest.main()
 
