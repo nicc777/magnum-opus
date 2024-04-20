@@ -561,7 +561,7 @@ class TaskProcessingActionParameterValidation(ParameterValidation):
     runtime. Used internally by various built-in hooks.
     """
 
-    def __init__(self, constraints: object):
+    def __init__(self, constraints: object, auto_init_supported_actions: bool=True):
         final_constraints = dict()
         final_constraints['SupportedCommands'] = list()
         final_constraints['SupportedContexts'] = list()
@@ -589,7 +589,7 @@ class TaskProcessingActionParameterValidation(ParameterValidation):
                                 if isinstance(action, str):
                                     if len(action) > 0:
                                         final_constraints['SupportedActions'].append(action)
-        if len(final_constraints['SupportedActions']) == 0:
+        if len(final_constraints['SupportedActions']) == 0 and auto_init_supported_actions is True:
             final_constraints['SupportedActions'] = ['CreateAction','RollbackAction','DeleteAction','UpdateAction','DescribeAction','DetectDriftAction',]
         super().__init__(final_constraints)
 
@@ -646,7 +646,7 @@ class TaskProcessingActionParameterValidation(ParameterValidation):
         if len(self.constraints['SupportedContexts']) == 0:
             final_context_constraints = [copy.deepcopy(context),]
         else:
-            final_command_constraints = self.constraints['SupportedContexts']
+            final_context_constraints = self.constraints['SupportedContexts']
 
         logger.debug('Final command constraints : {}'.format(final_command_constraints))
         logger.debug('Final context constraints : {}'.format(final_context_constraints))

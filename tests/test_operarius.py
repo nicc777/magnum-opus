@@ -1472,6 +1472,21 @@ class TestClassTaskProcessingActionParameterValidation(unittest.TestCase):    # 
         print_logger_lines(logger=logger)
         self.assertTrue(result)
 
+    def test_most_basic_02(self):
+        pv = TaskProcessingActionParameterValidation(
+            constraints=None,
+            auto_init_supported_actions=True
+        ).add_command(command='command1').add_context(context='context1')
+        result = pv.validation_passed(
+            parameters={
+                'Action': 'CreateAction',
+                'Command': 'command1',
+                'Context': 'context1'
+            }
+        )
+        print_logger_lines(logger=logger)
+        self.assertTrue(result)
+
 
 if __name__ == '__main__':
     unittest.main()
