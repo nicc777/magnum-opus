@@ -1598,6 +1598,35 @@ class TestClassTaskProcessingActionParameterValidation(unittest.TestCase):    # 
             logger.reset()
 
 
+class TestClassVariableStore(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+        logger.reset()
+
+    def tearDown(self):
+        return super().tearDown()
+    
+    def test_basic_01(self):
+        v = VariableStore()
+        with self.assertRaises(Exception):
+            v.get_variable(variable_name='a', pop_item=False)
+        with self.assertRaises(Exception):
+            v.get_variable(variable_name='a', pop_item=True)
+        v.add_variable(variable_name='a', value=100)
+        result1 = v.get_variable(variable_name='a', pop_item=False)
+        result2 = v.get_variable(variable_name='a', pop_item=True)
+        with self.assertRaises(Exception):
+            v.get_variable(variable_name='a', pop_item=False)
+        with self.assertRaises(Exception):
+            v.get_variable(variable_name='a', pop_item=True)
+        for result in (result1, result2, ):
+            self.assertIsNotNone(result)
+            self.assertIsInstance(result, int)
+            self.assertEqual(result, 100)
+
+
 if __name__ == '__main__':
     unittest.main()
 
