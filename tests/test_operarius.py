@@ -1506,6 +1506,97 @@ class TestClassTaskProcessingActionParameterValidation(unittest.TestCase):    # 
         print_logger_lines(logger=logger)
         self.assertTrue(result)
 
+    def test_most_basic_negative_01(self):
+        pv = TaskProcessingActionParameterValidation(constraints=None)
+        result = pv.validation_passed(
+            parameters={
+                'Action': 'WrongAction'
+            }
+        )
+        print_logger_lines(logger=logger)
+        self.assertFalse(result)
+
+    def test_most_basic_negative_02(self):
+        pv = TaskProcessingActionParameterValidation(
+            constraints=None,
+            auto_init_supported_actions=True
+        ).add_command(command='command1').add_context(context='context1')
+
+        wrong_combinations = (
+            {
+                'Action': 'WrongAction',
+                'Command': 'command1',
+                'Context': 'context1'
+            },
+            {
+                'Action': 'CreateAction',
+                'Command': 'command99',
+                'Context': 'context1'
+            },
+            {
+                'Action': 'CreateAction',
+                'Command': 'command1',
+                'Context': 'context99'
+            }
+        )
+
+        for wrong_parameters in wrong_combinations:
+            result = pv.validation_passed(parameters=wrong_parameters)
+            print_logger_lines(logger=logger)
+            self.assertFalse(result)
+            logger.reset()
+
+    def test_most_basic_negative_03(self):
+        pv = TaskProcessingActionParameterValidation(
+            constraints={
+                'SupportedCommands': ['command1','command2',],
+                'SupportedContexts': ['context1', 'context2', ],
+                'SupportedActions': ['action1', 'action2',],
+            },
+            auto_init_supported_actions=True
+        )
+
+        wrong_combinations = (
+            {
+                'Action': 'WrongAction',
+                'Command': 'command1',
+                'Context': 'context1',
+            },
+            {
+                'Action': 'CreateAction',
+                'Command': 'command99',
+                'Context': 'context1',
+            },
+            {
+                'Action': 'CreateAction',
+                'Command': 'command1',
+                'Context': 'context99',
+            },
+            {
+                'Action': None,
+                'Command': 'command1',
+                'Context': 'context1',
+            },
+            {
+                'Action': 'CreateAction',
+                'Command': None,
+                'Context': 'context1',
+            },
+            {
+                'Action': 'CreateAction',
+                'Command': 'command1',
+                'Context': None,
+            },
+            None,
+            'wrong_type',
+        )
+
+        for wrong_parameters in wrong_combinations:
+            result = pv.validation_passed(parameters=wrong_parameters)
+            print_logger_lines(logger=logger)
+            self.assertFalse(result)
+            logger.reset()
+
 
 if __name__ == '__main__':
     unittest.main()
