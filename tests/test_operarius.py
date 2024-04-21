@@ -1627,6 +1627,61 @@ class TestClassVariableStore(unittest.TestCase):    # pragma: no cover
             self.assertEqual(result, 100)
 
 
+class TestClassTask(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+        logger.reset()
+
+    def tearDown(self):
+        return super().tearDown()
+    
+    def test_basic_01(self):
+        t = Task(
+            api_version='unittest',
+            kind='TestKind',
+            metadata={'name': 'test'},
+            spec={'name': 'value'}
+        )
+        self.assertIsNotNone(t)
+        self.assertIsInstance(t, Task)
+        self.assertEqual(t.api_version, 'unittest')
+        self.assertEqual(t.kind, 'TestKind')
+
+        self.assertIsNotNone(t.metadata)
+        self.assertIsInstance(t.metadata, dict)
+        self.assertEqual(len(t.metadata), 1)
+        self.assertTrue('name' in t.metadata)
+        self.assertEqual(t.metadata['name'], 'test')
+
+        self.assertIsNotNone(t.spec)
+        self.assertIsInstance(t.spec, dict)
+        self.assertEqual(len(t.spec), 1)
+        self.assertTrue('name' in t.spec)
+        self.assertEqual(t.spec['name'], 'value')
+
+    def test_invalid_dicts_create_empty_dicts_basic_01(self):
+        t = Task(
+            api_version='unittest',
+            kind='TestKind',
+            metadata=None,
+            spec='invalid type'
+        )
+        self.assertIsNotNone(t)
+        self.assertIsInstance(t, Task)
+        self.assertEqual(t.api_version, 'unittest')
+        self.assertEqual(t.kind, 'TestKind')
+
+        self.assertIsNotNone(t.metadata)
+        self.assertIsInstance(t.metadata, dict)
+        self.assertEqual(len(t.metadata), 0)
+
+        self.assertIsNotNone(t.spec)
+        self.assertIsInstance(t.spec, dict)
+        self.assertEqual(len(t.spec), 0)
+
+
 if __name__ == '__main__':
     unittest.main()
 
