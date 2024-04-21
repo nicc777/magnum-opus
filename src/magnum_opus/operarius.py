@@ -693,13 +693,13 @@ class VariableStore:
 
 class Task:
 
-    def __init__(self, api_version: str, kind: str, metadata: dict, spec: dict):
+    def __init__(self, api_version: str, kind: str, metadata: dict, spec: dict, task_state_class: object=TaskState):
         self.api_version = api_version
         self.kind = kind
         self.metadata = self._validate_dict(input_object=metadata)
         self.spec = self._validate_dict(input_object=spec)
         self.task_id = self._create_task_id(metadata=metadata)
-        self.state = TaskState(
+        self.state = task_state_class(
             manifest_spec=spec,
             manifest_metadata=metadata,
             report_label=self.task_id
