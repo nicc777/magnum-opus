@@ -692,8 +692,107 @@ class VariableStore:
 
 
 class Task:
+    """A `Task` defines some work to be done according to supplied `spec` values.
+
+    This is considered a base class to be extended by a client that defines various `Task` classes that can be processed
+    by accompanying `TaskProcessor` classes that can process the required API versions. 
+
+    To define a name for the task, add a `name` attribute to the metadata with the actual name as a value.
+
+    NOTE: Each `Task` must have a unique name
+
+    Other metadata that can be added to a task include configuration of:
+
+    * Task dependencies
+    * Task processing scopes
+    * Control rollback behavior
+
+    ## Task Dependencies
+
+    Example 1: Dependencies for specific tasks when run with certain commands and context values:
+
+    ```yaml
+    metadata:
+      dependencies:
+      - commands:
+        - command1
+        - command2
+        contexts:
+        - context1
+        tasks:
+        - task_id_1
+        - task_id_2
+    ```
+
+    Example 2: Dependencies for specific tasks regardless of command and/or context values:
+
+    ```yaml
+    metadata:
+      dependencies:
+      - tasks:          
+        - task_id_3
+        - task_id_4
+    ```
+
+    NOTE: A `Task` scoped as a dependency during specific command and context values, must itself also ensure it is in
+    scope if the `Task` uses `processingScopes` definitions. A dependant `Task` specifically excluded from a specific
+    command and context combination will result in an `Exception` being raised if the parent `Task` is processed in that
+    particular command and context combination.
+
+    ## Task Processing Scopes
+
+    Task processing scope example for three distinct scopes under which this task could be processed::
+
+    ```yaml
+    metadata:
+      processingScopes:
+      - commands:
+        - command1
+        - command2
+        contexts:
+        - context1
+        - context2
+      - contexts:       # No commands, means any scoped command but only in the listed contexts
+        - context3
+        - context4
+      - commands:       # No contexts, mean any context, but only for the listed commands
+        - command3
+        - command4
+    ```
+
+    ## Control rollback behavior
+
+    Example metadata to disable automatic rollback for task failures (be default this will be enabled):
+
+    ```yaml
+    metadata:
+      autoRollback: false
+    ```
+
+    NOTE: If `autoRollback` is set to false, a `Task` failure will result in just the `Exception` being raised and
+    passed to the client without any further processing. However, under normal circumstances, the rollback processing
+    will first be attempted before the `Exception` is passed back to the client. Also be aware that the `TaskProcessor`
+    is assumed to be able to handle a rollback operation, but this should not be assumed - check the implementation on
+    a case-by0case basis for each type of `TaskProcessor` implementation.
+
+    Attributes:
+        api_version: A string defining the target `TaskProcessor` that must process this task.
+        kind: A descriptor of the kind of task, that a `TaskProcessor` can use to make further decisions as to how to process the `Task`
+        metadata: A dict defining task meta data
+        spec: A dict with fields required by the `TaskProcessor` to successfully process the task.
+        task_state_class: An instance of `TaskState`
+    """
 
     def __init__(self, api_version: str, kind: str, metadata: dict, spec: dict, task_state_class: object=TaskState):
+        """Initializes the instance of a `Task`
+
+        Args:
+            api_version: A string defining the target `TaskProcessor` that must process this task.
+            kind: A descriptor of the kind of task, that a `TaskProcessor` can use to make further decisions as to how to process the `Task`
+            metadata: A dict defining task meta data
+            spec: A dict with fields required by the `TaskProcessor` to successfully process the task.
+            task_state_class: A `TaskState` class (not instantiated) that will use by default `TaskState` class for state
+        """
         self.api_version = api_version
         self.kind = kind
         self.metadata = self._validate_dict(input_object=metadata)
@@ -720,10 +819,17 @@ class Task:
         return copy.deepcopy(input_object)
     
     def auto_rollback_enabled(self)->bool:
+        """If `autoRollback` is defined in metadata, extract the value and return to the client.
+
+        Typically this will only be defined specifically in a `Task` where it must be disabled for some specific reason.
+
+        Returns:
+            A boolean `True` (default) if automatic rollback for this task is enabled
+        """
         if 'autoRollback' in self.metadata:
             if isinstance(self.metadata['autoRollback'], bool) is True:
                 return self.metadata['autoRollback']
-        return False
+        return True
     
 
 class Tasks(Sequence):
