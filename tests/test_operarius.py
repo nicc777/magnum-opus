@@ -225,10 +225,16 @@ class DummyTaskProcessor1(TaskProcessor):
         self,
         task: Task,
         persistence: StatePersistence=StatePersistence(),
-        variable_store: VariableStore=VariableStore()
+        variable_store: VariableStore=VariableStore(),
+        task_resolved_spec: dict=dict()
     )->VariableStore:
         updated_variable_store = VariableStore()
         updated_variable_store.variable_store = copy.deepcopy(variable_store.variable_store)
+
+        if self.create_identifier(task=task, variable_name='UNITTEST_TROW_EXCEPTION') in updated_variable_store.variable_store:
+            if updated_variable_store.get_variable(variable_name=self.create_identifier(task=task, variable_name='UNITTEST_TROW_EXCEPTION')) is True:
+                raise Exception('DeleteAction Failed!')
+        
         return updated_variable_store
     
     def describe_action(
@@ -1756,6 +1762,70 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
             )
 
         print_logger_lines(logger=logger)
+
+    def test_basic_update_task_01(self):
+        tp = DummyTaskProcessor1()
+        variable_store = tp.process_task(
+            task=self.task,
+            action='UpdateAction',
+            task_resolved_spec={'testField': 'testValue'}
+        )
+
+        print_logger_lines(logger=logger)
+        dump_variable_store(
+            test_class_name=self.__class__.__name__,
+            test_method_name=stack()[0][3],
+            variable_store=copy.deepcopy(variable_store)
+        )
+        dump_events(
+            task_id=self.task.task_id,
+            variable_store=copy.deepcopy(variable_store)
+        )
+
+        self.assertIsNotNone(variable_store)
+        self.assertIsInstance(variable_store, VariableStore)
+
+    def test_basic_update_task_force_failure_and_rollback_01(self):
+        vs = VariableStore()
+        tp = DummyTaskProcessor1()
+        vs.add_variable(variable_name=tp.create_identifier(task=self.task, variable_name='UNITTEST_TROW_EXCEPTION'), value=True)
+        with self.assertRaises(Exception):
+            tp.process_task(
+                task=self.task,
+                action='UpdateAction',
+                variable_store=copy.deepcopy(vs),
+                task_resolved_spec={'testField': 'testValue'}
+            )
+
+        print_logger_lines(logger=logger)
+
+    def test_manual_rollback_after_create_action_01(self):
+        tp = DummyTaskProcessor1()
+        variable_store = tp.process_task(
+            task=self.task,
+            action='CreateAction',
+            task_resolved_spec={'testField': 'testValue'}
+        )
+        variable_store = tp.process_task(
+            task=self.task,
+            action='RollbackAction',
+            variable_store=copy.deepcopy(variable_store),
+            task_resolved_spec={'testField': 'testValue'}
+        )
+
+        print_logger_lines(logger=logger)
+        dump_variable_store(
+            test_class_name=self.__class__.__name__,
+            test_method_name=stack()[0][3],
+            variable_store=copy.deepcopy(variable_store)
+        )
+        dump_events(
+            task_id=self.task.task_id,
+            variable_store=copy.deepcopy(variable_store)
+        )
+
+        self.assertIsNotNone(variable_store)
+        self.assertIsInstance(variable_store, VariableStore)
         
 
 if __name__ == '__main__':

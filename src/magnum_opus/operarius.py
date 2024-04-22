@@ -1324,41 +1324,27 @@ class TaskProcessor:
                 exception_raised = True
                 final_exception_message = 'Action "UpdateAction" failed with exception - please see logs for details.'
         elif action == 'DescribeAction':
-            try:
-                variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DESCRIBE_ACTION_START', event_description='Start of processing')
-                variable_store = self.describe_action(task=task, persistence=persistence, variable_store=variable_store, task_resolved_spec=task_resolved_spec)
-                variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DESCRIBE_ACTION_DONE', event_description='End of processing')
-                return variable_store
-            except:
-                final_exception_message = 'Action "DescribeAction" failed with exception - please see logs for details. Even if configured, no Auto Rollback was performed on this action.'
+            variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DESCRIBE_ACTION_START', event_description='Start of processing')
+            variable_store = self.describe_action(task=task, persistence=persistence, variable_store=variable_store, task_resolved_spec=task_resolved_spec)
+            variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DESCRIBE_ACTION_DONE', event_description='End of processing')
+            return variable_store
         elif action == 'DetectDriftAction':
-            try:
-                variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DETECT_DRIFT_ACTION_START', event_description='Start of processing')
-                variable_store = self.detect_drift_action(task=task, persistence=persistence, variable_store=variable_store, task_resolved_spec=task_resolved_spec)
-                variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DETECT_DRIFT_ACTION_DONE', event_description='End of processing')
-                return variable_store
-            except:
-                final_exception_message = 'Action "DetectDriftAction" failed with exception - please see logs for details. Even if configured, no Auto Rollback was performed on this action.'
+            variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DETECT_DRIFT_ACTION_START', event_description='Start of processing')
+            variable_store = self.detect_drift_action(task=task, persistence=persistence, variable_store=variable_store, task_resolved_spec=task_resolved_spec)
+            variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DETECT_DRIFT_ACTION_DONE', event_description='End of processing')
+            return variable_store
         
         if action == 'RollbackAction' and exception_raised is False:
-            try:
-                variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='ROLLBACK_ACTION_START', event_description='Start of processing')
-                variable_store = self.rollback_action(task=task, persistence=persistence, variable_store=variable_store, task_resolved_spec=task_resolved_spec)
-                variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='ROLLBACK_ACTION_DONE', event_description='End of processing')
-                return variable_store
-            except:
-                logger.error('EXCEPTION: {}'.format(traceback.format_exc()))
-                final_exception_message = final_exception_message = 'Action "RollbackAction" failed with exception - please see logs for details. Even if configured, no additional Rollback was performed on this action.'
+            variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='ROLLBACK_ACTION_START', event_description='Start of processing')
+            variable_store = self.rollback_action(task=task, persistence=persistence, variable_store=variable_store, task_resolved_spec=task_resolved_spec)
+            variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='ROLLBACK_ACTION_DONE', event_description='End of processing')
+            return variable_store
         elif auto_rollback is True and action != 'RollbackAction' and exception_raised is True:
-            try:
-                variable_store = variable_store.add_variable(variable_name='{}:RollbackFrom'.format(task.task_id), value=action)
-                variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='ROLLBACK_ACTION_START', event_description='Start of processing')
-                variable_store = self.rollback_action(task=task, persistence=persistence, variable_store=variable_store, task_resolved_spec=task_resolved_spec)
-                variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='ROLLBACK_ACTION_DONE', event_description='End of processing')
-                final_exception_message = '{} Auto Rollback action was attempted.'
-            except:
-                logger.error('EXCEPTION: {}'.format(traceback.format_exc()))
-                final_exception_message = '{} Auto Rollback action was attempted, but also raised an exception.'
+            variable_store = variable_store.add_variable(variable_name='{}:RollbackFrom'.format(task.task_id), value=action)
+            variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='ROLLBACK_ACTION_START', event_description='Start of processing')
+            variable_store = self.rollback_action(task=task, persistence=persistence, variable_store=variable_store, task_resolved_spec=task_resolved_spec)
+            variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='ROLLBACK_ACTION_DONE', event_description='End of processing')
+            final_exception_message = '{} Auto Rollback action was attempted.'
 
         raise Exception(final_exception_message)
     
