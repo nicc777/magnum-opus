@@ -1865,7 +1865,74 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
                 action='DetectDriftAction',
                 task_resolved_spec={'testField': 'testValue'}
             )
-        
+
+
+class UnitTestExceptionThrowingHook1(Hook):
+
+    def run(
+        self,
+        task: Task=None,
+        parameters: dict=dict(),
+        parameter_validator: ParameterValidation=ParameterValidation(constraints=None),
+        persistence: StatePersistence=StatePersistence(),
+        variable_store: VariableStore=VariableStore(),
+        task_process_store: TaskProcessStore=TaskProcessStore()
+    )->VariableStore:
+        if 'LogLevel' in parameters:
+            self._log(
+                message='I Quit!',
+                level=parameters['LogLevel']
+            )
+        else:
+            self._log(
+                message='I Quit!',
+                level='error'
+            )
+        raise Exception('I really did quit!')
+    
+
+class TestClassUnitTestExceptionThrowingHook1(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+        logger.reset()
+
+    def tearDown(self):
+        return super().tearDown()
+    
+
+    def test_info_level_01(self):
+        hook = UnitTestExceptionThrowingHook1(name='unittest')
+        with self.assertRaises(Exception):
+            hook.run(
+                parameters={'LogLevel': 'info'}
+            )
+        with self.assertRaises(Exception):
+            hook.run(
+                parameters={'LogLevel': 'debug'}
+            )
+        with self.assertRaises(Exception):
+            hook.run(
+                parameters={'LogLevel': 'warning'}
+            )
+        with self.assertRaises(Exception):
+            hook.run(
+                parameters={'LogLevel': 'critical'}
+            )
+        with self.assertRaises(Exception):
+            hook.run()
+        self.assertEqual(len(logger.critical_lines), 1)
+        self.assertEqual(len(logger.info_lines), 1)
+        self.assertEqual(len(logger.error_lines), 1)
+        self.assertEqual(len(logger.debug_lines), 1)
+        self.assertEqual(len(logger.warn_lines), 1)
+
+    def test_Default_hook_throws_exception(self):
+        h = Hook(name='unittest')
+        with self.assertRaises(Exception):
+            h.run()
+
 
 if __name__ == '__main__':
     unittest.main()

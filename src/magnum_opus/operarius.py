@@ -1467,8 +1467,30 @@ class TaskProcessStore:
 
 
 class Hook:
+    """Task processing is accomplished mainly by calling a series of `Hook` objects.
+
+    Each `Hook` has a `run()` method that takes the arguments relevant for working on a task. Based on the specific hook
+    implementation, some processing is done.
+
+    Some standard hooks that are included in this base implementation include:
+
+    * `TaskProcessingHook` - A hook that is responsible for `Task` Processing
+    * `ResolveTaskSpecVariablesHook` - A hook responsible for variable resolution within a `Task` spec dict, and normally this `Hook` will be called BEFORE the `TaskProcessingHook` hook
+    * `TaskPostProcessingStateUpdateHook` - A hook that will check the task state and persist the state using the available `StatePersistence` implementation. Normally this `Hook` will be called AFTER the `TaskProcessingHook` hook.
+    * `GeneralErrorHook` - A `Hook` that always throws an exception
+
+    Every `Hook` will be added to the `Hooks` collection where also the processing order will be defined.
+
+    Attributes:
+        name: A string with the name of the hook
+    """
 
     def __init__(self, name: str=None) -> None:
+        """Initializes the `Hook``
+
+        Args:
+            name: A string with the name of the hook
+        """
         self.name = self.__class__.__name__
         if name is not None:
             self.name = name
@@ -1499,6 +1521,22 @@ class Hook:
         variable_store: VariableStore=VariableStore(),
         task_process_store: TaskProcessStore=TaskProcessStore()
     )->VariableStore:
+        """Main method for executing the `Hook`
+
+        Args:
+            task: The `Task` on which the `Hook` may need to work
+            parameters: A dict with additional parameters. Each `Hook` implementation may require different parameters. The processing orchestration (i.e. `WorkflowExecutor`) must manage and set the appropriate parameters.
+            parameter_validator: An instance of `ParameterValidation`
+            persistence: The `StatePersistence` implementation for state persistence
+            variable_store: The current `VariableStore` instance
+            task_process_store: The `TaskProcessStore`, used to retrieve `TaskProcessor` instances for the `Task`, if required.
+
+        Returns:
+            An updated `VariableStore`
+
+        Raises:
+            Exception: As determined by the implementation
+        """
         raise Exception('Hook must be implemented/extended by client')
 
 
