@@ -1826,6 +1826,45 @@ class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
 
         self.assertIsNotNone(variable_store)
         self.assertIsInstance(variable_store, VariableStore)
+
+    def test_default_task_processor_raises_exceptions_01(self):
+        tp = TaskProcessor(api_version='unittest')
+        with self.assertRaises(Exception):
+            tp.process_task(
+                task=self.task,
+                action='CreateAction',
+                task_resolved_spec={'testField': 'testValue'}
+            )
+        with self.assertRaises(Exception):
+            tp.process_task(
+                task=self.task,
+                action='DeleteAction',
+                task_resolved_spec={'testField': 'testValue'}
+            )
+        with self.assertRaises(Exception):
+            tp.process_task(
+                task=self.task,
+                action='UpdateAction',
+                task_resolved_spec={'testField': 'testValue'}
+            )
+        with self.assertRaises(Exception):
+            tp.process_task(
+                task=self.task,
+                action='RollbackAction',
+                task_resolved_spec={'testField': 'testValue'}
+            )
+        with self.assertRaises(Exception):
+            tp.process_task(
+                task=self.task,
+                action='DescribeAction',
+                task_resolved_spec={'testField': 'testValue'}
+            )
+        with self.assertRaises(Exception):
+            tp.process_task(
+                task=self.task,
+                action='DetectDriftAction',
+                task_resolved_spec={'testField': 'testValue'}
+            )
         
 
 if __name__ == '__main__':
