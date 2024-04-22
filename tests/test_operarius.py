@@ -145,6 +145,11 @@ class DummyTaskProcessor1(TaskProcessor):
     )->VariableStore:
         updated_variable_store = VariableStore()
         updated_variable_store.variable_store = copy.deepcopy(variable_store.variable_store)
+
+        if self.create_identifier(task=task, variable_name='UNITTEST_TROW_EXCEPTION') in updated_variable_store.variable_store:
+            if updated_variable_store.get_variable(variable_name=self.create_identifier(task=task, variable_name='UNITTEST_TROW_EXCEPTION')) is True:
+                raise Exception('CreateAction Failed!')
+
         updated_variable_store.add_variable(
             variable_name=self.create_identifier(task=task, variable_name='TASK_ORIGINAL_SPEC_CHECKSUM'),
             value=hashlib.sha256(json.dumps(task.spec, default=str).encode('utf-8')).hexdigest()
@@ -185,6 +190,9 @@ class DummyTaskProcessor1(TaskProcessor):
                 task_resolved_spec=task_resolved_spec
             )
         else:
+            if '__GLOBAL__:PROCESS_TASK_EXCEPTION_RAISED_FOR_ACTION' in updated_variable_store.variable_store:
+                if updated_variable_store.get_variable(variable_name='__GLOBAL__:PROCESS_TASK_EXCEPTION_RAISED_FOR_ACTION') == 'CreateAction':
+                    return updated_variable_store 
             updated_variable_store = self.create_action(
                 task=task,
                 persistence=persistence,
@@ -202,6 +210,11 @@ class DummyTaskProcessor1(TaskProcessor):
     )->VariableStore:
         updated_variable_store = VariableStore()
         updated_variable_store.variable_store = copy.deepcopy(variable_store.variable_store)
+
+        if self.create_identifier(task=task, variable_name='UNITTEST_TROW_EXCEPTION') in updated_variable_store.variable_store:
+            if updated_variable_store.get_variable(variable_name=self.create_identifier(task=task, variable_name='UNITTEST_TROW_EXCEPTION')) is True:
+                raise Exception('DeleteAction Failed!')
+        
         if self.create_identifier(task=task, variable_name='TASK_ORIGINAL_SPEC_CHECKSUM') in updated_variable_store.variable_store:
             updated_variable_store.variable_store.pop(self.create_identifier(task=task, variable_name='TASK_ORIGINAL_SPEC_CHECKSUM'))
         if self.create_identifier(task=task, variable_name='TASK_RESOLVED_SPEC_CHECKSUM') in updated_variable_store.variable_store:
@@ -227,6 +240,11 @@ class DummyTaskProcessor1(TaskProcessor):
     )->VariableStore:
         updated_variable_store = VariableStore()
         updated_variable_store.variable_store = copy.deepcopy(variable_store.variable_store)
+
+        if self.create_identifier(task=task, variable_name='UNITTEST_TROW_EXCEPTION') in updated_variable_store.variable_store:
+            if updated_variable_store.get_variable(variable_name=self.create_identifier(task=task, variable_name='UNITTEST_TROW_EXCEPTION')) is True:
+                raise Exception('UpdateAction Failed!')
+        
         resource_checksum = hashlib.sha256('test_resource'.encode('utf-8')).hexdigest()
         if 'ResourceData:{}'.format(task.task_id) in variable_store.variable_store:
             resource_checksum = hashlib.sha256(
@@ -280,6 +298,10 @@ class DummyTaskProcessor1(TaskProcessor):
         updated_variable_store = VariableStore()
         updated_variable_store.variable_store = copy.deepcopy(variable_store.variable_store)
 
+        if self.create_identifier(task=task, variable_name='UNITTEST_TROW_EXCEPTION') in updated_variable_store.variable_store:
+            if updated_variable_store.get_variable(variable_name=self.create_identifier(task=task, variable_name='UNITTEST_TROW_EXCEPTION')) is True:
+                raise Exception('DetectDriftAction Failed!')
+        
         resource_checksum = hashlib.sha256('test_resource'.encode('utf-8')).hexdigest()
         if 'ResourceData:{}'.format(task.task_id) in variable_store.variable_store:
             resource_checksum = hashlib.sha256(
@@ -1681,6 +1703,60 @@ class TestClassTask(unittest.TestCase):    # pragma: no cover
         self.assertIsInstance(t.spec, dict)
         self.assertEqual(len(t.spec), 0)
 
+
+class TestClassTaskProcessor(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+        logger.reset()
+        self.task = Task(
+            api_version='DummyTaskProcessor1/v1',
+            kind='DummyTaskProcessor1',
+            metadata={'name': 'test-task'},
+            spec={'testField': 'testValue'}
+        )
+
+    def tearDown(self):
+        self.task = None
+        return super().tearDown()
+    
+    def test_basic_create_task_01(self):
+        tp = DummyTaskProcessor1()
+        variable_store = tp.process_task(
+            task=self.task,
+            action='CreateAction',
+            task_resolved_spec={'testField': 'testValue'}
+        )
+
+        print_logger_lines(logger=logger)
+        dump_variable_store(
+            test_class_name=self.__class__.__name__,
+            test_method_name=stack()[0][3],
+            variable_store=copy.deepcopy(variable_store)
+        )
+        dump_events(
+            task_id=self.task.task_id,
+            variable_store=copy.deepcopy(variable_store)
+        )
+
+        self.assertIsNotNone(variable_store)
+        self.assertIsInstance(variable_store, VariableStore)
+
+    def test_basic_create_task_force_failure_and_rollback_01(self):
+        vs = VariableStore()
+        tp = DummyTaskProcessor1()
+        vs.add_variable(variable_name=tp.create_identifier(task=self.task, variable_name='UNITTEST_TROW_EXCEPTION'), value=True)
+        with self.assertRaises(Exception):
+            tp.process_task(
+                task=self.task,
+                action='CreateAction',
+                variable_store=copy.deepcopy(vs),
+                task_resolved_spec={'testField': 'testValue'}
+            )
+
+        print_logger_lines(logger=logger)
+        
 
 if __name__ == '__main__':
     unittest.main()

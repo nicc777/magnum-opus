@@ -1294,6 +1294,7 @@ class TaskProcessor:
                 exception_text = traceback.format_exc()
                 logger.error('EXCEPTION: {}'.format(exception_text))
                 variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='CREATE_ACTION_ERROR', event_description='EXCEPTION: {}'.format(exception_text))
+                variable_store = variable_store.add_variable(variable_name='__GLOBAL__:PROCESS_TASK_EXCEPTION_RAISED_FOR_ACTION', value='CreateAction')
                 exception_raised = True
                 final_exception_message = 'Action "CreateAction" failed with exception - please see logs for details.'
         elif action == 'DeleteAction':
@@ -1306,6 +1307,7 @@ class TaskProcessor:
                 exception_text = traceback.format_exc()
                 logger.error('EXCEPTION: {}'.format(exception_text))
                 variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='DELETE_ACTION_ERROR', event_description='EXCEPTION: {}'.format(exception_text))
+                variable_store = variable_store.add_variable(variable_name='__GLOBAL__:PROCESS_TASK_EXCEPTION_RAISED_FOR_ACTION', value='DeleteAction')
                 exception_raised = True
                 final_exception_message = 'Action "DeleteAction" failed with exception - please see logs for details.'
         elif action == 'UpdateAction':
@@ -1318,6 +1320,7 @@ class TaskProcessor:
                 exception_text = traceback.format_exc()
                 logger.error('EXCEPTION: {}'.format(exception_text))
                 variable_store = self.add_event(variable_store=copy.deepcopy(variable_store), task=task, event_label='UPDATE_ACTION_ERROR', event_description='EXCEPTION: {}'.format(exception_text))
+                variable_store = variable_store.add_variable(variable_name='__GLOBAL__:PROCESS_TASK_EXCEPTION_RAISED_FOR_ACTION', value='UpdateAction')
                 exception_raised = True
                 final_exception_message = 'Action "UpdateAction" failed with exception - please see logs for details.'
         elif action == 'DescribeAction':
