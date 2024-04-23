@@ -1541,6 +1541,14 @@ class Hook:
 
 
 class TaskProcessingHook(Hook):
+    """
+        Seek `Hook` documentation for common `Hook` attributes and other documentation.
+
+        This hook is responsible for the actual processing of a given `Task`. It will rely on the appropriate 
+        `TaskProcessor` being registered with the `TaskProcessStore`.
+
+        This `Hook` is typically called AFTER the `ResolveTaskSpecVariablesHook` hook.
+    """
 
     def __init__(self, name: str='TaskProcessingHook'):
         super().__init__(name)
