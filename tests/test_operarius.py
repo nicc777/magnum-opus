@@ -1934,6 +1934,65 @@ class TestClassUnitTestExceptionThrowingHook1(unittest.TestCase):    # pragma: n
             h.run()
 
 
+class TestClassTaskProcessingHook(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+        logger.reset()
+        self.task = Task(
+            api_version='DummyTaskProcessor1/v1',
+            kind='DummyTaskProcessor1',
+            metadata={'name': 'test-task'},
+            spec={'testField': 'testValue'}
+        )
+
+    def tearDown(self):
+        self.task = None
+        return super().tearDown()
+    
+    def test_basic_01(self):
+        parameters = dict()
+        parameters['Action'] = 'CreateAction'
+        parameters['Command'] = 'create'
+        parameters['Context'] = 'unittest'
+        vs = VariableStore()
+        param_validator = ParameterValidation(constraints=None)
+        tps = TaskProcessStore()
+        tps.register_task_processor(task_processor=DummyTaskProcessor1())
+
+        vs.add_variable(
+            variable_name='ResolvedSpec:{}'.format(self.task.task_id),
+            value=copy.deepcopy(self.task.spec)
+        )
+
+        tph = TaskProcessingHook()
+        vs = tph.run(
+            task=self.task,
+            parameters=parameters,
+            parameter_validator=param_validator,
+            variable_store=vs,
+            task_process_store=tps
+        )
+        
+        print_logger_lines(logger=logger)
+        dump_variable_store(
+            test_class_name=self.__class__.__name__,
+            test_method_name=stack()[0][3],
+            variable_store=copy.deepcopy(vs)
+        )
+        dump_events(
+            task_id=self.task.task_id,
+            variable_store=copy.deepcopy(vs)
+        )
+
+        self.assertIsNotNone(vs)
+        self.assertIsInstance(vs, VariableStore)
+        self.assertTrue('test-task:TASK_ORIGINAL_SPEC_CHECKSUM' in vs.variable_store)
+        self.assertTrue('test-task:TASK_RESOLVED_SPEC_CHECKSUM' in vs.variable_store)
+
+
+
 if __name__ == '__main__':
     unittest.main()
 

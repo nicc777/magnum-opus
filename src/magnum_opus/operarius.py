@@ -1557,7 +1557,7 @@ class TaskProcessingHook(Hook):
         task_processor = task_process_store.get_task_processor_for_task(task=task)
         task_resolved_spec = copy.deepcopy(task.spec)
         if 'ResolvedSpec:{}'.format(task.task_id) in variable_store.variable_store:
-            task_resolved_spec = copy.deepcopy(variable_store.variable_store['ResolvedSpec'])
+            task_resolved_spec = copy.deepcopy(variable_store.variable_store['ResolvedSpec:{}'.format(task.task_id)])
         self._log(message='task_resolved_spec: {}'.format(json.dumps(task_resolved_spec, default=str)), task=task, level='debug')
         if parameter_validator.validation_passed(parameters=parameters) is True:
             variable_store = task_processor.process_task(
