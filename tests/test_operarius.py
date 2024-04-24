@@ -1992,6 +1992,154 @@ class TestClassTaskProcessingHook(unittest.TestCase):    # pragma: no cover
         self.assertTrue('test-task:TASK_RESOLVED_SPEC_CHECKSUM' in vs.variable_store)
 
 
+class TestClassResolveTaskSpecVariablesHook(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+        logger.reset()
+        self.task_01 = Task(
+            api_version='DummyTaskProcessor1/v1',
+            kind='DummyTaskProcessor1',
+            metadata={'name': 'test-task-1'},
+            spec={
+                'test1': '${}VAR:Test1:Key1:Key2{}'.format('{', '}'),
+            }
+        )
+        self.task_02 = Task(
+            api_version='DummyTaskProcessor1/v1',
+            kind='DummyTaskProcessor1',
+            metadata={'name': 'test-task-2'},
+            spec={
+                'test2': '${}VAR:Test2:Key1{}'.format('{', '}'),
+            }
+        )
+        self.task_03 = Task(
+            api_version='DummyTaskProcessor1/v1',
+            kind='DummyTaskProcessor1',
+            metadata={'name': 'test-task-3'},
+            spec={
+                'test3': [
+                    '${}VAR:Test3:Key1{}'.format('{', '}'),
+                    '${}VAR:Test3:Key2{}'.format('{', '}'),
+                ],
+            }
+        )
+        self.task_04 = Task(
+            api_version='DummyTaskProcessor1/v1',
+            kind='DummyTaskProcessor1',
+            metadata={'name': 'test-task-4'},
+            spec={
+                'test4': {
+                    'listTest4': [
+                        '${}VAR:Test4:Key1{}'.format('{', '}'),
+                        None,
+                        'test4_ignore',
+                        '${}VAR:Test4:Key2{}'.format('{', '}'),
+                    ]
+                },
+            }
+        )
+        self.task_05 = Task(
+            api_version='DummyTaskProcessor1/v1',
+            kind='DummyTaskProcessor1',
+            metadata={'name': 'test-task-5'},
+            spec={
+                'test5': {
+                    'test5_1': {
+                        'test5_1_1': '${}VAR:Test5:Key1:Key1{}'.format('{', '}'),
+                        'test5_1_2': '${}VAR:Test5:Key1:Key2{}'.format('{', '}'),
+                        'test5_1_3': None,
+                        'test5_1_4': 'test5_1_4_ignore',
+                    }
+                }
+            }
+        )
+        self.task_06 = Task(
+            api_version='DummyTaskProcessor1/v1',
+            kind='DummyTaskProcessor1',
+            metadata={'name': 'test-task-6'},
+            spec={
+                'test1': '${}VAR:Test1:Key1:Key2{}'.format('{', '}'),
+                'test2': '${}VAR:Test2:Key1{}'.format('{', '}'),
+                'test3': [
+                    '${}VAR:Test3:Key1{}'.format('{', '}'),
+                    '${}VAR:Test3:Key2{}'.format('{', '}'),
+                ],
+                'test4': {
+                    'listTest4': [
+                        '${}VAR:Test4:Key1{}'.format('{', '}'),
+                        None,
+                        'test4_ignore',
+                        '${}VAR:Test4:Key2{}'.format('{', '}'),
+                    ]
+                },
+                'test5': {
+                    'test5_1': {
+                        'test5_1_1': '${}VAR:Test5:Key1:Key1{}'.format('{', '}'),
+                        'test5_1_2': '${}VAR:Test5:Key1:Key2{}'.format('{', '}'),
+                        'test5_1_3': None,
+                        'test5_1_4': 'test5_1_4_ignore',
+                    }
+                }
+            }
+        )
+        self.variable_store = VariableStore()
+        self.variable_store.add_variable(variable_name='Test1:Key1:Key2', value='result_01')
+        self.variable_store.add_variable(variable_name='Test2:Key1', value='result_02')
+        self.variable_store.add_variable(variable_name='Test3:Key1', value='result_03')
+        self.variable_store.add_variable(variable_name='Test3:Key2', value='result_04')
+        self.variable_store.add_variable(variable_name='Test4:Key1', value='result_05')
+        self.variable_store.add_variable(variable_name='Test4:Key2', value='result_06')
+        self.variable_store.add_variable(variable_name='Test5:Key1:Key1', value='result_07')
+        self.variable_store.add_variable(variable_name='Test5:Key1:Key2', value='result_08')
+        
+
+    def tearDown(self):
+        self.task_01 = None
+        self.task_02 = None
+        self.task_03 = None
+        self.task_04 = None
+        self.task_05 = None
+        self.task_06 = None
+        self.variable_store = None
+        return super().tearDown()
+
+    def test_basic_substitution_01(self):
+        hook = ResolveTaskSpecVariablesHook()
+        result = hook.run(
+            task=self.task_01,
+            variable_store=copy.deepcopy(self.variable_store)
+        )
+
+        print('Resolved Spec: {}'.format(json.dumps(result.variable_store['ResolvedSpec:{}'.format(self.task_01.task_id)])))
+
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, VariableStore)
+        self.assertTrue('ResolvedSpec:{}'.format(self.task_01.task_id) in result.variable_store)
+
+    def test_basic_substitution_06(self):
+        hook = ResolveTaskSpecVariablesHook()
+        result = hook.run(
+            task=self.task_06,
+            variable_store=copy.deepcopy(self.variable_store)
+        )
+
+        print('Resolved Spec: {}'.format(json.dumps(result.variable_store['ResolvedSpec:{}'.format(self.task_06.task_id)])))
+
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, VariableStore)
+        self.assertTrue('ResolvedSpec:{}'.format(self.task_06.task_id) in result.variable_store)
+
+    def test_method__is_iterable(self):
+        hook = ResolveTaskSpecVariablesHook()
+        self.assertFalse(hook._is_iterable(data='abc'))
+        self.assertTrue(hook._is_iterable(data='abc', exclude_string=False))
+        self.assertFalse(hook._is_iterable(data={'a': 1, 'b': 2}))
+        self.assertTrue(hook._is_iterable(data={'a': 1, 'b': 2}, exclude_dict=False))
+        self.assertFalse(hook._is_iterable(data=None))
+        self.assertFalse(hook._is_iterable(data=datetime.now()))
+
 
 if __name__ == '__main__':
     unittest.main()
