@@ -2170,6 +2170,40 @@ class TestClassResolveTaskSpecVariablesHook(unittest.TestCase):    # pragma: no 
         self.assertTrue('result_03' in v)
         self.assertTrue('result_04' in v)
 
+    def test_basic_substitution_04(self):
+        hook = ResolveTaskSpecVariablesHook()
+        result = hook.run(
+            task=self.task_04,
+            variable_store=copy.deepcopy(self.variable_store)
+        )
+
+        print('Resolved Spec: {}'.format(json.dumps(result.variable_store['ResolvedSpec:{}'.format(self.task_04.task_id)])))
+
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, VariableStore)
+        self.assertTrue('ResolvedSpec:{}'.format(self.task_04.task_id) in result.variable_store)
+        
+        resolved_spec = result.variable_store['ResolvedSpec:{}'.format(self.task_04.task_id)]
+        self.assertIsNotNone(resolved_spec)
+        self.assertIsInstance(resolved_spec, dict)
+        self.assertEqual(len(resolved_spec), 1)
+        self.assertTrue('test4' in resolved_spec)
+        
+        t = resolved_spec['test4']
+        self.assertIsNotNone(t)
+        self.assertIsInstance(t, dict)
+        self.assertEqual(len(t), 1)
+        self.assertTrue('listTest4' in t)
+
+        v = t['listTest4']
+        self.assertIsNotNone(v)
+        self.assertIsInstance(v, list)
+        self.assertEqual(len(v), 4)
+        self.assertTrue('result_05' in v)
+        self.assertTrue('result_06' in v)
+        self.assertTrue('test4_ignore' in v)
+        self.assertIsNone(v[1])
+
     def test_basic_substitution_06(self):
         hook = ResolveTaskSpecVariablesHook()
         result = hook.run(
