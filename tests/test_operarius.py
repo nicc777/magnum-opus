@@ -2319,7 +2319,6 @@ class TestClassResolveTaskSpecVariablesHook(unittest.TestCase):    # pragma: no 
         self.assertFalse(hook._is_iterable(data=datetime.now()))
 
     def test_method__lookup_value_invalid_key_01(self):
-        # _lookup_value
         hook = ResolveTaskSpecVariablesHook()
         with self.assertRaises(Exception):
             hook._lookup_value(
@@ -2329,6 +2328,18 @@ class TestClassResolveTaskSpecVariablesHook(unittest.TestCase):    # pragma: no 
                 variable_store=self.variable_store,
                 task=self.task_01
             )
+
+    def test_method__analyse_data_01(self):
+        hook = ResolveTaskSpecVariablesHook()
+        original_data = datetime.now()
+        result = hook._analyse_data(
+            task=self.task_01,
+            data=original_data,
+            variable_store=self.variable_store,
+            command=None,
+            context=None
+        )
+        self.assertEqual(original_data, result)
 
 
 if __name__ == '__main__':
