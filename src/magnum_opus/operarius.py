@@ -1579,6 +1579,67 @@ class TaskProcessingHook(Hook):
 
 
 class ResolveTaskSpecVariablesHook(Hook):
+    """
+        Seek `Hook` documentation for common `Hook` attributes and other documentation.
+
+        This hook is responsible for the `Task.spec` variable substitution. It does that by looking up the variable name
+        in the supplied `VariableStore`.
+
+        Variables in the `VariableStore` can be set-up during client initialization, for example from a values file. The
+        variables in the `VariableStore` is also added during `Task` processing and one task can produce a variable that
+        another task can reference in it's spec. In these scenarios there are obviously also task dependencies and the 
+        configuration must ensure that the task producing the variable value is processed before the task that need to
+        use that value.
+
+        For example, task 1 may set the following variable:
+
+        ```python
+        # This is somewhere in a `TaskProcessor` implementation in one of the methods like `create_action()`:
+        updated_variable_store.add_variable(
+            variable_name=self.create_identifier(task=task, variable_name='SOME_REFERENCE'),
+            value=list()
+        )
+        ```
+
+        The spec in another `Task` may reference it as follow (showing the actual spec):
+
+        ```yaml
+        spec:
+          some_key: 'The result was: ${VAR:child_task_name:SOME_REFERENCE}'
+        ```
+
+        An example of setting up variables up front can be seen below:
+
+        ```python
+        # Define some task that references a variable in it's spec
+        task_01 = Task(
+            api_version='DummyTaskProcessor1/v1',
+            kind='DummyTaskProcessor1',
+            metadata={'name': 'test-task-1'},
+            spec={
+                'test1': '${}VAR:Test1:Key1:Key2{}'.format('{', '}'),
+            }
+        )
+
+        # Create some variable that can be used later
+        variable_store.add_variable(variable_name='Test1:Key1:Key2', value='result_01')
+
+        # ... some time later ...
+
+        # When the hook is processed, it may look something like this:
+        hook = ResolveTaskSpecVariablesHook()
+        result = hook.run(
+            task=task_01,
+            variable_store=copy.deepcopy(variable_store)
+        )
+
+        # The hook will create a specific variable with the resolved spec of the `Task`
+        # The resolved_spec value: {"test1": "result_01"}
+        resolved_spec = result.variable_store['ResolvedSpec:{}'.format(task_01.task_id)]
+        assert ('test1' in resolved_spec) is True
+        assert (resolved_spec['test1'] == 'result_01') is True
+        ```
+    """
 
     def __init__(self, name: str='ResolveTaskSpecVariablesHook'):
         super().__init__(name)
