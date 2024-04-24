@@ -2318,6 +2318,18 @@ class TestClassResolveTaskSpecVariablesHook(unittest.TestCase):    # pragma: no 
         self.assertFalse(hook._is_iterable(data=None))
         self.assertFalse(hook._is_iterable(data=datetime.now()))
 
+    def test_method__lookup_value_invalid_key_01(self):
+        # _lookup_value
+        hook = ResolveTaskSpecVariablesHook()
+        with self.assertRaises(Exception):
+            hook._lookup_value(
+                raw_key='invalid',
+                command=None,
+                context=None,
+                variable_store=self.variable_store,
+                task=self.task_01
+            )
+
 
 if __name__ == '__main__':
     unittest.main()
