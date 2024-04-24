@@ -2145,6 +2145,31 @@ class TestClassResolveTaskSpecVariablesHook(unittest.TestCase):    # pragma: no 
         self.assertTrue('test2' in resolved_spec)
         self.assertEqual(resolved_spec['test2'], 'result_02')
 
+    def test_basic_substitution_03(self):
+        hook = ResolveTaskSpecVariablesHook()
+        result = hook.run(
+            task=self.task_03,
+            variable_store=copy.deepcopy(self.variable_store)
+        )
+
+        print('Resolved Spec: {}'.format(json.dumps(result.variable_store['ResolvedSpec:{}'.format(self.task_03.task_id)])))
+
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, VariableStore)
+        self.assertTrue('ResolvedSpec:{}'.format(self.task_03.task_id) in result.variable_store)
+        
+        resolved_spec = result.variable_store['ResolvedSpec:{}'.format(self.task_03.task_id)]
+        self.assertIsNotNone(resolved_spec)
+        self.assertIsInstance(resolved_spec, dict)
+        self.assertEqual(len(resolved_spec), 1)
+        self.assertTrue('test3' in resolved_spec)
+        v = resolved_spec['test3']
+        self.assertIsNotNone(v)
+        self.assertIsInstance(v, list)
+        self.assertEqual(len(v), 2)
+        self.assertTrue('result_03' in v)
+        self.assertTrue('result_04' in v)
+
     def test_basic_substitution_06(self):
         hook = ResolveTaskSpecVariablesHook()
         result = hook.run(
