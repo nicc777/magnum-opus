@@ -2255,6 +2255,60 @@ class TestClassResolveTaskSpecVariablesHook(unittest.TestCase):    # pragma: no 
         self.assertIsInstance(result, VariableStore)
         self.assertTrue('ResolvedSpec:{}'.format(self.task_06.task_id) in result.variable_store)
 
+        resolved_spec = result.variable_store['ResolvedSpec:{}'.format(self.task_06.task_id)]
+
+        self.assertIsNotNone(resolved_spec)
+        self.assertIsInstance(resolved_spec, dict)
+        self.assertEqual(len(resolved_spec), 5)
+
+        self.assertTrue('test1' in resolved_spec)
+        self.assertEqual(resolved_spec['test1'], 'result_01')
+
+        self.assertTrue('test2' in resolved_spec)
+        self.assertEqual(resolved_spec['test2'], 'result_02')
+
+        self.assertTrue('test3' in resolved_spec)
+        v = resolved_spec['test3']
+        self.assertIsNotNone(v)
+        self.assertIsInstance(v, list)
+        self.assertEqual(len(v), 2)
+        self.assertTrue('result_03' in v)
+        self.assertTrue('result_04' in v)
+
+        t1 = resolved_spec['test4']
+        self.assertIsNotNone(t1)
+        self.assertIsInstance(t1, dict)
+        self.assertEqual(len(t1), 1)
+        self.assertTrue('listTest4' in t1)
+
+        v1 = t1['listTest4']
+        self.assertIsNotNone(v1)
+        self.assertIsInstance(v1, list)
+        self.assertEqual(len(v1), 4)
+        self.assertTrue('result_05' in v1)
+        self.assertTrue('result_06' in v1)
+        self.assertTrue('test4_ignore' in v1)
+        self.assertIsNone(v1[1])
+
+        t2 = resolved_spec['test5']
+        self.assertIsNotNone(t2)
+        self.assertIsInstance(t2, dict)
+        self.assertEqual(len(t2), 1)
+        self.assertTrue('test5_1' in t2)
+
+        u = t2['test5_1']
+        self.assertIsNotNone(u)
+        self.assertIsInstance(u, dict)
+        self.assertEqual(len(u), 4)
+        self.assertTrue('test5_1_1' in u)
+        self.assertEqual(u['test5_1_1'], 'result_07')
+        self.assertTrue('test5_1_2' in u)
+        self.assertEqual(u['test5_1_2'], 'result_08')
+        self.assertTrue('test5_1_3' in u)
+        self.assertEqual(u['test5_1_3'], None)
+        self.assertTrue('test5_1_4' in u)
+        self.assertEqual(u['test5_1_4'], 'test5_1_4_ignore')
+
     def test_method__is_iterable(self):
         hook = ResolveTaskSpecVariablesHook()
         self.assertFalse(hook._is_iterable(data='abc'))
