@@ -126,6 +126,15 @@ def dump_events(task_id: str, variable_store: VariableStore):   # pragma: no cov
     print('\n_______________________________________________________________________________')
 
 
+def dump_state(task: Task, persistence: StatePersistence):   # pragma: no cover
+    print('\n\n-------------------------------------------------------------------------------')
+    print('\t\tSTATE for task  : {}'.format(task.task_id))
+    print()
+    current_state = persistence.get(object_identifier='{}:TASK_STATE'.format(task.task_id))
+    print('{}'.format(json.dumps(current_state, default=str, indent=4)))
+    print('\n_______________________________________________________________________________')
+
+
 test_logger = TestLogger()
 logger = test_logger
 override_logger(logger_class=test_logger)
@@ -2427,9 +2436,15 @@ class TestClassTaskPostProcessingStateUpdateHook(unittest.TestCase):    # pragma
             task_id=self.task.task_id,
             variable_store=copy.deepcopy(variable_store)
         )
+        dump_state(task=self.task, persistence=persistence)
 
         self.assertIsNotNone(variable_store)
         self.assertIsInstance(variable_store, VariableStore)
+
+        current_state = persistence.get(object_identifier='{}:TASK_STATE'.format(self.task.task_id))
+
+        self.assertIsNotNone(current_state)
+        self.assertIsInstance(current_state, dict)
 
 
 if __name__ == '__main__':
