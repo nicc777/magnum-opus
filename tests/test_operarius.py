@@ -2445,6 +2445,7 @@ class TestClassTaskPostProcessingStateUpdateHook(unittest.TestCase):    # pragma
 
         self.assertIsNotNone(current_state)
         self.assertIsInstance(current_state, dict)
+        self.assertTrue(len(current_state) > 0)
 
 
 if __name__ == '__main__':
