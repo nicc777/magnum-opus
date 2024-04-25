@@ -171,6 +171,19 @@ class DummyTaskProcessor1(TaskProcessor):
                     if variable_store.variable_store[self.create_identifier(task=task, variable_name='UNITTEST_FORCE_PROCESSING_EXCEPTION')] is True:
                         raise Exception('Exception Forced By Unit Test Configuration')
         
+        updated_variable_store.add_variable(
+            variable_name=self.create_identifier(task=task, variable_name='TASK_STATE_UPDATES'),
+            value={
+                'resource_checksum': hashlib.sha256('CreateAction for UnitTest Completed'.encode('utf-8')).hexdigest(),
+                'resolved_spec_applied': copy.deepcopy(task_resolved_spec),
+                'state_changed': True,
+                'is_created': True,
+                'create_timestamp': int(datetime.now(timezone.utc).timestamp()),
+                'raw_spec': copy.deepcopy(task.spec),
+                'metadata': copy.deepcopy(task.metadata),
+            }
+        )
+
         return updated_variable_store
     
     def rollback_action(
@@ -219,6 +232,20 @@ class DummyTaskProcessor1(TaskProcessor):
             updated_variable_store.variable_store.pop(self.create_identifier(task=task, variable_name='TASK_ORIGINAL_SPEC_CHECKSUM'))
         if self.create_identifier(task=task, variable_name='TASK_RESOLVED_SPEC_CHECKSUM') in updated_variable_store.variable_store:
             updated_variable_store.variable_store.pop(self.create_identifier(task=task, variable_name='TASK_RESOLVED_SPEC_CHECKSUM'))
+        
+        updated_variable_store.add_variable(
+            variable_name=self.create_identifier(task=task, variable_name='TASK_STATE_UPDATES'),
+            value={
+                'resource_checksum': None,
+                'resolved_spec_applied': copy.deepcopy(task_resolved_spec),
+                'state_changed': True,
+                'is_created': False,
+                'create_timestamp': 0,
+                'raw_spec': copy.deepcopy(task.spec),
+                'metadata': copy.deepcopy(task.metadata),
+            }
+        )
+
         return updated_variable_store
     
     def update_action(
@@ -235,6 +262,19 @@ class DummyTaskProcessor1(TaskProcessor):
             if updated_variable_store.get_variable(variable_name=self.create_identifier(task=task, variable_name='UNITTEST_TROW_EXCEPTION')) is True:
                 raise Exception('DeleteAction Failed!')
         
+        updated_variable_store.add_variable(
+            variable_name=self.create_identifier(task=task, variable_name='TASK_STATE_UPDATES'),
+            value={
+                'resource_checksum': hashlib.sha256('UpdateAction for UnitTest Completed'.encode('utf-8')).hexdigest(),
+                'resolved_spec_applied': copy.deepcopy(task_resolved_spec),
+                'state_changed': True,
+                'is_created': True,
+                'create_timestamp': int(datetime.now(timezone.utc).timestamp()),
+                'raw_spec': copy.deepcopy(task.spec),
+                'metadata': copy.deepcopy(task.metadata),
+            }
+        )
+
         return updated_variable_store
     
     def describe_action(
@@ -2340,6 +2380,56 @@ class TestClassResolveTaskSpecVariablesHook(unittest.TestCase):    # pragma: no 
             context=None
         )
         self.assertEqual(original_data, result)
+
+
+class TestClassTaskPostProcessingStateUpdateHook(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+        logger.reset()
+        self.task = Task(
+            api_version='DummyTaskProcessor1/v1',
+            kind='DummyTaskProcessor1',
+            metadata={'name': 'test-task'},
+            spec={'testField': 'testValue'}
+        )
+
+    def tearDown(self):
+        self.task = None
+        return super().tearDown()
+    
+    def test_basic_01(self):
+        persistence = StatePersistence()
+        tp = DummyTaskProcessor1()
+        variable_store = VariableStore()
+        variable_store = tp.process_task(
+            task=self.task,
+            persistence=persistence,
+            variable_store=variable_store,
+            action='CreateAction',
+            task_resolved_spec={'testField': 'testValue'}
+        )
+        h = TaskPostProcessingStateUpdateHook()
+        variable_store = h.run(
+            task=self.task,
+            persistence=persistence,
+            variable_store=variable_store
+        )
+
+        print_logger_lines(logger=logger)
+        dump_variable_store(
+            test_class_name=self.__class__.__name__,
+            test_method_name=stack()[0][3],
+            variable_store=copy.deepcopy(variable_store)
+        )
+        dump_events(
+            task_id=self.task.task_id,
+            variable_store=copy.deepcopy(variable_store)
+        )
+
+        self.assertIsNotNone(variable_store)
+        self.assertIsInstance(variable_store, VariableStore)
 
 
 if __name__ == '__main__':

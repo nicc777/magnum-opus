@@ -276,7 +276,7 @@ class HelloWorldTaskProcessor(TaskProcessor):
                 'resolved_spec_applied': copy.deepcopy(task_resolved_spec),
                 'state_changed': True,
                 'is_created': True,
-                'create_timestamp': datetime.now(timezone.utc),
+                'create_timestamp': int(datetime.now(timezone.utc).timestamp()),
                 'raw_spec': copy.deepcopy(task.spec),
                 'metadata': copy.deepcopy(task.metadata),
             }
