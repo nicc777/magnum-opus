@@ -130,8 +130,11 @@ def dump_state(task: Task, persistence: StatePersistence):   # pragma: no cover
     print('\n\n-------------------------------------------------------------------------------')
     print('\t\tSTATE for task  : {}'.format(task.task_id))
     print()
-    current_state = persistence.get(object_identifier='{}:TASK_STATE'.format(task.task_id))
-    print('{}'.format(json.dumps(current_state, default=str, indent=4)))
+    try:
+        current_state = persistence.get(object_identifier='{}:TASK_STATE'.format(task.task_id))
+        print('{}'.format(json.dumps(current_state, default=str, indent=4)))
+    except:
+        print('No state available.')
     print('\n_______________________________________________________________________________')
 
 
@@ -2410,6 +2413,14 @@ class TestClassTaskPostProcessingStateUpdateHook(unittest.TestCase):    # pragma
     
     def test_basic_01(self):
         persistence = StatePersistence()
+        persistence.update_object_state(
+            object_identifier='{}:TASK_STATE'.format(self.task.task_id),
+            data=self.task.state.to_dict(
+                with_checksums=True,
+                include_applied_spec=True
+            )
+        )
+        dump_state(task=self.task, persistence=persistence)
         tp = DummyTaskProcessor1()
         variable_store = VariableStore()
         variable_store = tp.process_task(
