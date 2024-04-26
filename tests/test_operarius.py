@@ -2515,6 +2515,25 @@ class TestClassTaskPostProcessingStateUpdateHook(unittest.TestCase):    # pragma
         }
         self.assertFalse(h._validate_data(data=data))
 
+    def test_method__validate_data_incorrect_field_type_in_data_returns_false_01(self):
+        h = TaskPostProcessingStateUpdateHook()
+        data = {
+            'resource_checksum': '00f5889a18ebd1aa27d2129ec1efcfda62c03f662b6a3746bec274e40814a4a5', 
+            'resolved_spec_applied': {
+                'testField': 'testValue'
+            }, 
+            'state_changed': True, 
+            'is_created': True, 
+            'create_timestamp': datetime.now(), 
+            'raw_spec': {
+                'testField': 'testValue'
+            }, 
+            'metadata': {
+                'name': 'test-task'
+            }
+        }
+        self.assertFalse(h._validate_data(data=data))
+
 
 if __name__ == '__main__':
     unittest.main()
