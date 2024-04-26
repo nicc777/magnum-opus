@@ -2552,6 +2552,64 @@ class TestClassTaskPostProcessingStateUpdateHook(unittest.TestCase):    # pragma
         self.assertIsInstance(variable_store, VariableStore)
         self.assertEqual(len(variable_store.variable_store), 0)
 
+    def test_method_run_with_invalid_data_in_variable_state_01(self):
+        h = TaskPostProcessingStateUpdateHook()
+        persistence = StatePersistence()
+        persistence.update_object_state(
+            object_identifier='{}:TASK_STATE'.format(self.task.task_id),
+            data=self.task.state.to_dict(
+                with_checksums=True,
+                include_applied_spec=True
+            )
+        )
+        variable_store = VariableStore()
+        variable_store.add_variable(
+            variable_name='{}:{}'.format(self.task.task_id, 'TASK_STATE_UPDATES'),
+            value={
+                'resource_checksum': 'abc'
+            }
+        )
+        variable_store = h.run(
+            task=self.task,
+            persistence=persistence,
+            variable_store=variable_store
+        )
+        self.assertIsNotNone(variable_store)
+        self.assertIsInstance(variable_store, VariableStore)
+        self.assertEqual(len(variable_store.variable_store), 0)
+
+    def test_method_run_with_no_state_change_01(self):
+        h = TaskPostProcessingStateUpdateHook()
+        persistence = StatePersistence()
+        persistence.update_object_state(
+            object_identifier='{}:TASK_STATE'.format(self.task.task_id),
+            data=self.task.state.to_dict(
+                with_checksums=True,
+                include_applied_spec=True
+            )
+        )
+        variable_store = VariableStore()
+        variable_store.add_variable(
+            variable_name='{}:{}'.format(self.task.task_id, 'TASK_STATE_UPDATES'),
+            value={
+                'resource_checksum': 'abc',
+                'resolved_spec_applied': self.task.spec,
+                'state_changed': False,
+                'is_created': True,
+                'create_timestamp': 1000,
+                'raw_spec': self.task.spec,
+                'metadata': self.task.metadata,
+            }
+        )
+        variable_store = h.run(
+            task=self.task,
+            persistence=persistence,
+            variable_store=variable_store
+        )
+        self.assertIsNotNone(variable_store)
+        self.assertIsInstance(variable_store, VariableStore)
+        self.assertEqual(len(variable_store.variable_store), 0)
+
 
 if __name__ == '__main__':
     unittest.main()
