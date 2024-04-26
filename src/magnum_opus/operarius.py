@@ -1791,6 +1791,55 @@ class ResolveTaskSpecVariablesHook(Hook):
 
 
 class TaskPostProcessingStateUpdateHook(Hook):
+    """
+    Seek `Hook` documentation for common `Hook` attributes and other documentation.
+
+    This `Hook` implementation will act on the presence of a specific `VariableStore` variable that contains `Task` 
+    state information and if changes are detected, the updated state will be persisted. It relies on the implementation
+    of the relevant `TaskProcessor` to store the state variable in the `VariableStore`
+
+    When the `TaskProcessor` processes a `Task`, it may cause the state to change. State can change under the following
+    conditions:
+
+    | Action         | Expected Initial Changes | Expected End State     | Notes                                                                                                                                            |
+    |----------------|--------------------------|------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+    | `CreateAction` | No resources exist       | Resources were created | If resources do exist, the implementation should determine if they need to be updated (perhaps forward the processing request to `UpdateAction`) |
+    | `UpdateAction` | Resources exist          | Resources are updated  |                                                                                                                                                  |
+    | `DeleteAction` | Resources exist          | Resources are deleted  |                                                                                                                                                  |
+
+    In the various actions, there should be the following code snippet that will reflect the updated change to this hook:
+
+    ```python
+    # Example for CreateAction or UpdateAction where new resources were created or existing resources had to be updated
+    calculated_resource_string = '... some string representing your changed resource(s) state...'
+    updated_variable_store.add_variable(
+        variable_name=self.create_identifier(task=task, variable_name='TASK_STATE_UPDATES'),
+        value={
+            'resource_checksum': hashlib.sha256(calculated_resource_string.encode('utf-8')).hexdigest(),
+            'resolved_spec_applied': copy.deepcopy(task_resolved_spec),
+            'state_changed': True,
+            'is_created': True,
+            'create_timestamp': int(datetime.now(timezone.utc).timestamp()),
+            'raw_spec': copy.deepcopy(task.spec),
+            'metadata': copy.deepcopy(task.metadata),
+        }
+    )
+
+    # Example for DeleteAction where  resources were deleted
+    updated_variable_store.add_variable(
+        variable_name=self.create_identifier(task=task, variable_name='TASK_STATE_UPDATES'),
+        value={
+            'resource_checksum': None,
+            'resolved_spec_applied': copy.deepcopy(task_resolved_spec),
+            'state_changed': True,
+            'is_created': False,
+            'create_timestamp': 0,
+            'raw_spec': copy.deepcopy(task.spec),
+            'metadata': copy.deepcopy(task.metadata),
+        }
+    )
+    ```
+    """
 
     def __init__(self, name: str='TaskPostProcessingStateUpdateHook'):
         super().__init__(name)
