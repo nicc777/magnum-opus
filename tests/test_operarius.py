@@ -2534,6 +2534,24 @@ class TestClassTaskPostProcessingStateUpdateHook(unittest.TestCase):    # pragma
         }
         self.assertFalse(h._validate_data(data=data))
 
+    def test_method_run_with_missing_key_in_variable_state_01(self):
+        h = TaskPostProcessingStateUpdateHook()
+        persistence = StatePersistence()
+        persistence.update_object_state(
+            object_identifier='{}:TASK_STATE'.format(self.task.task_id),
+            data=self.task.state.to_dict(
+                with_checksums=True,
+                include_applied_spec=True
+            )
+        )
+        variable_store = h.run(
+            task=self.task,
+            persistence=persistence
+        )
+        self.assertIsNotNone(variable_store)
+        self.assertIsInstance(variable_store, VariableStore)
+        self.assertEqual(len(variable_store.variable_store), 0)
+
 
 if __name__ == '__main__':
     unittest.main()
