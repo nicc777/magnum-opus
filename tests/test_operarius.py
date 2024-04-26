@@ -2458,6 +2458,25 @@ class TestClassTaskPostProcessingStateUpdateHook(unittest.TestCase):    # pragma
         self.assertIsInstance(current_state, dict)
         self.assertTrue(len(current_state) > 0)
 
+        expected_data = {
+            'Label': 'test-task',
+            'IsCreated': True,
+            'CreatedTimestamp': 1714105466,
+            'SpecDrifted': None,
+            'ResourceDrifted': False,
+            'AppliedSpecChecksum': '1fe51362297a1e0dbdce5c51d5130bac42d6edc2ce219ed0bebd4ea05083a039',
+            'CurrentResolvedSpecChecksum': '6b1791a6b1ebdffc9f2de2e7578c56c5d96c0601a95f2de48844c6f2f342a8b6',
+            'AppliedResourcesChecksum': '00f5889a18ebd1aa27d2129ec1efcfda62c03f662b6a3746bec274e40814a4a5',
+            'CurrentResourceChecksum': '00f5889a18ebd1aa27d2129ec1efcfda62c03f662b6a3746bec274e40814a4a5',
+            'AppliedSpec': {
+                'testField': 'testValue'
+            }
+        }
+
+        for field_name, expected_data in expected_data.items():
+            self.assertTrue(field_name in current_state)
+            self.assertIsInstance(current_state[field_name], type(expected_data))
+
 
 if __name__ == '__main__':
     unittest.main()
