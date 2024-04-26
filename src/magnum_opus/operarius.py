@@ -1815,7 +1815,7 @@ class TaskPostProcessingStateUpdateHook(Hook):
             },
             'create_timestamp': {
                 'can_be_none': True,
-                'type': datetime,
+                'type': int,
             },
             'raw_spec': {
                 'can_be_none': True,
