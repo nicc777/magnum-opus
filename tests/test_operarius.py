@@ -2671,6 +2671,25 @@ class TestClassGeneralErrorHook(unittest.TestCase):    # pragma: no cover
 
         print_logger_lines(logger=logger)
 
+    def test_basic_general_error_hook_in_task_with_non_critical_error_01(self):
+        h = GeneralErrorHook()
+        variable_store = VariableStore()
+        variable_store.add_variable(variable_name='__GLOBAL__:NoneCriticalErrorMessage', value='Test Non Critical Error')
+        variable_store = h.run(task=self.task, variable_store=variable_store)
+
+        print_logger_lines(logger=logger)
+        dump_variable_store(
+            test_class_name=self.__class__.__name__,
+            test_method_name=stack()[0][3],
+            variable_store=copy.deepcopy(variable_store)
+        )
+        dump_events(
+            task_id=self.task.task_id,
+            variable_store=copy.deepcopy(variable_store)
+        )
+
+        self.assertTrue('Test Non Critical Error' in logger.error_lines[0])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1580,7 +1580,7 @@ class TaskProcessingHook(Hook):
 
 class ResolveTaskSpecVariablesHook(Hook):
     """
-        Seek `Hook` documentation for common `Hook` attributes and other documentation.
+        See `Hook` documentation for common `Hook` attributes and other documentation.
 
         This hook is responsible for the `Task.spec` variable substitution. It does that by looking up the variable name
         in the supplied `VariableStore`.
@@ -1792,7 +1792,7 @@ class ResolveTaskSpecVariablesHook(Hook):
 
 class TaskPostProcessingStateUpdateHook(Hook):
     """
-    Seek `Hook` documentation for common `Hook` attributes and other documentation.
+    See `Hook` documentation for common `Hook` attributes and other documentation.
 
     This `Hook` implementation will act on the presence of a specific `VariableStore` variable that contains `Task` 
     state information and if changes are detected, the updated state will be persisted. It relies on the implementation
@@ -1938,6 +1938,17 @@ class TaskPostProcessingStateUpdateHook(Hook):
 
 
 class GeneralErrorHook(Hook):
+    """
+    See `Hook` documentation for common `Hook` attributes and other documentation.
+
+    Each `Task` could raise an exception, but an alternative method is to delegate exception raising to this `Hook`.
+
+    To force an `Exception` to be raised, set a variable with key `__GLOBAL__:ExceptionStacktrace` in the 
+    `VariableStore`.
+
+    To just log a non-critical error without raising an exception, set a variable with key 
+    `__GLOBAL__:NoneCriticalErrorMessage` in the `VariableStore`.
+    """
 
     def __init__(self, name: str='GeneralErrorHook') -> None:
         super().__init__(name)
@@ -1963,7 +1974,7 @@ class GeneralErrorHook(Hook):
             raise Exception(error_message)
         elif '__GLOBAL__:NoneCriticalErrorMessage' in variable_store.variable_store:
             non_critical_error_message = variable_store.variable_store.pop('__GLOBAL__:NoneCriticalErrorMessage')
-            error_message = 'ERROR:\n\ttask="{}"\n\terror: {}\n\tNOTE: Error in non-critical and therefore no exception will be raised.'.format(task_name, non_critical_error_message)
+            error_message = 'task="{}"\n\terror: {}\n\tNOTE: Error in non-critical and therefore no exception will be raised.'.format(task_name, non_critical_error_message)
         logger.error('ERROR:\n\t{}'.format(error_message))
         updated_variable_store = VariableStore()
         updated_variable_store.variable_store = copy.deepcopy(variable_store.variable_store)
