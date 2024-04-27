@@ -1958,7 +1958,8 @@ class GeneralErrorHook(Hook):
                 task_name = task.task_id
                 error_message = 'An Unspecified Error Occurred - task: "{}"'.format(task_name)
         if '__GLOBAL__:ExceptionStacktrace' in variable_store.variable_store:
-            error_message = '** task="{}"\n**exception_message: {}'.format(task_name, variable_store.variable_store['__GLOBAL__:ExceptionStacktrace'])
+            error_message = 'EXCEPTION:\n\ttask="{}"\nEXCEPTION: {}'.format(task_name, variable_store.variable_store['__GLOBAL__:ExceptionStacktrace'])
+            logger.error(error_message)
             raise Exception(error_message)
         elif '__GLOBAL__:NoneCriticalErrorMessage' in variable_store.variable_store:
             non_critical_error_message = variable_store.variable_store.pop('__GLOBAL__:NoneCriticalErrorMessage')
