@@ -2645,6 +2645,23 @@ class TestClassGeneralErrorHook(unittest.TestCase):    # pragma: no cover
 
         self.assertTrue('An Unspecified Error Occurred' in logger.error_lines[0])
 
+    def test_basic_general_error_hook_in_task_01(self):
+        h = GeneralErrorHook()
+        variable_store =  h.run(task=self.task)
+
+        print_logger_lines(logger=logger)
+        dump_variable_store(
+            test_class_name=self.__class__.__name__,
+            test_method_name=stack()[0][3],
+            variable_store=copy.deepcopy(variable_store)
+        )
+        dump_events(
+            task_id=self.task.task_id,
+            variable_store=copy.deepcopy(variable_store)
+        )
+
+        self.assertTrue('An Unspecified Error Occurred' in logger.error_lines[0])
+
 
 if __name__ == '__main__':
     unittest.main()
