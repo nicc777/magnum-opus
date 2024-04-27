@@ -1951,15 +1951,22 @@ class GeneralErrorHook(Hook):
         variable_store: VariableStore=VariableStore(),
         task_process_store: TaskProcessStore=TaskProcessStore()
     ) -> VariableStore:
-        exception_message = 'An Unspecified Error Occurred'
+        error_message = 'An Unspecified Error Occurred'
         task_name = 'no-task-specified'
         if task is not None:
             if isinstance(task, Task) is True:
                 task_name = task.task_id
-                exception_message = 'An Unspecified Error Occurred - task: "{}"'.format(task_name)
-        if 'ExceptionStacktrace' in parameters:
-            exception_message = '** task="{}"\n**exception_message: {}'.format(task_name, parameters['ExceptionStacktrace'])
-        logger.error('EXCEPTION:\n{}'.format(exception_message))
+                error_message = 'An Unspecified Error Occurred - task: "{}"'.format(task_name)
+        if '__GLOBAL__:ExceptionStacktrace' in variable_store.variable_store:
+            error_message = '** task="{}"\n**exception_message: {}'.format(task_name, variable_store.variable_store['__GLOBAL__:ExceptionStacktrace'])
+            raise Exception(error_message)
+        elif '__GLOBAL__:NoneCriticalErrorMessage' in variable_store.variable_store:
+            non_critical_error_message = variable_store.variable_store.pop('__GLOBAL__:NoneCriticalErrorMessage')
+            error_message = 'ERROR:\n\ttask="{}"\n\terror: {}\n\tNOTE: Error in non-critical and therefore no exception will be raised.'.format(task_name, non_critical_error_message)
+        logger.error('ERROR:\n\t{}'.format(error_message))
+        updated_variable_store = VariableStore()
+        updated_variable_store.variable_store = copy.deepcopy(variable_store.variable_store)
+        return updated_variable_store
 
 
 class Hooks(Sequence):

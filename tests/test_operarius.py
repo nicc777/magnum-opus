@@ -2611,6 +2611,41 @@ class TestClassTaskPostProcessingStateUpdateHook(unittest.TestCase):    # pragma
         self.assertEqual(len(variable_store.variable_store), 0)
 
 
+class TestClassGeneralErrorHook(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+        logger.reset()
+        self.task = Task(
+            api_version='DummyTaskProcessor1/v1',
+            kind='DummyTaskProcessor1',
+            metadata={'name': 'test-task'},
+            spec={'testField': 'testValue'}
+        )
+
+    def tearDown(self):
+        self.task = None
+        return super().tearDown()
+    
+    def test_basic_general_error_hook_01(self):
+        h = GeneralErrorHook()
+        variable_store =  h.run()
+
+        print_logger_lines(logger=logger)
+        dump_variable_store(
+            test_class_name=self.__class__.__name__,
+            test_method_name=stack()[0][3],
+            variable_store=copy.deepcopy(variable_store)
+        )
+        dump_events(
+            task_id=self.task.task_id,
+            variable_store=copy.deepcopy(variable_store)
+        )
+
+        self.assertTrue('An Unspecified Error Occurred' in logger.error_lines[0])
+
+
 if __name__ == '__main__':
     unittest.main()
 
