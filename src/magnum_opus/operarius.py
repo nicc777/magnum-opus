@@ -2053,12 +2053,10 @@ class WorkflowExecutor:
         parameter_validator: ParameterValidation=ParameterValidation(constraints=None),
         persistence: StatePersistence=StatePersistence(),
         variable_store: VariableStore=VariableStore(),
-        task_process_store: TaskProcessStore=TaskProcessStore(),
-        general_error_hook: Hook=GeneralErrorHook()
+        task_process_store: TaskProcessStore=TaskProcessStore()
     ):
-        self.ordered_workflow_steps = list()
+        self.ordered_workflow_steps = Hooks()
         self.tasks = Tasks()
-        self.general_error_hook = general_error_hook
         self.parameter_validator = parameter_validator
         self.persistence = persistence
         self.variable_store = variable_store
@@ -2091,13 +2089,20 @@ class WorkflowExecutor:
         return self
 
     def add_workflow_step_by_hook_name(self, hook_name: str, hooks: Hooks):
-        self.ordered_workflow_steps.append(
-            hooks.get_hook_by_name(name=hook_name)
+        hook = hooks.get_hook_by_name(name=hook_name)
+        if isinstance(hook, Hook) is False:
+            return self
+        self.ordered_workflow_steps.add_hook(
+            hook=hook
         )
         return self
     
     def add_workflow_step_by_hook_instance(self, hook: Hook):
-        self.ordered_workflow_steps.append(hook)
+        if hook is None:
+            return self
+        if isinstance(hook, Hook) is False:
+            return self
+        self.ordered_workflow_steps.add_hook(hook=hook)
         return self
     
     def add_task(self, task: Task):
@@ -2110,7 +2115,7 @@ class WorkflowExecutor:
         context: str
     )->VariableStore:
         if len(self.ordered_workflow_steps) == 0:
-            raise Exception('No more steps to execute')
+            raise Exception('No steps to execute')
         updated_variable_store = copy.deepcopy(self.variable_store)
 
         if command not in self.command_to_action_map:
@@ -2144,10 +2149,10 @@ class WorkflowExecutor:
                     exception_stacktrace = traceback.format_exc()
                     logger.error('EXCEPTION: {}'.format(exception_stacktrace))
                     for event in all_events: logger.error('POST EXCEPTION EVENT DUMP >> {}'.format(event))
-                    if self.general_error_hook is not None:
+                    if self.ordered_workflow_steps.general_error_hook is not None:
                         if isinstance(GeneralErrorHook, Hook):
                             parameters['ExceptionStacktrace'] = exception_stacktrace
-                            self.general_error_hook.run(
+                            self.ordered_workflow_steps.general_error_hook.run(
                                 task=task,
                                 parameters=parameters,
                                 parameter_validator=self.parameter_validator,
