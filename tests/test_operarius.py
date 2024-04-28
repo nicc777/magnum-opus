@@ -2691,6 +2691,76 @@ class TestClassGeneralErrorHook(unittest.TestCase):    # pragma: no cover
         self.assertTrue('Test Non Critical Error' in logger.error_lines[0])
 
 
+class TestClassHooks(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+        logger.reset()
+        self.task = Task(
+            api_version='DummyTaskProcessor1/v1',
+            kind='DummyTaskProcessor1',
+            metadata={'name': 'test-task'},
+            spec={'testField': 'testValue'}
+        )
+
+    def tearDown(self):
+        self.task = None
+        return super().tearDown()
+    
+    def test_basic_hooks_class_init_01(self):
+        hooks = Hooks()
+        self.assertIsNotNone(hooks)
+        self.assertIsInstance(hooks, Hooks)
+        
+        self.assertIsNotNone(hooks.hooks)
+        self.assertIsInstance(hooks.hooks, list)
+        self.assertEqual(len(hooks.hooks), 0)
+
+        self.assertIsNotNone(hooks.general_error_hook)
+        self.assertIsInstance(hooks.general_error_hook, GeneralErrorHook)
+
+    def test_method_add_hook_01(self):
+        hooks = Hooks()
+        hooks.add_hook(hook=TaskProcessingHook())
+        hooks.add_hook(hook=TaskPostProcessingStateUpdateHook())
+
+        self.assertIsNotNone(hooks.hooks)
+        self.assertIsInstance(hooks.hooks, list)
+        self.assertEqual(len(hooks.hooks), 2)
+
+        self.assertIsInstance(hooks.hooks[0], TaskProcessingHook)
+        self.assertIsInstance(hooks.hooks[1], TaskPostProcessingStateUpdateHook)
+
+    def test_method_get_hook_by_name_returns_valid_requested_hook_01(self):
+        hooks = Hooks()
+        hooks.add_hook(hook=TaskProcessingHook())
+        hooks.add_hook(hook=TaskPostProcessingStateUpdateHook())
+
+        task_processing_hook = hooks.get_hook_by_name(name='TaskProcessingHook')
+        self.assertIsInstance(task_processing_hook, TaskProcessingHook)
+
+        task_post_processing_state_update_hook = hooks.get_hook_by_name(name='TaskPostProcessingStateUpdateHook')
+        self.assertIsInstance(task_post_processing_state_update_hook, TaskPostProcessingStateUpdateHook)
+
+    def test_method_get_hook_by_name_returns_string_when_requesting_hook_not_registered_01(self):
+        hooks = Hooks()
+        hooks.add_hook(hook=TaskProcessingHook())
+        hooks.add_hook(hook=TaskPostProcessingStateUpdateHook())
+
+        non_hook = hooks.get_hook_by_name(name='NonExistingHook')
+        self.assertEqual(non_hook, 'not-a-hook')
+
+    def test_class_as_collection_01(self):
+        hooks = Hooks()
+        hooks.add_hook(hook=TaskProcessingHook())
+        hooks.add_hook(hook=TaskPostProcessingStateUpdateHook())
+
+        self.assertEqual(len(hooks), 2)
+        for hook in hooks:
+            self.assertIsInstance(hook, Hook)
+
+
 if __name__ == '__main__':
     unittest.main()
 
