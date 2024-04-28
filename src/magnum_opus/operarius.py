@@ -2158,7 +2158,7 @@ class WorkflowExecutor:
                         parameters=parameters,
                         parameter_validator=self.parameter_validator,
                         persistence=self.persistence,
-                        variable_manager=self.variable_store,
+                        variable_store=copy.deepcopy(updated_variable_store),
                         task_process_store=self.task_process_store
                     )
                     if '{}:PROCESSING_EVENTS'.format(task.task_id) in updated_variable_store.variable_store:
@@ -2175,7 +2175,7 @@ class WorkflowExecutor:
                                 parameters=parameters,
                                 parameter_validator=self.parameter_validator,
                                 persistence=self.persistence,
-                                variable_manager=self.variable_store,
+                                variable_store=self.variable_store,
                                 task_process_store=self.task_process_store
                             )
                     else:

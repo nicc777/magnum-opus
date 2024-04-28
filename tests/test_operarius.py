@@ -2846,6 +2846,10 @@ class TestClassWorkflowExecutor(unittest.TestCase):    # pragma: no cover
         self.task_processor_store = TaskProcessStore()
         self.task_processor_store.register_task_processor(task_processor=DummyTaskProcessor1())
 
+        self.hooks = Hooks()
+        self.hooks.add_hook(hook=TaskProcessingHook())
+        self.hooks.add_hook(hook=TaskPostProcessingStateUpdateHook())
+
         logger.reset()
 
     def tearDown(self):
@@ -2855,6 +2859,7 @@ class TestClassWorkflowExecutor(unittest.TestCase):    # pragma: no cover
         self.task_04 = None
         self.tasks = None
         self.task_processor_store = None
+        self.hooks = None
         return super().tearDown()
     
     def test_class_workflow_executor_init_01(self):
@@ -2891,6 +2896,68 @@ class TestClassWorkflowExecutor(unittest.TestCase):    # pragma: no cover
         self.assertEqual(we.command_to_action_map['custom_rollback_command'], 'RollbackAction')
         self.assertEqual(we.command_to_action_map['custom_describe_command'], 'DescribeAction')
         self.assertEqual(we.command_to_action_map['custom_drift_command'], 'DetectDriftAction')
+
+    def test_method_add_workflow_step_by_hook_name_basic_01(self):
+        we = WorkflowExecutor(task_process_store=self.task_processor_store)
+        self.assertEqual(len(we.ordered_workflow_steps), 0)
+
+        we.add_workflow_step_by_hook_name(hook_name='TaskProcessingHook', hooks=self.hooks)
+        we.add_workflow_step_by_hook_name(hook_name='TaskPostProcessingStateUpdateHook', hooks=self.hooks)
+        we.add_workflow_step_by_hook_name(hook_name='NonExistingHookTYhatWillBeIgnored', hooks=self.hooks)
+
+        self.assertEqual(len(we.ordered_workflow_steps), 2)
+        self.assertIsInstance(we.ordered_workflow_steps[0], TaskProcessingHook)
+        self.assertIsInstance(we.ordered_workflow_steps[1], TaskPostProcessingStateUpdateHook)
+
+    def test_method_add_workflow_step_by_hook_instance_basic_01(self):
+        we = WorkflowExecutor(task_process_store=self.task_processor_store)
+        self.assertEqual(len(we.ordered_workflow_steps), 0)
+
+        we.add_workflow_step_by_hook_instance(hook=None)
+        we.add_workflow_step_by_hook_instance(hook='InvalidHookType')
+        we.add_workflow_step_by_hook_instance(hook=TaskProcessingHook())
+        we.add_workflow_step_by_hook_instance(hook=TaskPostProcessingStateUpdateHook())
+
+        self.assertEqual(len(we.ordered_workflow_steps), 2)
+        self.assertIsInstance(we.ordered_workflow_steps[0], TaskProcessingHook)
+        self.assertIsInstance(we.ordered_workflow_steps[1], TaskPostProcessingStateUpdateHook)
+
+    def test_method_add_task_01(self):
+        we = WorkflowExecutor(task_process_store=self.task_processor_store)
+        self.assertEqual(len(we.tasks), 0)
+
+        we.add_task(task=self.task_01)
+        we.add_task(task=self.task_02)
+        we.add_task(task=self.task_03)
+        we.add_task(task=self.task_04)
+
+        self.assertEqual(len(we.tasks), 4)
+
+    def test_method_execute_workflow_01(self):
+        variable_store = VariableStore()
+        we = WorkflowExecutor(task_process_store=self.task_processor_store, variable_store=variable_store)
+        we.add_task(task=self.task_01)
+        we.add_task(task=self.task_02)
+        we.add_task(task=self.task_03)
+        we.add_task(task=self.task_04)
+        we.add_workflow_step_by_hook_instance(hook=TaskProcessingHook())
+        we.add_workflow_step_by_hook_instance(hook=TaskPostProcessingStateUpdateHook())
+        try:
+            variable_store = we.execute_workflow(command='create', context='con1')
+        except:
+            traceback.print_exc()
+
+        print_logger_lines(logger=logger)
+        dump_variable_store(
+            test_class_name=self.__class__.__name__,
+            test_method_name=stack()[0][3],
+            variable_store=copy.deepcopy(variable_store)
+        )
+        dump_events(
+            task_id=self.task_01.task_id,
+            variable_store=copy.deepcopy(variable_store)
+        )
+
 
 
 if __name__ == '__main__':
