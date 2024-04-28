@@ -1982,6 +1982,31 @@ class GeneralErrorHook(Hook):
 
 
 class Hooks(Sequence):
+    """This class holds a collection of `Hook` instances
+
+    This is a helper class for easy hook registration.
+
+    This class is important for the `WorkflowExecutor` class as the order of `Hook` registration also dictates the order
+    in which hooks will be called for each `Task` that needs to be processed.
+
+    Therefore, under most circumstances, this class will include a `TaskProcessingHook`.
+
+    The class extends `Sequence` and therefore it may be used as a list:
+
+    ```python
+    hooks = Hooks()
+    hooks.add_hook(...) # add as many hooks as required
+
+    # later...
+    if len(hooks) > 0:
+        for hook in hooks:
+            hook.run(...)
+    ```
+
+    Attributes:
+        hooks: A list that holds `Hook` instances
+        general_error_hook: The main hook registered to handle errors
+    """
 
     def __init__(self) -> None:
         self.hooks = list()
@@ -1989,10 +2014,25 @@ class Hooks(Sequence):
         super().__init__()
 
     def add_hook(self, hook: Hook):
+        """Adds a hook to the list
+
+        Args:
+            hook: An instance of a `Hook`        
+        """
         self.hooks.append(hook)
         return self
     
     def get_hook_by_name(self, name: str):
+        """Retrieves a hook from the collection by name
+
+        Args:
+            name: The name of the hook
+
+        Returns:
+            If the `Hook` is part of the collection, a copy of the object will be returned.
+
+            If a hook with the given name is not found, a string 'not-a-hook' will be returned.
+        """
         hook: Hook
         for hook in self.hooks:
             if hook.name == name:
