@@ -2761,6 +2761,138 @@ class TestClassHooks(unittest.TestCase):    # pragma: no cover
             self.assertIsInstance(hook, Hook)
 
 
+class TestClassWorkflowExecutor(unittest.TestCase):    # pragma: no cover
+
+    def setUp(self):
+        print()
+        print('-'*80)
+        logger.reset()
+        self.task_01 = Task(
+            api_version='DummyTaskProcessor1/v1',
+            kind='DummyTaskProcessor1',
+            metadata={'name': 'test-task-01'},
+            spec={'testField': 'testValue'}
+        )
+        self.task_02 = Task(
+            api_version='DummyTaskProcessor1/v1',
+            kind='DummyTaskProcessor1',
+            metadata={'name': 'test-task-02'},
+            spec={'testField': 'testValue'}
+        )
+        self.task_03 = Task(
+            api_version='DummyTaskProcessor1/v1',
+            kind='DummyTaskProcessor1',
+            metadata={'name': 'test-task-03'},
+            spec={'testField': 'testValue'}
+        )
+        self.task_04 = Task(
+            api_version='DummyTaskProcessor1/v1',
+            kind='DummyTaskProcessor1',
+            metadata={'name': 'test-task-04'},
+            spec={'testField': 'testValue'}
+        )
+
+        # Add processing scopes to tasks
+        self.task_01.metadata['processingScope'] = [
+            {
+                'commands': ['create', 'delete',],
+                'contexts': ['con1','con2'],
+            },
+        ]
+        self.task_02.metadata['dependencies'] = [
+            {
+                'tasks': ['test-task-01',],
+                'commands': ['create', 'delete',],
+                'contexts': ['con1','con2',],
+            }
+        ]
+        self.task_03.metadata['dependencies'] = [
+            {
+                'tasks': ['test-task-01',],
+                'commands': ['delete', 'update',],
+                'contexts': ['con2','con3'],
+            }
+        ]
+        self.task_03.metadata['processingScopes'] = [
+            {
+                'commands': ['delete', 'update',],
+                'contexts': ['con2','con3'],
+            },
+        ]
+
+        # Add task dependencies
+        self.task_01.metadata['dependencies'] = [
+            {
+                'tasks': ['test-task-04',],
+            }
+        ]
+        self.task_02.metadata['dependencies'] = [
+            {
+                'tasks': ['test-task-01','test-task-03',],
+            }
+        ]
+        self.task_04.metadata['dependencies'] = [
+            {
+                'tasks': ['test-task-03',],
+            }
+        ]
+
+        self.tasks = Tasks()
+        self.tasks.add_task(task=self.task_01)
+        self.tasks.add_task(task=self.task_02)
+        self.tasks.add_task(task=self.task_03)
+        self.tasks.add_task(task=self.task_04)
+        
+        self.task_processor_store = TaskProcessStore()
+        self.task_processor_store.register_task_processor(task_processor=DummyTaskProcessor1())
+
+        logger.reset()
+
+    def tearDown(self):
+        self.task_01 = None
+        self.task_02 = None
+        self.task_03 = None
+        self.task_04 = None
+        self.tasks = None
+        self.task_processor_store = None
+        return super().tearDown()
+    
+    def test_class_workflow_executor_init_01(self):
+        we = WorkflowExecutor(task_process_store=self.task_processor_store)
+        self.assertIsNotNone(we)
+        self.assertIsInstance(we, WorkflowExecutor)
+
+    def test_methods_to_add_custom_commands(self):
+        we = WorkflowExecutor(task_process_store=self.task_processor_store)
+        
+        for command in ('create', 'delete', 'update', 'rollback', 'describe', 'drift', ):
+            self.assertTrue(command in we.command_to_action_map)
+        self.assertEqual(we.command_to_action_map['create'], 'CreateAction')
+        self.assertEqual(we.command_to_action_map['delete'], 'DeleteAction')
+        self.assertEqual(we.command_to_action_map['update'], 'UpdateAction')
+        self.assertEqual(we.command_to_action_map['rollback'], 'RollbackAction')
+        self.assertEqual(we.command_to_action_map['describe'], 'DescribeAction')
+        self.assertEqual(we.command_to_action_map['drift'], 'DetectDriftAction')
+
+        we.link_command_to_create_action(command='custom_create_command')
+        we.link_command_to_delete_action(command='custom_delete_command')
+        we.link_command_to_update_action(command='custom_update_command')
+        we.link_command_to_rollback_action(command='custom_rollback_command')
+        we.link_command_to_describe_action(command='custom_describe_command')
+        we.link_command_to_detect_drift_action(command='custom_drift_command')
+
+        for command in ('create', 'delete', 'update', 'rollback', 'describe', 'drift', ):
+            self.assertFalse(command in we.command_to_action_map)
+        for command in ('custom_create_command', 'custom_delete_command', 'custom_update_command', 'custom_rollback_command', 'custom_describe_command', 'custom_drift_command', ):
+            self.assertTrue(command in we.command_to_action_map)
+        self.assertEqual(we.command_to_action_map['custom_create_command'], 'CreateAction')
+        self.assertEqual(we.command_to_action_map['custom_delete_command'], 'DeleteAction')
+        self.assertEqual(we.command_to_action_map['custom_update_command'], 'UpdateAction')
+        self.assertEqual(we.command_to_action_map['custom_rollback_command'], 'RollbackAction')
+        self.assertEqual(we.command_to_action_map['custom_describe_command'], 'DescribeAction')
+        self.assertEqual(we.command_to_action_map['custom_drift_command'], 'DetectDriftAction')
+
+
 if __name__ == '__main__':
     unittest.main()
 

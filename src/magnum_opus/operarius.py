@@ -2070,27 +2070,39 @@ class WorkflowExecutor:
         self.command_to_action_map['drift'] = 'DetectDriftAction'
         self.persistence.load()
 
+    def _pop_old_command_map(self, action_name: str):
+        for key, val in self.command_to_action_map.items():
+            if val == action_name:
+                self.command_to_action_map.pop(key)
+                break
+
     def link_command_to_create_action(self, command: str):
+        self._pop_old_command_map(action_name='CreateAction')
         self.command_to_action_map[command] = 'CreateAction'
         return self
 
     def link_command_to_rollback_action(self, command: str):
+        self._pop_old_command_map(action_name='RollbackAction')
         self.command_to_action_map[command] = 'RollbackAction'
         return self
 
     def link_command_to_delete_action(self, command: str):
+        self._pop_old_command_map(action_name='DeleteAction')
         self.command_to_action_map[command] = 'DeleteAction'
         return self
 
     def link_command_to_update_action(self, command: str):
+        self._pop_old_command_map(action_name='UpdateAction')
         self.command_to_action_map[command] = 'UpdateAction'
         return self
 
     def link_command_to_describe_action(self, command: str):
+        self._pop_old_command_map(action_name='DescribeAction')
         self.command_to_action_map[command] = 'DescribeAction'
         return self
 
     def link_command_to_detect_drift_action(self, command: str):
+        self._pop_old_command_map(action_name='DetectDriftAction')
         self.command_to_action_map[command] = 'DetectDriftAction'
         return self
 
