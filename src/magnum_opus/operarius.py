@@ -2062,6 +2062,12 @@ class WorkflowExecutor:
         self.variable_store = variable_store
         self.task_process_store = task_process_store
         self.command_to_action_map = dict()
+        self.command_to_action_map['create'] = 'CreateAction'
+        self.command_to_action_map['rollback'] = 'RollbackAction'
+        self.command_to_action_map['delete'] = 'DeleteAction'
+        self.command_to_action_map['update'] = 'UpdateAction'
+        self.command_to_action_map['describe'] = 'DescribeAction'
+        self.command_to_action_map['drift'] = 'DetectDriftAction'
         self.persistence.load()
 
     def link_command_to_create_action(self, command: str):
