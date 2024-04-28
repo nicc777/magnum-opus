@@ -2169,6 +2169,6 @@ class WorkflowExecutor:
                     else:
                         print(exception_stacktrace)
                     raise Exception('Failure to process hook "{}" - cannot continue'.format(hook.name))
-            self.persistence.commit()
+        self.persistence.commit()
         return copy.deepcopy(updated_variable_store)
 
