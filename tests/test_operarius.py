@@ -2942,10 +2942,7 @@ class TestClassWorkflowExecutor(unittest.TestCase):    # pragma: no cover
         we.add_task(task=self.task_04)
         we.add_workflow_step_by_hook_instance(hook=TaskProcessingHook())
         we.add_workflow_step_by_hook_instance(hook=TaskPostProcessingStateUpdateHook())
-        try:
-            variable_store = we.execute_workflow(command='create', context='con1')
-        except:
-            traceback.print_exc()
+        variable_store = we.execute_workflow(command='create', context='con1')
 
         print_logger_lines(logger=logger)
         dump_variable_store(
