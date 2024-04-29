@@ -41,7 +41,7 @@ Detailed documentation is provided in the source code.
 Here is a really quick ["hello world" example](./examples/hello_world.py) that will implement a `TaskProcessor` that creates a file with the text "Hello World!" in it:
 
 ```sh
-python3 examples/hello_world.py
+python3 examples/hello_world.py 2>/dev/null
 ```
 
 The example can also be observed as a unit test by running the test file [tests/test_hello_world.py](tests/test_hello_world.py)
