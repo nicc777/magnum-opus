@@ -2047,6 +2047,37 @@ class Hooks(Sequence):
 
 
 class WorkflowExecutor:
+    """This is an implementation of a workflow engine that will process all qualifying `Task` objects.
+
+    Some initialization is required before running the workflow:
+
+    Step 1: Prepare the `VariableStore` and load all required variables that must be pre-loaded. This is especially 
+            relevant for the `ResolveTaskSpecVariablesHook` to perform the variable substitution in`Task` specs.
+
+    Step 2: Initialize the `StatePersistence` implementation required.
+
+    Step 3: Prepare an instance of the `TaskProcessStore` class and add all required `TaskProcessor` instances. Each 
+            `Task` must have a compatible `TaskProcessor` that knows how to process that `Task`.
+
+    Step 4: Create a collection of `Tasks` with each individual `Task` instance added as required for processing.
+
+    Step 5: At this stage, an instance of `WorkflowExecutor` can be initialized.
+
+    Step 6: [Optional] If the client requires a custom command mapping, register the custom command mappings now.
+
+    Step 7: Register all `Hook` implementation in the desired order of processing. The hooks will be called in insert 
+            order on each `Task` (also in the relevant processing order, taking into account dependencies).
+
+    Step 8: Execute the workflow by calling the `execute_workflow()` method.
+
+    Attributes:
+        ordered_workflow_steps: An instance of `Hooks` containing all the hooks to run in sequence on each qualifying `Task`
+        tasks: All the registered `Tasks`
+        parameter_validator: An instance of `ParameterValidation`
+        persistence: An instance of `StatePersistence`
+        variable_store: An instance of `VariableStore`. Any pre-existing variables required for processing should already be loaded.
+        task_process_store: An instance of `TaskProcessStore`
+    """
 
     def __init__(
         self,
@@ -2055,6 +2086,16 @@ class WorkflowExecutor:
         variable_store: VariableStore=VariableStore(),
         task_process_store: TaskProcessStore=TaskProcessStore()
     ):
+        """Initialization of the `WorkflowExecutor` (see step 5).
+
+        All arguments are optional.
+
+        Args:
+            variable_store: An instance of `VariableStore` (see step 1)
+            persistence: An instance of `StatePersistence` (see step 2)
+            task_process_store: An instance of `TaskProcessStore` (see step 3)
+            parameter_validator: An instance of `ParameterValidation`
+        """
         self.ordered_workflow_steps = Hooks()
         self.tasks = Tasks()
         self.parameter_validator = parameter_validator
@@ -2077,36 +2118,105 @@ class WorkflowExecutor:
                 break
 
     def link_command_to_create_action(self, command: str):
+        """Registers a custom command linked to the `CreateAction`
+
+        The original mapped command will be removed.
+
+        Args:
+            command: A string with the custom command
+
+        Returns:
+            A copy of self
+        """
         self._pop_old_command_map(action_name='CreateAction')
         self.command_to_action_map[command] = 'CreateAction'
         return self
 
     def link_command_to_rollback_action(self, command: str):
+        """Registers a custom command linked to the `RollbackAction`
+
+        The original mapped command will be removed.
+
+        Args:
+            command: A string with the custom command
+
+        Returns:
+            A copy of self
+        """
         self._pop_old_command_map(action_name='RollbackAction')
         self.command_to_action_map[command] = 'RollbackAction'
         return self
 
     def link_command_to_delete_action(self, command: str):
+        """Registers a custom command linked to the `DeleteAction`
+
+        The original mapped command will be removed.
+
+        Args:
+            command: A string with the custom command
+
+        Returns:
+            A copy of self
+        """
         self._pop_old_command_map(action_name='DeleteAction')
         self.command_to_action_map[command] = 'DeleteAction'
         return self
 
     def link_command_to_update_action(self, command: str):
+        """Registers a custom command linked to the `UpdateAction`
+
+        The original mapped command will be removed.
+
+        Args:
+            command: A string with the custom command
+
+        Returns:
+            A copy of self
+        """
         self._pop_old_command_map(action_name='UpdateAction')
         self.command_to_action_map[command] = 'UpdateAction'
         return self
 
     def link_command_to_describe_action(self, command: str):
+        """Registers a custom command linked to the `DescribeAction`
+
+        The original mapped command will be removed.
+
+        Args:
+            command: A string with the custom command
+
+        Returns:
+            A copy of self
+        """
         self._pop_old_command_map(action_name='DescribeAction')
         self.command_to_action_map[command] = 'DescribeAction'
         return self
 
     def link_command_to_detect_drift_action(self, command: str):
+        """Registers a custom command linked to the `DetectDriftAction`
+
+        The original mapped command will be removed.
+
+        Args:
+            command: A string with the custom command
+
+        Returns:
+            A copy of self
+        """
         self._pop_old_command_map(action_name='DetectDriftAction')
         self.command_to_action_map[command] = 'DetectDriftAction'
         return self
 
     def add_workflow_step_by_hook_name(self, hook_name: str, hooks: Hooks):
+        """Registers a `Hook` as a workflow step, based on a `Hook` name and a collection of `Hooks`
+
+        Args:
+            hook_name: A string with the name of the desired `Hook`
+            hooks: An instance of `Hooks`, containing one or more `Hook` instances
+
+        Returns:
+            A copy of self
+        """
         hook = hooks.get_hook_by_name(name=hook_name)
         if isinstance(hook, Hook) is False:
             return self
@@ -2116,6 +2226,14 @@ class WorkflowExecutor:
         return self
     
     def add_workflow_step_by_hook_instance(self, hook: Hook):
+        """Registers a `Hook` as a workflow step, based on a `Hook` instance
+
+        Args:
+            hook: An instance of `Hook` to add to the workflow
+
+        Returns:
+            A copy of self
+        """
         if hook is None:
             return self
         if isinstance(hook, Hook) is False:
@@ -2124,6 +2242,14 @@ class WorkflowExecutor:
         return self
     
     def add_task(self, task: Task):
+        """Adds another `Task` instance to the local instance of `Tasks`
+
+        Args:
+            task: An instance of a `Task`
+
+        Returns:
+            A copy of self
+        """
         self.tasks.add_task(task=task)
         return self
     
@@ -2132,6 +2258,33 @@ class WorkflowExecutor:
         command: str,
         context: str
     )->VariableStore:
+        """Executes the workflow
+
+        All `Tasks` will first be organized in processing order before any processing is done. This will result in a
+        ordered list of `Task` names.
+
+        The workflow will now loop through the task list and retrieve an instance of the `Task`.
+
+        For each `Task`, the workflow will now loop through each registered `Hook` in the ordered sequence as defined by
+        `ordered_workflow_steps` and call the `run()` method, supplying the `Task` and other relevant data.
+
+        Ideally an instance of the `TaskProcessingHook` must be part of the `ordered_workflow_steps` in order to do any
+        meaningful processing on each `Task`
+
+        `Task` processing will most often result in more variables being added to the `VariableStore`. AFter all
+        processing is done, and assuming there are no exceptions raised in the process, the final updated
+        `VariableStore` will be returned to the client.
+
+        Args:
+            command: A string with the desired command to run on all `Tasks`
+            context: A string with the desired context
+
+        Returns:
+            An updated `VariableStore`
+
+        Raises:
+            Exception: Any exception raised during `Task` processing or due to some validation error.
+        """
         if len(self.ordered_workflow_steps) == 0:
             raise Exception('No steps to execute')
         updated_variable_store = copy.deepcopy(self.variable_store)
