@@ -412,6 +412,11 @@ def random_string(string_length: int=16)->str:
 def main():
     print('Starting Hello World Example')
     output_path = '{}{}hello-world.txt'.format(tempfile.gettempdir(), os.sep)
+
+    ###
+    ### At the heart of this solution is a `Task` which defines some kind of (infrastructure) resource - in this 
+    ### example, a file on the local file system
+    ###
     hello_world_task = Task(
         api_version='hello-world/v1',
         kind='HelloWorldV3',
@@ -428,7 +433,15 @@ def main():
     we = WorkflowExecutor(task_process_store=task_processor_store)
     we.add_workflow_step_by_hook_name(hook_name='TaskProcessingHook', hooks=hooks)
     we.add_task(task=hello_world_task)
+
+    ###
+    ### Magic Happens: The task is processed which will create a file with random text 
+    ###
     variable_store = we.execute_workflow(command='create', context='test')
+
+    ###
+    ### Verify Results
+    ###
     key = '{}:OUTPUT'.format(hello_world_task.task_id)
     if key in variable_store.variable_store:
         result_file = variable_store.get_variable(variable_name=key)
@@ -438,7 +451,12 @@ def main():
     print()
     
     print('Starting cleanup')
+
+    ###
+    ### Magic Happens: We can also cleanup previous resources that were created
+    ###
     variable_store = we.execute_workflow(command='delete', context='test')
+    
     if os.path.exists(output_path) is False:
         print('  Deleted file "{}"'.format(output_path))
     
