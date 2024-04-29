@@ -2955,6 +2955,16 @@ class TestClassWorkflowExecutor(unittest.TestCase):    # pragma: no cover
             variable_store=copy.deepcopy(variable_store)
         )
 
+    def test_method_execute_workflow_no_ordered_workflow_produces_exception_01(self):
+        variable_store = VariableStore()
+        we = WorkflowExecutor(task_process_store=self.task_processor_store, variable_store=variable_store)
+        we.add_task(task=self.task_01)
+        we.add_task(task=self.task_02)
+        we.add_task(task=self.task_03)
+        we.add_task(task=self.task_04)
+        with self.assertRaises(Exception):
+            we.execute_workflow(command='create', context='con1')
+
 
 
 if __name__ == '__main__':
