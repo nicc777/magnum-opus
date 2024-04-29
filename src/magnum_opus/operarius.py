@@ -2168,7 +2168,7 @@ class WorkflowExecutor:
                     logger.error('EXCEPTION: {}'.format(exception_stacktrace))
                     for event in all_events: logger.error('POST EXCEPTION EVENT DUMP >> {}'.format(event))
                     if self.ordered_workflow_steps.general_error_hook is not None:
-                        if isinstance(GeneralErrorHook, Hook):
+                        if isinstance(self.ordered_workflow_steps.general_error_hook, Hook):
                             parameters['ExceptionStacktrace'] = exception_stacktrace
                             self.ordered_workflow_steps.general_error_hook.run(
                                 task=task,
@@ -2179,7 +2179,7 @@ class WorkflowExecutor:
                                 task_process_store=self.task_process_store
                             )
                     else:
-                        print(exception_stacktrace)
+                        print(exception_stacktrace) # pragma: no cover
                     raise Exception('Failure to process hook "{}" - cannot continue'.format(hook.name))
         self.persistence.commit()
         return copy.deepcopy(updated_variable_store)

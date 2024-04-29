@@ -2965,6 +2965,38 @@ class TestClassWorkflowExecutor(unittest.TestCase):    # pragma: no cover
         with self.assertRaises(Exception):
             we.execute_workflow(command='create', context='con1')
 
+        print_logger_lines(logger=logger)
+
+    def test_method_execute_workflow_unrecognized_command_produces_exception_01(self):
+        variable_store = VariableStore()
+        we = WorkflowExecutor(task_process_store=self.task_processor_store, variable_store=variable_store)
+        we.add_task(task=self.task_01)
+        we.add_task(task=self.task_02)
+        we.add_task(task=self.task_03)
+        we.add_task(task=self.task_04)
+        we.add_workflow_step_by_hook_instance(hook=TaskProcessingHook())
+        we.add_workflow_step_by_hook_instance(hook=TaskPostProcessingStateUpdateHook())
+        with self.assertRaises(Exception):
+            we.execute_workflow(command='this_command_does_not_exist', context='con1')
+
+    def test_method_execute_workflow_task_exception_01(self):
+        variable_store = VariableStore()
+        variable_store.add_variable(
+            variable_name='{}:UNITTEST_TROW_EXCEPTION'.format(self.task_01.task_id),
+            value=True
+        )
+        we = WorkflowExecutor(task_process_store=self.task_processor_store, variable_store=variable_store)
+        we.add_task(task=self.task_01)
+        we.add_task(task=self.task_02)
+        we.add_task(task=self.task_03)
+        we.add_task(task=self.task_04)
+        we.add_workflow_step_by_hook_instance(hook=TaskProcessingHook())
+        we.add_workflow_step_by_hook_instance(hook=TaskPostProcessingStateUpdateHook())
+        with self.assertRaises(Exception):
+            we.execute_workflow(command='create', context='con1')
+
+        print_logger_lines(logger=logger)
+
 
 
 if __name__ == '__main__':
