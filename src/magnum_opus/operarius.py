@@ -780,7 +780,7 @@ class Task:
         kind: A descriptor of the kind of task, that a `TaskProcessor` can use to make further decisions as to how to process the `Task`
         metadata: A dict defining task meta data
         spec: A dict with fields required by the `TaskProcessor` to successfully process the task.
-        task_state_class: An instance of `TaskState`
+        state: An instance of `TaskState`
     """
 
     def __init__(self, api_version: str, kind: str, metadata: dict, spec: dict, task_state_class: object=TaskState):
